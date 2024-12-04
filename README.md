@@ -7,7 +7,7 @@ a kitchen sink of utilities for working with react fiber. this project assumes t
 
 ## example
 
-this script logs every rendered fiber in the current [commit](https://react.dev/learn/render-and-commit).
+this script logs every rendered fiber in the current [commit](https://react.dev/learn/render-and-commit). Inspect it live [here](https://bippy.million.dev/).
 
 ```jsx
 import { instrument, traverseFiberRoot } from 'bippy'; // must be imported BEFORE react
