@@ -1,4 +1,4 @@
-# <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="50" /> bippy
+# <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="50" align="center" /> bippy
 
 > This
 
