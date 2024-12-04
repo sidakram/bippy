@@ -35,7 +35,7 @@ function Root() {
 ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
 
 const data = [];
-const NAME_ALLOW_LIST = ['A', 'B', 'C', 'D', 'E', 'Root'];
+const NAME_ALLOW_LIST = ['A', 'B', 'C', 'Root'];
 
 instrument({
   onCommitFiberRoot: traverseFiberRoot({
