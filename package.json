@@ -1,6 +1,6 @@
 {
   "name": "bippy",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "a kitchen sink of utilities for working with react fiber",
   "keywords": [
     "react",
@@ -43,9 +43,7 @@
   },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
-  "browser": "dist/auto.global.js",
   "types": "dist/index.d.ts",
-  "bin": "bin/cli.js",
   "files": [
     "dist",
     "bin",
