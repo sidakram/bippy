@@ -1,6 +1,6 @@
 # <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
-a kitchen sink of utilities for working with react fiber. used internally for [`react-scan`](https://github.com/aidenybai/react-scan).
+a kitchen sink of utilities for working with react fiber. this project assumes that you don't have access to the actual react code. used internally for [`react-scan`](https://github.com/aidenybai/react-scan).
 
 > [!WARNING]
 > this project accesses react internals. this is not recommended and may break production apps - unless you acknowledge this risk and know exactly you're doing.
