@@ -287,6 +287,9 @@ export const getType = (type: any): any => {
 };
 
 export const getDisplayName = (type: any): string | null => {
+  if (typeof type !== 'function' && !(typeof type === 'object' && type)) {
+    return null;
+  }
   const name = type.displayName || type.name || null;
   if (name) return name;
   type = getType(type);
