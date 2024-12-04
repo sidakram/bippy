@@ -47,6 +47,9 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.4
         version: 4.3.4(vite@6.0.2(terser@5.36.0))
+      bippy:
+        specifier: ^0.0.2
+        version: 0.0.2
       react:
         specifier: '*'
         version: 18.3.1
@@ -722,6 +725,10 @@ packages:
 
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+
+  bippy@0.0.2:
+    resolution: {integrity: sha512-QFoQTjgTeFw3gKbV4u0X7nrFVN9tktv7u9JbFF+OE7GtKvpoZG8fQdpwMD34pM5ilIa7IcLeSwdxladVoemiEA==}
+    hasBin: true
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -2940,6 +2947,8 @@ snapshots:
   axobject-query@4.1.0: {}
 
   balanced-match@1.0.2: {}
+
+  bippy@0.0.2: {}
 
   brace-expansion@1.1.11:
     dependencies:
