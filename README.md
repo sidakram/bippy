@@ -14,7 +14,7 @@ this script logs every rendered fiber in the current [commit](https://react.dev/
 inspect it live [here](https://bippy.million.dev/).
 
 ```jsx
-import { instrument, traverseFiberRoot } from 'bippy'; // must be imported BEFORE react
+import { instrument, traverseFiberRoot, getDisplayName } from 'bippy'; // must be imported BEFORE react
 
 instrument({
   onCommitFiberRoot: traverseFiberRoot({
