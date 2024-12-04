@@ -243,6 +243,25 @@ export const hasMemoCache = (fiber: Fiber) => {
   return Boolean((fiber.updateQueue as any)?.memoCache);
 };
 
+export const getType = (type: any): any => {
+  if (typeof type === 'function') {
+    return type;
+  }
+  if (typeof type === 'object' && type) {
+    // memo / forwardRef case
+    return getType(type.type || type.render);
+  }
+  return null;
+};
+
+export const getDisplayName = (type: any): string | null => {
+  const name = type.displayName || type.name || null;
+  if (name) return name;
+  type = getType(type);
+  if (!type) return null;
+  return type.displayName || type.name || null;
+};
+
 const NO_OP = () => {
   /**/
 };

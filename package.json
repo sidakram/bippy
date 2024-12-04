@@ -1,7 +1,7 @@
 {
   "name": "bippy",
   "version": "0.0.1",
-  "description": "get fiber information from react in a safe-ish way",
+  "description": "a kitchen sink of utilities for working with react fiber",
   "keywords": [
     "react",
     "react-instrumentation",
@@ -9,13 +9,13 @@
     "fiber",
     "internals"
   ],
-  "homepage": "https://github.com/aidenybai/react-instrumentation#readme",
+  "homepage": "https://github.com/aidenybai/bippy#readme",
   "bugs": {
-    "url": "https://github.com/aidenybai/react-instrumentation/issues"
+    "url": "https://github.com/aidenybai/bippy/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/aidenybai/react-instrumentation.git"
+    "url": "git+https://github.com/aidenybai/bippy.git"
   },
   "license": "MIT",
   "author": {
