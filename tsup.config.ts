@@ -6,7 +6,7 @@ export default defineConfig([
     outDir: './dist',
     splitting: false,
     sourcemap: false,
-    format: ['cjs', 'esm', 'iife'],
+    format: ['cjs', 'esm'],
     target: 'esnext',
     platform: 'browser',
     treeshake: true,
@@ -17,5 +17,4 @@ export default defineConfig([
     },
     external: ['react', 'react-dom', 'react-reconciler'],
   },
-
 ]);

@@ -211,6 +211,34 @@ export const getTimings = (fiber?: Fiber | null | undefined) => {
   return { selfTime, totalTime };
 };
 
+export const getFiberFromElement = (element: HTMLElement): Fiber | null => {
+  const { renderers } = getRDTHook();
+  if (!renderers) return null;
+  for (const [_, renderer] of Array.from(renderers)) {
+    try {
+      const fiber = renderer.findFiberByHostInstance(element);
+      if (fiber) return fiber;
+    } catch (e) {
+      // If React is mid-render, references to previous nodes may disappear
+    }
+  }
+
+  if ('_reactRootContainer' in element) {
+    // @ts-expect-error - Property '_reactRootContainer' does not exist on type 'HTMLElement'
+    return element._reactRootContainer?._internalRoot?.current?.child;
+  }
+
+  for (const key in element) {
+    if (
+      key.startsWith('__reactInternalInstance$') ||
+      key.startsWith('__reactFiber')
+    ) {
+      return element[key as keyof HTMLElement] as unknown as Fiber;
+    }
+  }
+  return null;
+};
+
 export const hasMemoCache = (fiber: Fiber) => {
   return Boolean((fiber.updateQueue as any)?.memoCache);
 };
@@ -247,7 +275,7 @@ if (typeof window !== 'undefined') {
   getRDTHook();
 }
 
-export const createOnCommitFiberRootRenderHandler = ({
+export const traverseFiberRoot = ({
   onRender,
 }: {
   onRender: (fiber: Fiber) => void;
@@ -267,7 +295,7 @@ export const createOnCommitFiberRootRenderHandler = ({
       // eslint-disable-next-line eqeqeq
       while (fiber != null) {
         const shouldIncludeInTree = !shouldFilterFiber(fiber);
-        if (shouldIncludeInTree) {
+        if (shouldIncludeInTree && didFiberRender(fiber)) {
           onRender(fiber);
         }
 
@@ -283,7 +311,7 @@ export const createOnCommitFiberRootRenderHandler = ({
       if (!prevFiber) return;
 
       const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
-      if (shouldIncludeInTree) {
+      if (shouldIncludeInTree && didFiberRender(nextFiber)) {
         onRender(nextFiber);
       }
 

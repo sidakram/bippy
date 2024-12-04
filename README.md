@@ -1,11 +1,24 @@
-# <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="50" align="center" /> bippy
+# <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
-> This
+a set of utilities for working with React fiber. i use this internally for [`react-scan`](https://github.com/aidenybai/react-scan).
 
-A set of utilities for working with React fibers.
+> [!WARNING]
+> this project accesses react internals. this is not recommended and may break production apps - unless you acknowledge this risk and know exactly you're doing.
 
-# misc
+## example
 
-the original bippy characeter is owner and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand.
+```jsx
+import { instrument, traverseFiberRoot } from 'bippy'; // must be imported BEFORE react
 
-why the name bippy? because i think its cute
+instrument({
+  onCommitFiberRoot: traverseFiberRoot({
+    onRender(fiber) {
+      console.log(fiber);
+    },
+  }),
+});
+```
+
+## misc
+
+the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is cute
