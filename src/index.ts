@@ -284,7 +284,12 @@ export const getRDTHook = () => {
       return nextID;
     },
   };
-  globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = rdtHook;
+  try {
+    // sometimes this is a getter
+    globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = rdtHook;
+  } catch {
+    /**/
+  }
   return rdtHook;
 };
 
