@@ -5,7 +5,7 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
-    "bippy": "^0.0.3",
+    "bippy": "^0.0.4",
     "react": "*",
     "react-dom": "*",
     "react-inspector": "^6.0.2"

@@ -48,8 +48,8 @@ importers:
         specifier: ^4.3.4
         version: 4.3.4(vite@6.0.2(terser@5.36.0))
       bippy:
-        specifier: ^0.0.3
-        version: 0.0.3
+        specifier: ^0.0.4
+        version: 0.0.4
       react:
         specifier: '*'
         version: 18.3.1
@@ -726,9 +726,8 @@ packages:
   balanced-match@1.0.2:
     resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
 
-  bippy@0.0.3:
-    resolution: {integrity: sha512-6lBMWaVzI5st8PHTcEU7U3t/oOihL0LKXr3Ele0Aj7T9n6HyV0VFwJzHcXkgfNX2lpE1RgMLY3pQrtdwcIKJqQ==}
-    hasBin: true
+  bippy@0.0.4:
+    resolution: {integrity: sha512-Q8WLgzYeDJGRB547Vx24yezkzKtM8kDqW3YIktuiHZfj+/wOytrHX+sn6/wWreHPOYrNl7tB2AXAfu03Asy0KQ==}
 
   brace-expansion@1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
@@ -2948,7 +2947,7 @@ snapshots:
 
   balanced-match@1.0.2: {}
 
-  bippy@0.0.3: {}
+  bippy@0.0.4: {}
 
   brace-expansion@1.1.11:
     dependencies:
