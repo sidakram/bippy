@@ -1,4 +1,4 @@
-# <img src="./.github/assets" /> bippy
+# <img src="![./.github/assets](https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true)" width="30" /> bippy
 
 > This
 
