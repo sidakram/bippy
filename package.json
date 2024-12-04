@@ -1,0 +1,79 @@
+{
+  "name": "bippy",
+  "version": "0.0.1",
+  "description": "get fiber information from react in a safe-ish way",
+  "keywords": [
+    "react",
+    "react-instrumentation",
+    "react instrumentation",
+    "fiber",
+    "internals"
+  ],
+  "homepage": "https://github.com/aidenybai/react-instrumentation#readme",
+  "bugs": {
+    "url": "https://github.com/aidenybai/react-instrumentation/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidenybai/react-instrumentation.git"
+  },
+  "license": "MIT",
+  "author": {
+    "name": "Aiden Bai",
+    "email": "aiden@million.dev"
+  },
+  "type": "commonjs",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "import": {
+        "types": "./dist/index.d.mts",
+        "react-server": "./dist/rsc-shim.mjs",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.ts",
+        "react-server": "./dist/rsc-shim.js",
+        "default": "./dist/index.js"
+      }
+    },
+    "./dist/*": "./dist/*.js",
+    "./dist/*.js": "./dist/*.js",
+    "./dist/*.mjs": "./dist/*.mjs"
+  },
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "browser": "dist/auto.global.js",
+  "types": "dist/index.d.ts",
+  "bin": "bin/cli.js",
+  "files": [
+    "dist",
+    "bin",
+    "package.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "NODE_ENV=production tsup",
+    "dev": "NODE_ENV=development tsup --watch",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
+    "prettier": "prettier --config .prettierrc.mjs -w src",
+    "publint": "publint"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-reconciler": "^0.28.8",
+    "@vercel/style-guide": "^6.0.0",
+    "eslint": "^8.57.1",
+    "prettier": "^3.3.3",
+    "publint": "^0.2.12",
+    "react": "*",
+    "react-dom": "*",
+    "react-reconciler": "^0.29.2",
+    "terser": "^5.36.0",
+    "tsup": "^8.2.4"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
