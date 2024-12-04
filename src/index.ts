@@ -32,32 +32,37 @@ export const traverseContexts = (
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   ) => boolean | void,
 ) => {
-  const nextDependencies = fiber.dependencies;
-  const prevDependencies = fiber.alternate?.dependencies;
+  try {
+    const nextDependencies = fiber.dependencies;
+    const prevDependencies = fiber.alternate?.dependencies;
 
-  if (!nextDependencies || !prevDependencies) return false;
-  if (
-    typeof nextDependencies !== 'object' ||
-    !('firstContext' in nextDependencies) ||
-    typeof prevDependencies !== 'object' ||
-    !('firstContext' in prevDependencies)
-  ) {
-    return false;
-  }
-  let nextContext = nextDependencies.firstContext;
-  let prevContext = prevDependencies.firstContext;
-  while (
-    nextContext &&
-    typeof nextContext === 'object' &&
-    'memoizedValue' in nextContext &&
-    prevContext &&
-    typeof prevContext === 'object' &&
-    'memoizedValue' in prevContext
-  ) {
-    if (selector(nextContext as any, prevContext as any) === true) return true;
+    if (!nextDependencies || !prevDependencies) return false;
+    if (
+      typeof nextDependencies !== 'object' ||
+      !('firstContext' in nextDependencies) ||
+      typeof prevDependencies !== 'object' ||
+      !('firstContext' in prevDependencies)
+    ) {
+      return false;
+    }
+    let nextContext = nextDependencies.firstContext;
+    let prevContext = prevDependencies.firstContext;
+    while (
+      nextContext &&
+      typeof nextContext === 'object' &&
+      'memoizedValue' in nextContext &&
+      prevContext &&
+      typeof prevContext === 'object' &&
+      'memoizedValue' in prevContext
+    ) {
+      if (selector(nextContext as any, prevContext as any) === true)
+        return true;
 
-    nextContext = nextContext.next;
-    prevContext = prevContext.next;
+      nextContext = nextContext.next;
+      prevContext = prevContext.next;
+    }
+  } catch {
+    /**/
   }
   return false;
 };
@@ -70,16 +75,43 @@ export const traverseState = (
     // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   ) => boolean | void,
 ) => {
-  let prevState = fiber.memoizedState;
-  let nextState = fiber.alternate?.memoizedState;
+  try {
+    let prevState = fiber.memoizedState;
+    let nextState = fiber.alternate?.memoizedState;
 
-  while (prevState && nextState) {
-    if (selector(prevState, nextState) === true) return true;
+    while (prevState && nextState) {
+      if (selector(prevState, nextState) === true) return true;
 
-    prevState = prevState.next;
-    nextState = nextState.next;
+      prevState = prevState.next;
+      nextState = nextState.next;
+    }
+  } catch {
+    /**/
   }
 
+  return false;
+};
+
+export const traverseProps = (
+  fiber: Fiber,
+  selector: (
+    prevValue: unknown,
+    nextValue: unknown,
+    // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+  ) => boolean | void,
+) => {
+  try {
+    const nextProps = fiber.memoizedProps;
+    const prevProps = fiber.alternate?.memoizedProps || {};
+    for (const propName in { ...prevProps, ...nextProps }) {
+      const prevValue = prevProps?.[propName];
+      const nextValue = nextProps?.[propName];
+
+      if (selector(prevValue, nextValue) === true) return true;
+    }
+  } catch {
+    /**/
+  }
   return false;
 };
 

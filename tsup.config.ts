@@ -6,7 +6,7 @@ export default defineConfig([
     outDir: './dist',
     splitting: false,
     sourcemap: false,
-    format: ['cjs', 'esm'],
+    format: ['cjs', 'esm', 'iife'],
     target: 'esnext',
     platform: 'browser',
     treeshake: true,
@@ -15,6 +15,7 @@ export default defineConfig([
     env: {
       NODE_ENV: process.env.NODE_ENV ?? 'development',
     },
+    globalName: 'Bippy',
     external: ['react', 'react-dom', 'react-reconciler'],
   },
 ]);
