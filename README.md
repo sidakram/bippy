@@ -7,7 +7,7 @@ a kitchen sink of utilities for working with react fiber. used internally for [`
 
 ## example
 
-this logs every rendered fiber in the current [commit](https://react.dev/learn/render-and-commit).
+this script logs every rendered fiber in the current [commit](https://react.dev/learn/render-and-commit).
 
 ```jsx
 import { instrument, traverseFiberRoot } from 'bippy'; // must be imported BEFORE react
@@ -15,7 +15,9 @@ import { instrument, traverseFiberRoot } from 'bippy'; // must be imported BEFOR
 instrument({
   onCommitFiberRoot: traverseFiberRoot({
     onRender(fiber) {
-      console.log(fiber);
+      const displayName = getDisplayName(fiber.type);
+      if (!displayName) return;
+      console.log(`${displayName} rendered`, fiber);
     },
   }),
 });
