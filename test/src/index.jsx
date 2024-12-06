@@ -1,6 +1,6 @@
 import {
   instrument,
-  createRenderVisitor,
+  createFiberVisitor,
   getTimings,
   getDisplayName,
 } from 'bippy'; // must be imported BEFORE react
@@ -9,8 +9,8 @@ import ReactDOM from 'react-dom/client';
 
 const componentRenderMap = new WeakMap();
 
-const visitor = createRenderVisitor({
-  onRender(fiber) {
+const visitor = createFiberVisitor({
+  onRender(fiber, phase) {
     const componentType = fiber.elementType;
     if (
       typeof componentType !== 'function' &&
@@ -29,6 +29,7 @@ const visitor = createRenderVisitor({
     render.selfTime += selfTime;
     render.totalTime += totalTime;
     componentRenderMap.set(componentType, render);
+    console.log(phase, render);
   },
 });
 
@@ -46,9 +47,21 @@ function App() {
   const [count, setCount] = useState(0);
   const renderInfo = getRenderInfo(App);
   return (
-    <button onClick={() => setCount(count + 1)}>
-      rendered: {JSON.stringify(renderInfo, null, 2)}
-    </button>
+    <>
+      <p>
+        <a
+          href="https://github.com/aidenybai/bippy"
+          style={{ fontFamily: 'monospace' }}
+        >
+          view source ↗
+        </a>
+      </p>
+      <button onClick={() => setCount(count + 1)}>
+        <pre style={{ textAlign: 'left' }}>
+          rendered: {JSON.stringify(renderInfo, null, 2)}
+        </pre>
+      </button>
+    </>
   );
 }
 

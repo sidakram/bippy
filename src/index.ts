@@ -302,11 +302,11 @@ if (typeof window !== 'undefined') {
   getRDTHook();
 }
 
-export const createRenderVisitor = ({
+export const createFiberVisitor = ({
   onRender,
   onError,
 }: {
-  onRender: (fiber: Fiber) => void;
+  onRender: (fiber: Fiber, phase: 'mount' | 'update' | 'unmount') => void;
   onError?: (error: unknown) => void;
 }) => {
   return (_rendererID: number, root: FiberRoot) => {
@@ -326,7 +326,7 @@ export const createRenderVisitor = ({
         while (fiber != null) {
           const shouldIncludeInTree = !shouldFilterFiber(fiber);
           if (shouldIncludeInTree && didFiberRender(fiber)) {
-            onRender(fiber);
+            onRender(fiber, 'mount');
           }
 
           // eslint-disable-next-line eqeqeq
@@ -342,7 +342,7 @@ export const createRenderVisitor = ({
 
         const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
         if (shouldIncludeInTree && didFiberRender(nextFiber)) {
-          onRender(nextFiber);
+          onRender(nextFiber, 'update');
         }
 
         if (nextFiber.child !== prevFiber.child) {
@@ -361,10 +361,20 @@ export const createRenderVisitor = ({
         }
       };
 
+      const unmountFiber = (fiber: Fiber) => {
+        const isRoot = fiber.tag === HostRoot;
+
+        if (isRoot || !shouldFilterFiber(fiber)) {
+          onRender(fiber, 'unmount');
+        }
+      };
+
       if (!wasMounted && isMounted) {
         mountFiber(rootFiber, false);
       } else if (wasMounted && isMounted) {
         updateFiber(rootFiber, rootFiber.alternate);
+      } else if (wasMounted && !isMounted) {
+        unmountFiber(rootFiber);
       }
     } catch (err) {
       if (onError) {

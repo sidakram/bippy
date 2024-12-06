@@ -16,7 +16,7 @@ inspect it live [here](https://bippy.million.dev/).
 ```jsx
 import {
   instrument,
-  createRenderVisitor,
+  createFiberVisitor,
   getTimings,
   getDisplayName,
 } from 'bippy'; // must be imported BEFORE react
@@ -25,8 +25,8 @@ import ReactDOM from 'react-dom/client';
 
 const componentRenderMap = new WeakMap();
 
-const visitor = createRenderVisitor({
-  onRender(fiber) {
+const visitor = createFiberVisitor({
+  onRender(fiber, phase) {
     const componentType = fiber.elementType;
     if (
       typeof componentType !== 'function' &&
@@ -45,6 +45,7 @@ const visitor = createRenderVisitor({
     render.selfTime += selfTime;
     render.totalTime += totalTime;
     componentRenderMap.set(componentType, render);
+    console.log(phase, render);
   },
 });
 
