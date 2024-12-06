@@ -1,52 +1,55 @@
 import {
   instrument,
-  traverseFiberRoot,
+  createRenderVisitor,
+  getTimings,
   getDisplayName,
-} from 'bippy/dist/index.mjs';
-import React from 'react';
+} from 'bippy'; // must be imported BEFORE react
+import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
-import { ObjectInspector } from 'react-inspector';
 
-function A() {
-  return <li>A</li>;
-}
+const componentRenderMap = new WeakMap();
 
-function B() {
-  return <li>B</li>;
-}
+const visitor = createRenderVisitor({
+  onRender(fiber) {
+    const componentType = fiber.elementType;
+    if (
+      typeof componentType !== 'function' &&
+      (typeof componentType !== 'object' || !componentType)
+    ) {
+      return;
+    }
+    const render = componentRenderMap.get(componentType) || {
+      count: 0,
+      selfTime: 0,
+      totalTime: 0,
+      displayName: getDisplayName(componentType),
+    };
+    render.count++;
+    const { selfTime, totalTime } = getTimings(fiber);
+    render.selfTime += selfTime;
+    render.totalTime += totalTime;
+    componentRenderMap.set(componentType, render);
+  },
+});
 
-function C() {
-  return <li>C</li>;
-}
+instrument({
+  onCommitFiberRoot: (rendererID, fiberRoot) => {
+    visitor(rendererID, fiberRoot);
+  },
+});
 
-function Root() {
+export const getRenderInfo = (componentType) => {
+  return componentRenderMap.get(componentType);
+};
+
+function App() {
+  const [count, setCount] = useState(0);
+  const renderInfo = getRenderInfo(App);
   return (
-    <>
-      <h1>bippy example</h1>
-      <ul>
-        <A />
-        <B />
-        <C />
-      </ul>
-    </>
+    <button onClick={() => setCount(count + 1)}>
+      rendered: {JSON.stringify(renderInfo, null, 2)}
+    </button>
   );
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<Root />);
-
-const data = [];
-const NAME_ALLOW_LIST = ['A', 'B', 'C', 'Root'];
-
-instrument({
-  onCommitFiberRoot: traverseFiberRoot({
-    onRender: (fiber) => {
-      const displayName = getDisplayName(fiber);
-      if (!displayName || !NAME_ALLOW_LIST.includes(displayName)) return;
-      data.push({ displayName, fiber });
-    },
-  }),
-});
-
-ReactDOM.createRoot(document.getElementById('inspector')).render(
-  <ObjectInspector data={data} expandLevel={3} />,
-);
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);

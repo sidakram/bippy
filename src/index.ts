@@ -24,6 +24,21 @@ export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const CONCURRENT_MODE_SYMBOL_STRING = 'Symbol(react.concurrent_mode)';
 export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = 'Symbol(react.async_mode)';
 
+export const isHostComponent = (fiber: Fiber) =>
+  fiber.tag === HostComponentTag ||
+  // @ts-expect-error: it exists
+  fiber.tag === HostHoistableTag ||
+  // @ts-expect-error: it exists
+  fiber.tag === HostSingletonTag;
+
+// https://github.com/facebook/react/blob/865d2c418d5ba6fb4546e4b58616cd9b7701af85/packages/react/src/jsx/ReactJSXElement.js#L490
+export const isCompositeComponent = (fiber: Fiber) =>
+  fiber.tag === FunctionComponentTag ||
+  fiber.tag === ClassComponentTag ||
+  fiber.tag === SimpleMemoComponentTag ||
+  fiber.tag === MemoComponentTag ||
+  fiber.tag === ForwardRefTag;
+
 export const traverseContexts = (
   fiber: Fiber,
   selector: (
@@ -113,25 +128,6 @@ export const traverseProps = (
     /**/
   }
   return false;
-};
-
-export const isHostComponent = (fiber: Fiber) =>
-  fiber.tag === HostComponentTag ||
-  // @ts-expect-error: it exists
-  fiber.tag === HostHoistableTag ||
-  // @ts-expect-error: it exists
-  fiber.tag === HostSingletonTag;
-
-// Composite components are components that are not host components.
-// https://github.com/facebook/react/blob/865d2c418d5ba6fb4546e4b58616cd9b7701af85/packages/react/src/jsx/ReactJSXElement.js#L490
-export const isCompositeComponent = (fiber: Fiber) => {
-  return (
-    fiber.tag === FunctionComponentTag ||
-    fiber.tag === ClassComponentTag ||
-    fiber.tag === SimpleMemoComponentTag ||
-    fiber.tag === MemoComponentTag ||
-    fiber.tag === ForwardRefTag
-  );
 };
 
 export const didFiberRender = (fiber: Fiber): boolean => {
@@ -243,34 +239,6 @@ export const getTimings = (fiber?: Fiber | null | undefined) => {
   return { selfTime, totalTime };
 };
 
-export const getFiberFromElement = (element: HTMLElement): Fiber | null => {
-  const { renderers } = getRDTHook();
-  if (!renderers) return null;
-  for (const [_, renderer] of Array.from(renderers)) {
-    try {
-      const fiber = renderer.findFiberByHostInstance(element);
-      if (fiber) return fiber;
-    } catch (e) {
-      // If React is mid-render, references to previous nodes may disappear
-    }
-  }
-
-  if ('_reactRootContainer' in element) {
-    // @ts-expect-error - Property '_reactRootContainer' does not exist on type 'HTMLElement'
-    return element._reactRootContainer?._internalRoot?.current?.child;
-  }
-
-  for (const key in element) {
-    if (
-      key.startsWith('__reactInternalInstance$') ||
-      key.startsWith('__reactFiber')
-    ) {
-      return element[key as keyof HTMLElement] as unknown as Fiber;
-    }
-  }
-  return null;
-};
-
 export const hasMemoCache = (fiber: Fiber) => {
   return Boolean((fiber.updateQueue as any)?.memoCache);
 };
@@ -334,66 +302,76 @@ if (typeof window !== 'undefined') {
   getRDTHook();
 }
 
-export const traverseFiberRoot = ({
+export const createRenderVisitor = ({
   onRender,
+  onError,
 }: {
   onRender: (fiber: Fiber) => void;
+  onError?: (error: unknown) => void;
 }) => {
   return (_rendererID: number, root: FiberRoot) => {
-    const rootFiber = root.current;
-    const wasMounted =
-      rootFiber.alternate !== null &&
-      Boolean(rootFiber.alternate.memoizedState?.element) &&
-      // A dehydrated root is not considered mounted
-      rootFiber.alternate.memoizedState.isDehydrated !== true;
-    const isMounted = Boolean(rootFiber.memoizedState?.element);
+    try {
+      const rootFiber = root.current;
+      const wasMounted =
+        rootFiber.alternate !== null &&
+        Boolean(rootFiber.alternate.memoizedState?.element) &&
+        // A dehydrated root is not considered mounted
+        rootFiber.alternate.memoizedState.isDehydrated !== true;
+      const isMounted = Boolean(rootFiber.memoizedState?.element);
 
-    const mountFiber = (firstChild: Fiber, traverseSiblings: boolean) => {
-      let fiber: Fiber | null = firstChild;
-
-      // eslint-disable-next-line eqeqeq
-      while (fiber != null) {
-        const shouldIncludeInTree = !shouldFilterFiber(fiber);
-        if (shouldIncludeInTree && didFiberRender(fiber)) {
-          onRender(fiber);
-        }
+      const mountFiber = (firstChild: Fiber, traverseSiblings: boolean) => {
+        let fiber: Fiber | null = firstChild;
 
         // eslint-disable-next-line eqeqeq
-        if (fiber.child != null) {
-          mountFiber(fiber.child, true);
-        }
-        fiber = traverseSiblings ? fiber.sibling : null;
-      }
-    };
-
-    const updateFiber = (nextFiber: Fiber, prevFiber: Fiber) => {
-      if (!prevFiber) return;
-
-      const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
-      if (shouldIncludeInTree && didFiberRender(nextFiber)) {
-        onRender(nextFiber);
-      }
-
-      if (nextFiber.child !== prevFiber.child) {
-        let nextChild = nextFiber.child;
-
-        while (nextChild) {
-          const prevChild = nextChild.alternate;
-          if (prevChild) {
-            updateFiber(nextChild, prevChild);
-          } else {
-            mountFiber(nextChild, false);
+        while (fiber != null) {
+          const shouldIncludeInTree = !shouldFilterFiber(fiber);
+          if (shouldIncludeInTree && didFiberRender(fiber)) {
+            onRender(fiber);
           }
 
-          nextChild = nextChild.sibling;
+          // eslint-disable-next-line eqeqeq
+          if (fiber.child != null) {
+            mountFiber(fiber.child, true);
+          }
+          fiber = traverseSiblings ? fiber.sibling : null;
         }
-      }
-    };
+      };
 
-    if (!wasMounted && isMounted) {
-      mountFiber(rootFiber, false);
-    } else if (wasMounted && isMounted) {
-      updateFiber(rootFiber, rootFiber.alternate);
+      const updateFiber = (nextFiber: Fiber, prevFiber: Fiber) => {
+        if (!prevFiber) return;
+
+        const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
+        if (shouldIncludeInTree && didFiberRender(nextFiber)) {
+          onRender(nextFiber);
+        }
+
+        if (nextFiber.child !== prevFiber.child) {
+          let nextChild = nextFiber.child;
+
+          while (nextChild) {
+            const prevChild = nextChild.alternate;
+            if (prevChild) {
+              updateFiber(nextChild, prevChild);
+            } else {
+              mountFiber(nextChild, false);
+            }
+
+            nextChild = nextChild.sibling;
+          }
+        }
+      };
+
+      if (!wasMounted && isMounted) {
+        mountFiber(rootFiber, false);
+      } else if (wasMounted && isMounted) {
+        updateFiber(rootFiber, rootFiber.alternate);
+      }
+    } catch (err) {
+      if (onError) {
+        onError(err);
+      } else {
+        throw err;
+      }
     }
   };
 };
