@@ -24,7 +24,7 @@ export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const CONCURRENT_MODE_SYMBOL_STRING = 'Symbol(react.concurrent_mode)';
 export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = 'Symbol(react.async_mode)';
 
-export const isHostComponent = (fiber: Fiber) =>
+export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
   // @ts-expect-error: it exists
   fiber.tag === HostHoistableTag ||
@@ -32,7 +32,7 @@ export const isHostComponent = (fiber: Fiber) =>
   fiber.tag === HostSingletonTag;
 
 // https://github.com/facebook/react/blob/865d2c418d5ba6fb4546e4b58616cd9b7701af85/packages/react/src/jsx/ReactJSXElement.js#L490
-export const isCompositeComponent = (fiber: Fiber) =>
+export const isCompositeFiber = (fiber: Fiber) =>
   fiber.tag === FunctionComponentTag ||
   fiber.tag === ClassComponentTag ||
   fiber.tag === SimpleMemoComponentTag ||
@@ -200,9 +200,9 @@ export const shouldFilterFiber = (fiber: Fiber) => {
 };
 
 export const getNearestHostFiber = (fiber: Fiber) => {
-  let hostFiber = traverseFiber(fiber, isHostComponent);
+  let hostFiber = traverseFiber(fiber, isHostFiber);
   if (!hostFiber) {
-    hostFiber = traverseFiber(fiber, isHostComponent, true);
+    hostFiber = traverseFiber(fiber, isHostFiber, true);
   }
   return hostFiber;
 };

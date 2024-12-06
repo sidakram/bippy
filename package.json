@@ -1,7 +1,7 @@
 {
   "name": "bippy",
-  "version": "0.0.8",
-  "description": "a kitchen sink of utilities for working with react fiber",
+  "version": "0.0.9",
+  "description": "a hacky way to get fibers from react",
   "keywords": [
     "react",
     "react-instrumentation",

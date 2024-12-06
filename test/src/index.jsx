@@ -29,7 +29,7 @@ const visitor = createFiberVisitor({
     render.selfTime += selfTime;
     render.totalTime += totalTime;
     componentRenderMap.set(componentType, render);
-    console.log(phase, render);
+    console.log(phase, fiber, render);
   },
 });
 
@@ -56,6 +56,7 @@ function App() {
           view source ↗
         </a>
       </p>
+      {<CountDisplay count={count} />}
       <button onClick={() => setCount(count + 1)}>
         <pre style={{ textAlign: 'left' }}>
           rendered: {JSON.stringify(renderInfo, null, 2)}
@@ -64,5 +65,9 @@ function App() {
     </>
   );
 }
+
+export const CountDisplay = ({ count }) => {
+  return <div>{count}</div>;
+};
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
