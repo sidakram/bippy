@@ -1,3 +1,4 @@
+/* eslint-disable eqeqeq */
 // Note: do not import React in this file
 // since it will be executed before the react devtools hook is created
 
@@ -8,6 +9,8 @@ export const PerformedWorkFlag = 0b01;
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
 export const ContextConsumerTag = 9;
+export const SuspenseComponentTag = 13;
+export const OffscreenComponentTag = 22;
 export const ForwardRefTag = 11;
 export const MemoComponentTag = 14;
 export const SimpleMemoComponentTag = 15;
@@ -231,7 +234,6 @@ export const getTimings = (fiber?: Fiber | null | undefined) => {
   let selfTime = totalTime;
   // TODO: calculate a DOM time, which is just host component summed up
   let child = fiber?.child ?? null;
-  // eslint-disable-next-line eqeqeq
   while (totalTime > 0 && child != null) {
     selfTime -= child.actualDuration ?? 0;
     child = child.sibling;
@@ -302,79 +304,253 @@ if (typeof window !== 'undefined') {
   getRDTHook();
 }
 
+type RenderHandler = (
+  fiber: Fiber,
+  phase: 'mount' | 'update' | 'unmount',
+) => void;
+
+export const mountFiberRecursively = (
+  onRender: RenderHandler,
+  firstChild: Fiber,
+  traverseSiblings: boolean,
+) => {
+  let fiber: Fiber | null = firstChild;
+
+  while (fiber != null) {
+    const shouldIncludeInTree = !shouldFilterFiber(fiber);
+    if (shouldIncludeInTree && didFiberRender(fiber)) {
+      onRender(fiber, 'mount');
+    }
+
+    if (fiber.tag === SuspenseComponentTag) {
+      const isTimedOut = fiber.memoizedState !== null;
+      if (isTimedOut) {
+        // Special case: if Suspense mounts in a timed-out state,
+        // get the fallback child from the inner fragment and mount
+        // it as if it was our own child. Updates handle this too.
+        const primaryChildFragment = fiber.child;
+        const fallbackChildFragment = primaryChildFragment
+          ? primaryChildFragment.sibling
+          : null;
+        if (fallbackChildFragment) {
+          const fallbackChild = fallbackChildFragment.child;
+          if (fallbackChild !== null) {
+            mountFiberRecursively(onRender, fallbackChild, false);
+          }
+        }
+      } else {
+        let primaryChild: Fiber | null = null;
+        const areSuspenseChildrenConditionallyWrapped =
+          (OffscreenComponentTag as number) === -1;
+        if (areSuspenseChildrenConditionallyWrapped) {
+          primaryChild = fiber.child;
+        } else if (fiber.child !== null) {
+          primaryChild = fiber.child.child;
+        }
+        if (primaryChild !== null) {
+          mountFiberRecursively(onRender, primaryChild, false);
+        }
+      }
+    } else if (fiber.child != null) {
+      mountFiberRecursively(onRender, fiber.child, true);
+    }
+    fiber = traverseSiblings ? fiber.sibling : null;
+  }
+};
+
+export const updateFiberRecursively = (
+  onRender: RenderHandler,
+  nextFiber: Fiber,
+  prevFiber: Fiber,
+  parentFiber: Fiber | null,
+) => {
+  if (!prevFiber) return;
+
+  const isSuspense = nextFiber.tag === SuspenseComponentTag;
+
+  const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
+  if (shouldIncludeInTree && didFiberRender(nextFiber)) {
+    onRender(nextFiber, 'update');
+  }
+
+  // The behavior of timed-out Suspense trees is unique.
+  // Rather than unmount the timed out content (and possibly lose important state),
+  // React re-parents this content within a hidden Fragment while the fallback is showing.
+  // This behavior doesn't need to be observable in the DevTools though.
+  // It might even result in a bad user experience for e.g. node selection in the Elements panel.
+  // The easiest fix is to strip out the intermediate Fragment fibers,
+  // so the Elements panel and Profiler don't need to special case them.
+  // Suspense components only have a non-null memoizedState if they're timed-out.
+  const prevDidTimeout = isSuspense && prevFiber.memoizedState !== null;
+  const nextDidTimeOut = isSuspense && nextFiber.memoizedState !== null;
+
+  // The logic below is inspired by the code paths in updateSuspenseComponent()
+  // inside ReactFiberBeginWork in the React source code.
+  if (prevDidTimeout && nextDidTimeOut) {
+    // Fallback -> Fallback:
+    // 1. Reconcile fallback set.
+    const nextFallbackChildSet = nextFiber.child?.sibling ?? null;
+    // Note: We can't use nextFiber.child.sibling.alternate
+    // because the set is special and alternate may not exist.
+    const prevFallbackChildSet = prevFiber.child?.sibling ?? null;
+
+    if (nextFallbackChildSet !== null && prevFallbackChildSet !== null) {
+      updateFiberRecursively(
+        onRender,
+        nextFallbackChildSet,
+        prevFallbackChildSet,
+        nextFiber,
+      );
+    }
+  } else if (prevDidTimeout && !nextDidTimeOut) {
+    // Fallback -> Primary:
+    // 1. Unmount fallback set
+    // Note: don't emulate fallback unmount because React actually did it.
+    // 2. Mount primary set
+    const nextPrimaryChildSet = nextFiber.child;
+
+    if (nextPrimaryChildSet !== null) {
+      mountFiberRecursively(onRender, nextPrimaryChildSet, true);
+    }
+  } else if (!prevDidTimeout && nextDidTimeOut) {
+    // Primary -> Fallback:
+    // 1. Hide primary set
+    // This is not a real unmount, so it won't get reported by React.
+    // We need to manually walk the previous tree and record unmounts.
+    unmountFiberChildrenRecursively(onRender, prevFiber);
+
+    // 2. Mount fallback set
+    const nextFallbackChildSet = nextFiber.child?.sibling ?? null;
+
+    if (nextFallbackChildSet !== null) {
+      mountFiberRecursively(onRender, nextFallbackChildSet, true);
+    }
+  } else if (nextFiber.child !== prevFiber.child) {
+    // Common case: Primary -> Primary.
+    // This is the same code path as for non-Suspense fibers.
+
+    // If the first child is different, we need to traverse them.
+    // Each next child will be either a new child (mount) or an alternate (update).
+    let nextChild = nextFiber.child;
+
+    while (nextChild) {
+      // We already know children will be referentially different because
+      // they are either new mounts or alternates of previous children.
+      // Schedule updates and mounts depending on whether alternates exist.
+      // We don't track deletions here because they are reported separately.
+      if (nextChild.alternate) {
+        const prevChild = nextChild.alternate;
+
+        updateFiberRecursively(
+          onRender,
+          nextChild,
+          prevChild,
+          shouldIncludeInTree ? nextFiber : parentFiber,
+        );
+      } else {
+        mountFiberRecursively(onRender, nextChild, false);
+      }
+
+      // Try the next child.
+      nextChild = nextChild.sibling;
+    }
+  }
+};
+
+export const unmountFiber = (onRender: RenderHandler, fiber: Fiber) => {
+  const isRoot = fiber.tag === HostRoot;
+
+  if (isRoot || !shouldFilterFiber(fiber)) {
+    onRender(fiber, 'unmount');
+  }
+};
+
+export const unmountFiberChildrenRecursively = (
+  onRender: RenderHandler,
+  fiber: Fiber,
+) => {
+  // We might meet a nested Suspense on our way.
+  const isTimedOutSuspense =
+    fiber.tag === SuspenseComponentTag && fiber.memoizedState !== null;
+  let child = fiber.child;
+
+  if (isTimedOutSuspense) {
+    // If it's showing fallback tree, let's traverse it instead.
+    const primaryChildFragment = fiber.child;
+    const fallbackChildFragment = primaryChildFragment?.sibling ?? null;
+
+    // Skip over to the real Fiber child.
+    child = fallbackChildFragment?.child ?? null;
+  }
+
+  while (child !== null) {
+    // Record simulated unmounts children-first.
+    // We skip nodes without return because those are real unmounts.
+    if (child.return !== null) {
+      unmountFiber(onRender, child);
+      unmountFiberChildrenRecursively(onRender, child);
+    }
+
+    child = child.sibling;
+  }
+};
+
+let commitId = 0;
+const rootInstanceMap = new WeakMap<
+  FiberRoot,
+  {
+    prevFiber: Fiber | null;
+    id: number;
+  }
+>();
+
 export const createFiberVisitor = ({
   onRender,
   onError,
 }: {
-  onRender: (fiber: Fiber, phase: 'mount' | 'update' | 'unmount') => void;
+  onRender: RenderHandler;
   onError?: (error: unknown) => void;
 }) => {
   return (_rendererID: number, root: FiberRoot) => {
+    const rootFiber = root.current;
+
+    let rootInstance = rootInstanceMap.get(root);
+
+    if (!rootInstance) {
+      rootInstance = { prevFiber: null, id: commitId++ };
+      rootInstanceMap.set(root, rootInstance);
+    }
+
+    const { prevFiber } = rootInstance;
+
     try {
-      const rootFiber = root.current;
-      const wasMounted =
-        rootFiber.alternate !== null &&
-        Boolean(rootFiber.alternate.memoizedState?.element) &&
-        // A dehydrated root is not considered mounted
-        rootFiber.alternate.memoizedState.isDehydrated !== true;
-      const isMounted = Boolean(rootFiber.memoizedState?.element);
+      if (prevFiber !== null) {
+        const wasMounted =
+          prevFiber &&
+          prevFiber.memoizedState != null &&
+          prevFiber.memoizedState.element != null &&
+          // A dehydrated root is not considered mounted
+          prevFiber.memoizedState.isDehydrated !== true;
+        const isMounted =
+          rootFiber.memoizedState != null &&
+          rootFiber.memoizedState.element != null &&
+          // A dehydrated root is not considered mounted
+          rootFiber.memoizedState.isDehydrated !== true;
 
-      const mountFiber = (firstChild: Fiber, traverseSiblings: boolean) => {
-        let fiber: Fiber | null = firstChild;
-
-        // eslint-disable-next-line eqeqeq
-        while (fiber != null) {
-          const shouldIncludeInTree = !shouldFilterFiber(fiber);
-          if (shouldIncludeInTree && didFiberRender(fiber)) {
-            onRender(fiber, 'mount');
-          }
-
-          // eslint-disable-next-line eqeqeq
-          if (fiber.child != null) {
-            mountFiber(fiber.child, true);
-          }
-          fiber = traverseSiblings ? fiber.sibling : null;
+        if (!wasMounted && isMounted) {
+          mountFiberRecursively(onRender, rootFiber, false);
+        } else if (wasMounted && isMounted) {
+          updateFiberRecursively(
+            onRender,
+            rootFiber,
+            rootFiber.alternate,
+            null,
+          );
+        } else if (wasMounted && !isMounted) {
+          unmountFiber(onRender, rootFiber);
         }
-      };
-
-      const updateFiber = (nextFiber: Fiber, prevFiber: Fiber) => {
-        if (!prevFiber) return;
-
-        const shouldIncludeInTree = !shouldFilterFiber(nextFiber);
-        if (shouldIncludeInTree && didFiberRender(nextFiber)) {
-          onRender(nextFiber, 'update');
-        }
-
-        if (nextFiber.child !== prevFiber.child) {
-          let nextChild = nextFiber.child;
-
-          while (nextChild) {
-            const prevChild = nextChild.alternate;
-            if (prevChild) {
-              updateFiber(nextChild, prevChild);
-            } else {
-              mountFiber(nextChild, false);
-            }
-
-            nextChild = nextChild.sibling;
-          }
-        }
-      };
-
-      const unmountFiber = (fiber: Fiber) => {
-        const isRoot = fiber.tag === HostRoot;
-
-        if (isRoot || !shouldFilterFiber(fiber)) {
-          onRender(fiber, 'unmount');
-        }
-      };
-
-      if (!wasMounted && isMounted) {
-        mountFiber(rootFiber, false);
-      } else if (wasMounted && isMounted) {
-        updateFiber(rootFiber, rootFiber.alternate);
-      } else if (wasMounted && !isMounted) {
-        unmountFiber(rootFiber);
+      } else {
+        mountFiberRecursively(onRender, rootFiber, false);
       }
     } catch (err) {
       if (onError) {
@@ -383,6 +559,7 @@ export const createFiberVisitor = ({
         throw err;
       }
     }
+    rootInstance.prevFiber = rootFiber;
   };
 };
 
