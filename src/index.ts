@@ -43,7 +43,6 @@ export const MutationMask =
   Update |
   ChildDeletion |
   ContentReset |
-  Ref |
   Hydrating |
   Visibility |
   Snapshot;
@@ -179,17 +178,16 @@ export const didFiberRender = (fiber: Fiber): boolean => {
   }
 };
 
-export const didFiberCommit = (fiber: Fiber) => {
+export const didFiberCommit = (fiber: Fiber): boolean => {
   if (isHostFiber(fiber) && fiber.flags & (MutationMask | Cloned)) {
     return true;
   }
   for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
     if (isHostFiber(sibling) && didFiberCommit(sibling)) return true;
   }
-  if (fiber.child && isHostFiber(fiber.child)) {
-    if (didFiberCommit(fiber.child)) return true;
-  }
-  return false;
+  return Boolean(
+    fiber.child && isHostFiber(fiber.child) && didFiberCommit(fiber.child),
+  );
 };
 
 export const shouldFilterFiber = (fiber: Fiber) => {

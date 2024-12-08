@@ -6,12 +6,7 @@ declare global {
     checkDCE: () => void;
     supportsFiber: boolean;
     supportsFlight: boolean;
-    renderers: Map<
-      number,
-      {
-        findFiberByHostInstance: (element: HTMLElement) => Fiber | null;
-      }
-    >;
+    renderers: Map<number, unknown>;
     onCommitFiberRoot: (rendererID: number, root: unknown) => void;
     onCommitFiberUnmount: (rendererID: number, root: unknown) => void;
     onPostCommitFiberRoot: (rendererID: number, root: unknown) => void;
