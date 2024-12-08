@@ -28,12 +28,10 @@
     ".": {
       "import": {
         "types": "./dist/index.d.mts",
-        "react-server": "./dist/rsc-shim.mjs",
         "default": "./dist/index.mjs"
       },
       "require": {
         "types": "./dist/index.d.ts",
-        "react-server": "./dist/rsc-shim.js",
         "default": "./dist/index.js"
       }
     },

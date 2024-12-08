@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig([
   {
-    entry: ['./src/index.ts', './src/rsc-shim.ts'],
+    entry: ['./src/index.ts'],
     outDir: './dist',
     splitting: false,
     sourcemap: false,

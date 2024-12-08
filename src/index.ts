@@ -5,7 +5,6 @@
 import type * as React from 'react';
 import type { Fiber, FiberRoot } from 'react-reconciler';
 
-export const PerformedWorkFlag = 0b01;
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
 export const ContextConsumerTag = 9;
@@ -26,6 +25,28 @@ export const HostRoot = 3;
 export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const CONCURRENT_MODE_SYMBOL_STRING = 'Symbol(react.concurrent_mode)';
 export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = 'Symbol(react.async_mode)';
+
+// https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactFiberFlags.js
+export const PerformedWork = 0b1;
+export const Placement = 0b10;
+export const DidCapture = 0b10000000;
+export const Hydrating = 0b1000000000000;
+export const Update = 0b100;
+export const Cloned = 0b1000;
+export const ChildDeletion = 0b10000;
+export const ContentReset = 0b100000;
+export const Ref = 0b1000000000;
+export const Snapshot = 0b10000000000;
+export const Visibility = 0b10000000000000;
+export const MutationMask =
+  Placement |
+  Update |
+  ChildDeletion |
+  ContentReset |
+  Ref |
+  Hydrating |
+  Visibility |
+  Snapshot;
 
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
@@ -145,7 +166,7 @@ export const didFiberRender = (fiber: Fiber): boolean => {
     case ForwardRefTag:
     case MemoComponentTag:
     case SimpleMemoComponentTag: {
-      return (flags & PerformedWorkFlag) === PerformedWorkFlag;
+      return (flags & PerformedWork) === PerformedWork;
     }
     default:
       // Host nodes (DOM, root, etc.)
@@ -156,6 +177,19 @@ export const didFiberRender = (fiber: Fiber): boolean => {
         fiber.alternate.ref !== fiber.ref
       );
   }
+};
+
+export const didFiberCommit = (fiber: Fiber) => {
+  if (isHostFiber(fiber) && fiber.flags & (MutationMask | Cloned)) {
+    return true;
+  }
+  for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
+    if (isHostFiber(sibling) && didFiberCommit(sibling)) return true;
+  }
+  if (fiber.child && isHostFiber(fiber.child)) {
+    if (didFiberCommit(fiber.child)) return true;
+  }
+  return false;
 };
 
 export const shouldFilterFiber = (fiber: Fiber) => {
