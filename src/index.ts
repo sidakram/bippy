@@ -179,16 +179,36 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 };
 
 export const didFiberCommit = (fiber: Fiber): boolean => {
-  console.log(fiber);
-  if (isHostFiber(fiber) && fiber.flags & (MutationMask | Cloned)) {
-    return true;
-  }
-  for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
-    if (isHostFiber(sibling) && didFiberCommit(sibling)) return true;
-  }
   return Boolean(
-    fiber.child && isHostFiber(fiber.child) && didFiberCommit(fiber.child),
+    didFiberRender(fiber) &&
+      (fiber.flags & (MutationMask | Cloned) || fiber.deletions),
   );
+};
+
+export const getFiberMutations = (fiber: Fiber): Array<Fiber> => {
+  if (!didFiberCommit(fiber)) return [];
+  const getMutations = (fiber: Fiber | null) => {
+    if (!fiber) return [];
+
+    const mutations: Array<Fiber> = [];
+    for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
+      if (isHostFiber(sibling) && didFiberRender(sibling)) {
+        mutations.push(sibling);
+        mutations.push(...getMutations(sibling));
+      }
+    }
+    // FIXME: this only goes 1 level deep (pre tag)
+    if (
+      fiber.child &&
+      isHostFiber(fiber.child) &&
+      didFiberRender(fiber.child)
+    ) {
+      mutations.push(fiber.child);
+      mutations.push(...getMutations(fiber.child));
+    }
+    return mutations;
+  };
+  return getMutations(fiber.child);
 };
 
 export const getFiberStack = (fiber: Fiber) => {
