@@ -47,6 +47,12 @@ export const MutationMask =
   Visibility |
   Snapshot;
 
+export const isValidElement = (element: unknown) =>
+  typeof element === 'object' &&
+  element !== null &&
+  '$$typeof' in element &&
+  String(element.$$typeof) === 'Symbol(react.element)';
+
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
   // @ts-expect-error: it exists
@@ -181,34 +187,34 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 export const didFiberCommit = (fiber: Fiber): boolean => {
   return Boolean(
     didFiberRender(fiber) &&
-      (fiber.flags & (MutationMask | Cloned) || fiber.deletions),
+      (fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions),
   );
 };
 
-export const getFiberMutations = (fiber: Fiber): Array<Fiber> => {
+export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
   if (!didFiberCommit(fiber)) return [];
-  const getMutations = (fiber: Fiber | null) => {
-    if (!fiber) return [];
 
-    const mutations: Array<Fiber> = [];
-    for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
-      if (isHostFiber(sibling) && didFiberRender(sibling)) {
-        mutations.push(sibling);
-        mutations.push(...getMutations(sibling));
-      }
-    }
-    // FIXME: this only goes 1 level deep (pre tag)
+  const mutations: Array<Fiber> = [];
+  for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
     if (
-      fiber.child &&
-      isHostFiber(fiber.child) &&
-      didFiberRender(fiber.child)
+      isHostFiber(sibling) &&
+      didFiberCommit(sibling.return ?? sibling) &&
+      didFiberRender(sibling)
     ) {
-      mutations.push(fiber.child);
-      mutations.push(...getMutations(fiber.child));
+      mutations.push(sibling);
+      mutations.push(...getMutatedHostFibers(sibling));
     }
-    return mutations;
-  };
-  return getMutations(fiber.child);
+  }
+  if (
+    fiber.child &&
+    isHostFiber(fiber.child) &&
+    didFiberCommit(fiber) &&
+    didFiberRender(fiber.child)
+  ) {
+    mutations.push(fiber.child);
+    mutations.push(...getMutatedHostFibers(fiber.child));
+  }
+  return mutations;
 };
 
 export const getFiberStack = (fiber: Fiber) => {
