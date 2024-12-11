@@ -185,9 +185,9 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 };
 
 export const didFiberCommit = (fiber: Fiber): boolean => {
-  return Boolean(
+  return (
     didFiberRender(fiber) &&
-      (fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions),
+    Boolean(fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions)
   );
 };
 
