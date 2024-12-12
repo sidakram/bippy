@@ -34,7 +34,7 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: ['./src/index.ts', './src/score.ts'],
+    entry: ['./src/index.ts'],
   },
   {
     ...DEFAULT_OPTIONS,
