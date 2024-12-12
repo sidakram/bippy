@@ -1,6 +1,6 @@
 {
   "name": "bippy",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "a hacky way to get fibers from react",
   "keywords": [
     "react",
