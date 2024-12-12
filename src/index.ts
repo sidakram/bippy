@@ -185,35 +185,37 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 };
 
 export const didFiberCommit = (fiber: Fiber): boolean => {
-  return (
-    didFiberRender(fiber) &&
-    Boolean(fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions)
+  return Boolean(
+    fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions,
   );
 };
 
 export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
-  if (!didFiberCommit(fiber)) return [];
-
   const mutations: Array<Fiber> = [];
-  for (let sibling = fiber.sibling; sibling; sibling = sibling.sibling) {
+  const visited = new WeakSet<Fiber>();
+
+  const traverse = (node: Fiber) => {
+    if (!node || visited.has(node)) return;
+    visited.add(node);
+
     if (
-      isHostFiber(sibling) &&
-      didFiberCommit(sibling.return ?? sibling) &&
-      didFiberRender(sibling)
+      isHostFiber(node) &&
+      didFiberCommit(node.return ?? node) &&
+      didFiberRender(node)
     ) {
-      mutations.push(sibling);
-      mutations.push(...getMutatedHostFibers(sibling));
+      mutations.push(node);
     }
-  }
-  if (
-    fiber.child &&
-    isHostFiber(fiber.child) &&
-    didFiberCommit(fiber) &&
-    didFiberRender(fiber.child)
-  ) {
-    mutations.push(fiber.child);
-    mutations.push(...getMutatedHostFibers(fiber.child));
-  }
+
+    if (node.child) {
+      traverse(node.child);
+    }
+
+    if (node.sibling) {
+      traverse(node.sibling);
+    }
+  };
+
+  traverse(fiber);
   return mutations;
 };
 
@@ -372,9 +374,10 @@ if (typeof window !== 'undefined') {
   getRDTHook();
 }
 
-type RenderHandler = (
+type RenderHandler = <S>(
   fiber: Fiber,
   phase: 'mount' | 'update' | 'unmount',
+  state?: S,
 ) => void;
 
 export const mountFiberRecursively = (
@@ -573,14 +576,16 @@ const rootInstanceMap = new WeakMap<
 >();
 
 export const createFiberVisitor = ({
-  onRender,
+  onRender: onRenderWithoutState,
   onError,
 }: {
   onRender: RenderHandler;
   onError?: (error: unknown) => void;
 }) => {
-  return (_rendererID: number, root: FiberRoot) => {
+  return <S>(_rendererID: number, root: FiberRoot, state?: S) => {
     const rootFiber = root.current;
+    const onRender = (fiber: Fiber, phase: 'mount' | 'update' | 'unmount') =>
+      onRenderWithoutState<S>(fiber, phase, state);
 
     let rootInstance = rootInstanceMap.get(root);
 

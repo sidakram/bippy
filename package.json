@@ -35,6 +35,16 @@
         "default": "./dist/index.js"
       }
     },
+    "./score": {
+      "import": {
+        "types": "./dist/score.d.mts",
+        "default": "./dist/score.mjs"
+      },
+      "require": {
+        "types": "./dist/score.d.ts",
+        "default": "./dist/score.js"
+      }
+    },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js",
     "./dist/*.mjs": "./dist/*.mjs"

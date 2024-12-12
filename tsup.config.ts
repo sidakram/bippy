@@ -1,7 +1,7 @@
 import { defineConfig, type Options } from 'tsup';
 
 const DEFAULT_OPTIONS: Options = {
-  entry: ['./src/index.ts'],
+  entry: [],
   outDir: './dist',
   splitting: false,
   sourcemap: false,
@@ -19,6 +19,15 @@ const DEFAULT_OPTIONS: Options = {
 };
 
 export default defineConfig([
-  { ...DEFAULT_OPTIONS, format: ['esm', 'cjs'] },
-  { ...DEFAULT_OPTIONS, format: ['iife'], minify: true },
+  {
+    ...DEFAULT_OPTIONS,
+    format: ['esm', 'cjs'],
+    entry: ['./src/index.ts', './src/score.ts'],
+  },
+  {
+    ...DEFAULT_OPTIONS,
+    format: ['iife'],
+    minify: true,
+    entry: ['./src/index.ts'],
+  },
 ]);

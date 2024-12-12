@@ -1,5 +1,3 @@
-import { type Fiber } from 'react-reconciler';
-
 declare global {
   // eslint-disable-next-line no-var
   var __REACT_DEVTOOLS_GLOBAL_HOOK__: {
