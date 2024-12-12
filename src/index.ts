@@ -186,9 +186,8 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 
 export const didFiberCommit = (fiber: Fiber): boolean => {
   return Boolean(
-    fiber.subtreeFlags & (MutationMask | Cloned) ||
-      fiber.deletions != null ||
-      fiber.alternate == null,
+    (fiber.flags & (Update | Placement | ChildDeletion)) !== 0 ||
+    (fiber.subtreeFlags & (Update | Placement | ChildDeletion)) !== 0
   );
 };
 
@@ -202,7 +201,7 @@ export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
 
     if (
       isHostFiber(node) &&
-      didFiberCommit(node.return ?? node) &&
+      didFiberCommit(node) &&
       didFiberRender(node)
     ) {
       mutations.push(node);

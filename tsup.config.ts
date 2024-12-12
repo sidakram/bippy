@@ -1,7 +1,19 @@
 import { defineConfig, type Options } from 'tsup';
 
+const banner = `/**
+ * @license bippy
+ *
+ * Copyright (c) Aiden Bai.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */`;
+
 const DEFAULT_OPTIONS: Options = {
   entry: [],
+  banner: {
+    js: banner,
+  },
   outDir: './dist',
   splitting: false,
   sourcemap: false,

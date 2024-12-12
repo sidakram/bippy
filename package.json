@@ -70,6 +70,7 @@
     "test:watch": "vitest --dom --watch"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^19.0.2",
     "@types/react-reconciler": "^0.28.8",
