@@ -186,7 +186,9 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 
 export const didFiberCommit = (fiber: Fiber): boolean => {
   return Boolean(
-    fiber.subtreeFlags & (MutationMask | Cloned) || fiber.deletions,
+    fiber.subtreeFlags & (MutationMask | Cloned) ||
+      fiber.deletions != null ||
+      fiber.alternate == null,
   );
 };
 
@@ -222,10 +224,14 @@ export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
 export const getFiberStack = (fiber: Fiber) => {
   const stack: Array<Fiber> = [];
   while (fiber.return) {
-    stack.unshift(fiber);
+    stack.push(fiber);
     fiber = fiber.return;
   }
-  return stack;
+  const newStack = new Array(stack.length);
+  for (let i = 0; i < stack.length; i++) {
+    newStack[i] = stack[stack.length - i - 1];
+  }
+  return newStack;
 };
 
 export const shouldFilterFiber = (fiber: Fiber) => {

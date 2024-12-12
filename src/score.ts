@@ -3,7 +3,7 @@ import {
   didFiberCommit,
   getMutatedHostFibers,
   getNearestHostFiber,
-} from './index';
+} from './index.js';
 
 let fps = 0;
 let lastTime = performance.now();

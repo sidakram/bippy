@@ -1,6 +1,6 @@
 {
   "name": "bippy",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "a hacky way to get fibers from react",
   "keywords": [
     "react",
@@ -22,35 +22,36 @@
     "name": "Aiden Bai",
     "email": "aiden@million.dev"
   },
-  "type": "commonjs",
+  "type": "module",
   "exports": {
     "./package.json": "./package.json",
     ".": {
       "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
-      },
-      "require": {
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
       }
     },
     "./score": {
       "import": {
-        "types": "./dist/score.d.mts",
-        "default": "./dist/score.mjs"
-      },
-      "require": {
         "types": "./dist/score.d.ts",
         "default": "./dist/score.js"
+      },
+      "require": {
+        "types": "./dist/score.d.cts",
+        "default": "./dist/score.cjs"
       }
     },
     "./dist/*": "./dist/*.js",
     "./dist/*.js": "./dist/*.js",
+    "./dist/*.cjs": "./dist/*.cjs",
     "./dist/*.mjs": "./dist/*.mjs"
   },
   "main": "dist/index.js",
-  "module": "dist/index.mjs",
+  "module": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist",
@@ -64,20 +65,25 @@
     "dev": "NODE_ENV=development tsup --watch",
     "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
     "prettier": "prettier --config .prettierrc.mjs -w src",
-    "publint": "publint"
+    "publint": "publint",
+    "test": "vitest --dom",
+    "test:watch": "vitest --dom --watch"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
+    "@types/react-dom": "^19.0.2",
     "@types/react-reconciler": "^0.28.8",
     "@vercel/style-guide": "^6.0.0",
     "eslint": "^8.57.1",
+    "happy-dom": "^15.11.7",
     "prettier": "^3.3.3",
     "publint": "^0.2.12",
     "react": "*",
     "react-dom": "*",
     "react-reconciler": "^0.29.2",
     "terser": "^5.36.0",
-    "tsup": "^8.2.4"
+    "tsup": "^8.2.4",
+    "vitest": "^2.1.8"
   },
   "publishConfig": {
     "access": "public"
