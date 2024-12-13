@@ -15,7 +15,6 @@ import { vi } from 'vitest';
 import {
   createFiberVisitor,
   getTimings,
-  hasMemoCache,
   traverseFiber,
   getNearestHostFiber,
   getFiberStack,
@@ -116,30 +115,44 @@ test('instrument', async () => {
 
 test('createFiberVisitor', async () => {
   const onRenderMock = vi.fn();
-  const visitor = createFiberVisitor({ onRender: onRenderMock });
-
+  const visitor = createFiberVisitor({
+    onRender(fiber) {
+      if (fiber.type === TestComponent) {
+        onRenderMock();
+      }
+    },
+  });
   const container = document.createElement('div');
   const root = ReactDOM.createRoot(container);
 
-  let fiberRoot: FiberRoot | null = null;
   instrument({
-    onCommitFiberRoot: (_rendererID, rootParam) => {
-      fiberRoot = rootParam;
+    onCommitFiberRoot: (rendererID, fiberRoot) => {
+      visitor(rendererID, fiberRoot);
     },
   });
 
   function TestComponent() {
-    return <div>Test Component</div>;
+    const [count, setCount] = React.useState(0);
+    React.useEffect(() => {
+      setTimeout(() => {
+        setCount(1);
+      }, 100);
+    }, []);
+    return <div>Test Component {count}</div>;
   }
 
-  root.render(<TestComponent />);
-  await sleep(1);
+  await act(async () => {
+    root.render(<TestComponent />);
+    await sleep(1);
+  });
 
-  expect(fiberRoot).not.toBeNull();
+  expect(onRenderMock).toHaveBeenCalledTimes(1);
 
-  visitor(1, fiberRoot!);
+  await act(async () => {
+    await sleep(100);
+  });
 
-  expect(onRenderMock).toHaveBeenCalled();
+  expect(onRenderMock).toHaveBeenCalledTimes(2);
 });
 
 test('getTimings', async () => {

@@ -4,7 +4,6 @@ import {
   getTimings,
   getDisplayName,
   didFiberCommit,
-  getFiberMutations,
 } from 'bippy'; // must be imported BEFORE react
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
@@ -32,10 +31,6 @@ const visitor = createFiberVisitor({
     render.totalTime += totalTime;
     componentRenderMap.set(componentType, render);
     console.log(phase, fiber, render);
-
-    if (didFiberCommit(fiber)) {
-      console.log('didFiberCommit', fiber.type, getFiberMutations(fiber));
-    }
   },
 });
 
