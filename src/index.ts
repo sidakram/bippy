@@ -10,10 +10,15 @@ export interface ReactDevToolsGlobalHook {
   supportsFiber: boolean;
   supportsFlight: boolean;
   renderers: Map<number, unknown>;
-  onCommitFiberRoot: (rendererID: number, root: unknown) => void;
+  onCommitFiberRoot: (
+    rendererID: number,
+    root: unknown,
+    priority: void | number,
+  ) => void;
   onCommitFiberUnmount: (rendererID: number, root: unknown) => void;
   onPostCommitFiberRoot: (rendererID: number, root: unknown) => void;
   inject: (renderer: unknown) => number;
+  _instrumentationSource?: string;
 }
 
 export const ClassComponentTag = 1;
@@ -372,6 +377,7 @@ export const getRDTHook = () => {
       renderers.set(nextID, renderer);
       return nextID;
     },
+    instrumentation: 'bippy',
   };
   try {
     // sometimes this is a getter
@@ -654,18 +660,30 @@ export const instrument = ({
   onCommitFiberRoot,
   onCommitFiberUnmount,
   onPostCommitFiberRoot,
+  name,
 }: {
-  onCommitFiberRoot?: (rendererID: number, root: FiberRoot) => void;
+  onCommitFiberRoot?: (
+    rendererID: number,
+    root: FiberRoot,
+    priority: void | number,
+  ) => void;
   onCommitFiberUnmount?: (rendererID: number, root: FiberRoot) => void;
   onPostCommitFiberRoot?: (rendererID: number, root: FiberRoot) => void;
+  name?: string;
 }) => {
   const devtoolsHook = getRDTHook();
+  devtoolsHook._instrumentationSource = name ?? 'bippy';
 
   const prevOnCommitFiberRoot = devtoolsHook.onCommitFiberRoot;
   if (onCommitFiberRoot) {
-    devtoolsHook.onCommitFiberRoot = (rendererID: number, root: FiberRoot) => {
-      if (prevOnCommitFiberRoot) prevOnCommitFiberRoot(rendererID, root);
-      onCommitFiberRoot(rendererID, root);
+    devtoolsHook.onCommitFiberRoot = (
+      rendererID: number,
+      root: FiberRoot,
+      priority: void | number,
+    ) => {
+      if (prevOnCommitFiberRoot)
+        prevOnCommitFiberRoot(rendererID, root, priority);
+      onCommitFiberRoot(rendererID, root, priority);
     };
   }
 
