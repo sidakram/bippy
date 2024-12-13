@@ -5,6 +5,17 @@
 import type * as React from 'react';
 import type { Fiber, FiberRoot } from 'react-reconciler';
 
+export interface ReactDevToolsGlobalHook {
+  checkDCE: () => void;
+  supportsFiber: boolean;
+  supportsFlight: boolean;
+  renderers: Map<number, unknown>;
+  onCommitFiberRoot: (rendererID: number, root: unknown) => void;
+  onCommitFiberUnmount: (rendererID: number, root: unknown) => void;
+  onPostCommitFiberRoot: (rendererID: number, root: unknown) => void;
+  inject: (renderer: unknown) => number;
+}
+
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
 export const ContextConsumerTag = 9;
@@ -187,7 +198,7 @@ export const didFiberRender = (fiber: Fiber): boolean => {
 export const didFiberCommit = (fiber: Fiber): boolean => {
   return Boolean(
     (fiber.flags & (Update | Placement | ChildDeletion)) !== 0 ||
-    (fiber.subtreeFlags & (Update | Placement | ChildDeletion)) !== 0
+      (fiber.subtreeFlags & (Update | Placement | ChildDeletion)) !== 0,
   );
 };
 
@@ -199,11 +210,7 @@ export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
     if (!node || visited.has(node)) return;
     visited.add(node);
 
-    if (
-      isHostFiber(node) &&
-      didFiberCommit(node) &&
-      didFiberRender(node)
-    ) {
+    if (isHostFiber(node) && didFiberCommit(node) && didFiberRender(node)) {
       mutations.push(node);
     }
 
