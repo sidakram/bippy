@@ -14,6 +14,7 @@ const DEFAULT_OPTIONS: Options = {
   banner: {
     js: banner,
   },
+  clean: true,
   outDir: './dist',
   splitting: false,
   sourcemap: false,

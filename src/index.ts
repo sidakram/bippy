@@ -58,9 +58,11 @@ export const MutationMask =
   Visibility |
   Snapshot;
 
-export const isValidElement = (element: unknown) =>
+export const isValidElement = (
+  element: unknown,
+): element is React.ReactElement =>
   typeof element === 'object' &&
-  element !== null &&
+  element != null &&
   '$$typeof' in element &&
   String(element.$$typeof) === 'Symbol(react.element)';
 
