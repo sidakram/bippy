@@ -19,6 +19,7 @@ export interface ReactDevToolsGlobalHook {
   onPostCommitFiberRoot: (rendererID: number, root: unknown) => void;
   inject: (renderer: unknown) => number;
   _instrumentationSource?: string;
+  _instrumentationIsActive?: boolean;
 }
 
 export const ClassComponentTag = 1;
@@ -69,7 +70,10 @@ export const isValidElement = (
   typeof element === 'object' &&
   element != null &&
   '$$typeof' in element &&
-  String(element.$$typeof) === 'Symbol(react.element)';
+  // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
+  ['react.element', 'react.transitional.element'].includes(
+    String(element.$$typeof),
+  );
 
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
@@ -211,26 +215,20 @@ export const didFiberCommit = (fiber: Fiber): boolean => {
 
 export const getMutatedHostFibers = (fiber: Fiber): Array<Fiber> => {
   const mutations: Array<Fiber> = [];
-  const visited = new WeakSet<Fiber>();
+  const stack: Fiber[] = [fiber];
 
-  const traverse = (node: Fiber) => {
-    if (!node || visited.has(node)) return;
-    visited.add(node);
+  while (stack.length) {
+    const node = stack.pop();
+    if (!node) continue;
 
     if (isHostFiber(node) && didFiberCommit(node) && didFiberRender(node)) {
       mutations.push(node);
     }
 
-    if (node.child) {
-      traverse(node.child);
-    }
+    if (node.child) stack.push(node.child);
+    if (node.sibling) stack.push(node.sibling);
+  }
 
-    if (node.sibling) {
-      traverse(node.sibling);
-    }
-  };
-
-  traverse(fiber);
   return mutations;
 };
 
@@ -360,8 +358,10 @@ const NO_OP = () => {
   /**/
 };
 
-export const getRDTHook = () => {
+export const getRDTHook = (onActive?: () => unknown) => {
   let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+  const isActive = rdtHook && !('_instrumentationSource' in rdtHook);
+  if (isActive) onActive?.();
   const renderers = new Map();
   let i = 0;
   rdtHook ??= {
@@ -375,22 +375,35 @@ export const getRDTHook = () => {
     inject(renderer) {
       const nextID = ++i;
       renderers.set(nextID, renderer);
+      if (!rdtHook._instrumentationIsActive) {
+        rdtHook._instrumentationIsActive = true;
+        onActive?.();
+      }
       return nextID;
     },
-    instrumentation: 'bippy',
+    _instrumentationSource: 'bippy',
+    _instrumentationIsActive: isActive,
   };
   try {
-    // sometimes this is a getter
-    globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = rdtHook;
+    Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
+      configurable: true,
+      value: rdtHook,
+    });
   } catch {
-    /**/
+    // this will fail if RDT already installed the hook
   }
   return rdtHook;
+};
+
+export const isInstrumentationActive = (onActive?: () => unknown) => {
+  const rdtHook = getRDTHook(onActive);
+  return Boolean(rdtHook._instrumentationIsActive);
 };
 
 // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
 // this is the case with the React Devtools extension, but without it, we need
 if (typeof window !== 'undefined') {
+  performance.now();
   getRDTHook();
 }
 
@@ -398,7 +411,7 @@ type RenderHandler = <S>(
   fiber: Fiber,
   phase: 'mount' | 'update' | 'unmount',
   state?: S,
-) => void;
+) => unknown;
 
 export const mountFiberRecursively = (
   onRender: RenderHandler,
@@ -600,7 +613,7 @@ export const createFiberVisitor = ({
   onError,
 }: {
   onRender: RenderHandler;
-  onError?: (error: unknown) => void;
+  onError?: (error: unknown) => unknown;
 }) => {
   return <S>(_rendererID: number, root: FiberRoot, state?: S) => {
     const rootFiber = root.current;
@@ -660,18 +673,20 @@ export const instrument = ({
   onCommitFiberRoot,
   onCommitFiberUnmount,
   onPostCommitFiberRoot,
+  onActive,
   name,
 }: {
   onCommitFiberRoot?: (
     rendererID: number,
     root: FiberRoot,
     priority: void | number,
-  ) => void;
-  onCommitFiberUnmount?: (rendererID: number, root: FiberRoot) => void;
-  onPostCommitFiberRoot?: (rendererID: number, root: FiberRoot) => void;
+  ) => unknown;
+  onCommitFiberUnmount?: (rendererID: number, root: FiberRoot) => unknown;
+  onPostCommitFiberRoot?: (rendererID: number, root: FiberRoot) => unknown;
+  onActive?: () => unknown;
   name?: string;
 }) => {
-  const devtoolsHook = getRDTHook();
+  const devtoolsHook = getRDTHook(onActive);
   devtoolsHook._instrumentationSource = name ?? 'bippy';
 
   const prevOnCommitFiberRoot = devtoolsHook.onCommitFiberRoot;
