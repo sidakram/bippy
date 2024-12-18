@@ -404,8 +404,7 @@ const NO_OP = () => {
 
 export const getRDTHook = (onActive?: () => unknown) => {
   let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  const isActive = rdtHook && !('_instrumentationSource' in rdtHook);
-  if (isActive) onActive?.();
+  if (rdtHook) onActive?.();
 
   if (!window.hasOwnProperty('__REACT_DEVTOOLS_GLOBAL_HOOK__')) {
     const renderers = new Map();
@@ -428,7 +427,7 @@ export const getRDTHook = (onActive?: () => unknown) => {
         return nextID;
       },
       _instrumentationSource: 'bippy',
-      _instrumentationIsActive: isActive,
+      _instrumentationIsActive: Boolean(rdtHook),
     };
     try {
       Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
