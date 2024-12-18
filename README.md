@@ -213,6 +213,8 @@ try a completed version [here](https://bippy.million.dev)
 
 you can learn more about bippy by [reading the source code](https://github.com/aidenybai/bippy/blob/main/src/index.ts).
 
+looking for a more robust version of our mini react-scan? try out [react-scan](https://github.com/aidenybai/react-scan).
+
 ## misc
 
 the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is cute
