@@ -805,8 +805,16 @@ export const instrument = ({
   return devtoolsHook;
 };
 
+const isBrowser =
+  typeof document !== 'undefined' &&
+  typeof document.createElement === 'function';
+const isNode =
+  typeof process !== 'undefined' &&
+  process.versions != null &&
+  process.versions.node != null;
+
 // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
 // this is the case with the React Devtools extension, but without it, we need
-if (typeof window !== 'undefined') {
+if (isBrowser || !isNode) {
   installRDTHook();
 }
