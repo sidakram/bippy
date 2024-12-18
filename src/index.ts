@@ -6,10 +6,10 @@ import type * as React from 'react';
 import type { Fiber, FiberRoot } from 'react-reconciler';
 
 export interface ReactDevToolsGlobalHook {
-  checkDCE: () => void;
+  checkDCE: (fn: any) => void;
   supportsFiber: boolean;
   supportsFlight: boolean;
-  renderers: Map<number, unknown>;
+  renderers: Map<number, ReactRenderer>;
   onCommitFiberRoot: (
     rendererID: number,
     root: unknown,
@@ -21,6 +21,16 @@ export interface ReactDevToolsGlobalHook {
   _instrumentationSource?: string;
   _instrumentationIsActive?: boolean;
 }
+
+type BundleType =
+  | 0 // PROD
+  | 1; // DEV
+
+// https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-devtools-shared/src/backend/types.js
+export type ReactRenderer = {
+  version: string;
+  bundleType: BundleType;
+};
 
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
@@ -66,14 +76,17 @@ export const MutationMask =
 
 export const isValidElement = (
   element: unknown,
-): element is React.ReactElement =>
-  typeof element === 'object' &&
-  element != null &&
-  '$$typeof' in element &&
-  // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
-  ['react.element', 'react.transitional.element'].includes(
-    String(element.$$typeof),
+): element is React.ReactElement => {
+  return (
+    typeof element === 'object' &&
+    element != null &&
+    '$$typeof' in element &&
+    // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
+    ['Symbol(react.element)', 'Symbol(react.transitional.element)'].includes(
+      String(element.$$typeof),
+    )
   );
+};
 
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
@@ -364,45 +377,80 @@ const NO_OP = () => {
   /**/
 };
 
+export const isUsingRDT = () =>
+  globalThis.__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__ != null;
+
+export const detectReactBuildType = (renderer: ReactRenderer) => {
+  try {
+    if (typeof renderer.version === 'string' && renderer.bundleType > 0) {
+      return 'development';
+    }
+  } catch {
+    /**/
+  }
+  return 'production';
+};
+
+const checkDCE = (fn: any) => {
+  try {
+    const code = Function.prototype.toString.call(fn);
+    if (code.indexOf('^_^') > -1) {
+      setTimeout(() => {
+        throw new Error(
+          'React is running in production mode, but dead code ' +
+            'elimination has not been applied. Read how to correctly ' +
+            'configure React for production: ' +
+            'https://reactjs.org/link/perf-use-production-build',
+        );
+      });
+    }
+  } catch {
+    /**/
+  }
+};
+
 export const getRDTHook = (onActive?: () => unknown) => {
   let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
   const isActive = rdtHook && !('_instrumentationSource' in rdtHook);
   if (isActive) onActive?.();
-  const renderers = new Map();
-  let i = 0;
-  rdtHook ??= {
-    checkDCE: NO_OP,
-    supportsFiber: true,
-    supportsFlight: true,
-    renderers,
-    onCommitFiberRoot: NO_OP,
-    onCommitFiberUnmount: NO_OP,
-    onPostCommitFiberRoot: NO_OP,
-    inject(renderer) {
-      const nextID = ++i;
-      renderers.set(nextID, renderer);
-      if (!rdtHook._instrumentationIsActive) {
-        rdtHook._instrumentationIsActive = true;
-        onActive?.();
-      }
-      return nextID;
-    },
-    _instrumentationSource: 'bippy',
-    _instrumentationIsActive: isActive,
-  };
-  try {
-    Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
-      configurable: true,
-      value: rdtHook,
-    });
-  } catch {
-    // this will fail if RDT already installed the hook
+
+  if (!window.hasOwnProperty('__REACT_DEVTOOLS_GLOBAL_HOOK__')) {
+    const renderers = new Map();
+    let i = 0;
+    rdtHook ??= {
+      checkDCE,
+      supportsFiber: true,
+      supportsFlight: true,
+      renderers,
+      onCommitFiberRoot: NO_OP,
+      onCommitFiberUnmount: NO_OP,
+      onPostCommitFiberRoot: NO_OP,
+      inject(renderer) {
+        const nextID = ++i;
+        renderers.set(nextID, renderer);
+        if (!rdtHook._instrumentationIsActive) {
+          rdtHook._instrumentationIsActive = true;
+          onActive?.();
+        }
+        return nextID;
+      },
+      _instrumentationSource: 'bippy',
+      _instrumentationIsActive: isActive,
+    };
+    try {
+      Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
+        configurable: true,
+        value: rdtHook,
+      });
+    } catch {
+      // this will fail if RDT already installed the hook
+    }
   }
   return rdtHook;
 };
 
-export const isInstrumentationActive = (onActive?: () => unknown) => {
-  const rdtHook = getRDTHook(onActive);
+export const isInstrumentationActive = () => {
+  const rdtHook = getRDTHook();
   return Boolean(rdtHook._instrumentationIsActive);
 };
 
