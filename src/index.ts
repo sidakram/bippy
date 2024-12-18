@@ -5,6 +5,12 @@
 import type * as React from 'react';
 import type { Fiber, FiberRoot } from 'react-reconciler';
 
+// https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-devtools-shared/src/backend/types.js
+export interface ReactRenderer {
+  version: string;
+  bundleType: 0 /* PROD */ | 1 /* DEV */;
+}
+
 export interface ReactDevToolsGlobalHook {
   checkDCE: (fn: any) => void;
   supportsFiber: boolean;
@@ -21,16 +27,6 @@ export interface ReactDevToolsGlobalHook {
   _instrumentationSource?: string;
   _instrumentationIsActive?: boolean;
 }
-
-type BundleType =
-  | 0 // PROD
-  | 1; // DEV
-
-// https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-devtools-shared/src/backend/types.js
-export type ReactRenderer = {
-  version: string;
-  bundleType: BundleType;
-};
 
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
@@ -76,17 +72,14 @@ export const MutationMask =
 
 export const isValidElement = (
   element: unknown,
-): element is React.ReactElement => {
-  return (
-    typeof element === 'object' &&
-    element != null &&
-    '$$typeof' in element &&
-    // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
-    ['Symbol(react.element)', 'Symbol(react.transitional.element)'].includes(
-      String(element.$$typeof),
-    )
+): element is React.ReactElement =>
+  typeof element === 'object' &&
+  element != null &&
+  '$$typeof' in element &&
+  // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
+  ['Symbol(react.element)', 'Symbol(react.transitional.element)'].includes(
+    String(element.$$typeof),
   );
-};
 
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
