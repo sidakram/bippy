@@ -18,12 +18,12 @@ export interface ReactDevToolsGlobalHook {
   renderers: Map<number, ReactRenderer>;
   onCommitFiberRoot: (
     rendererID: number,
-    root: unknown,
+    root: FiberRoot,
     priority: void | number,
   ) => void;
-  onCommitFiberUnmount: (rendererID: number, root: unknown) => void;
-  onPostCommitFiberRoot: (rendererID: number, root: unknown) => void;
-  inject: (renderer: unknown) => number;
+  onCommitFiberUnmount: (rendererID: number, fiber: Fiber) => void;
+  onPostCommitFiberRoot: (rendererID: number, root: FiberRoot) => void;
+  inject: (renderer: ReactRenderer) => number;
   _instrumentationSource?: string;
   _instrumentationIsActive?: boolean;
 }
@@ -761,7 +761,7 @@ export const instrument = ({
     root: FiberRoot,
     priority: void | number,
   ) => unknown;
-  onCommitFiberUnmount?: (rendererID: number, root: FiberRoot) => unknown;
+  onCommitFiberUnmount?: (rendererID: number, fiber: Fiber) => unknown;
   onPostCommitFiberRoot?: (rendererID: number, root: FiberRoot) => unknown;
   onActive?: () => unknown;
   name?: string;
