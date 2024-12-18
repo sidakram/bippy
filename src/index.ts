@@ -366,10 +366,6 @@ export const getDisplayName = (type: any): string | null => {
   return type.displayName || type.name || null;
 };
 
-const NO_OP = () => {
-  /**/
-};
-
 export const isUsingRDT = () =>
   globalThis.__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__ != null;
 
@@ -400,6 +396,10 @@ const checkDCE = (fn: any) => {
   } catch {
     /**/
   }
+};
+
+const NO_OP = () => {
+  /**/
 };
 
 export const getRDTHook = (onActive?: () => unknown) => {
