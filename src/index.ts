@@ -444,7 +444,7 @@ export const getRDTHook = (onActive?: () => unknown) => {
 
 export const isInstrumentationActive = () => {
   const rdtHook = getRDTHook();
-  return Boolean(rdtHook._instrumentationIsActive);
+  return Boolean(rdtHook._instrumentationIsActive) || isUsingRDT();
 };
 
 // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
