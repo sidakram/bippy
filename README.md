@@ -62,7 +62,7 @@ we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
 
 ### 0. setup
 
-first, [create a new react project via stackblitz](https://stackblitz.com/fork/github/vitejs/vite/tree/main/packages/create-vite/template-react?file=index.html&terminal=dev)
+first, [create a new react project via stackblitz](https://stackblitz.com/fork/github/vitejs/vite/tree/main/packages/create-vite/template-react?file=src/App.jsx&terminal=dev)
 
 then, install bippy:
 

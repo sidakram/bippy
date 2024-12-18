@@ -81,6 +81,9 @@ export const isValidElement = (
     String(element.$$typeof),
   );
 
+/**
+ * Host fibers are DOM nodes in react-dom, `View` in react-native, etc.
+ */
 export const isHostFiber = (fiber: Fiber) =>
   fiber.tag === HostComponentTag ||
   // @ts-expect-error: it exists
@@ -88,7 +91,11 @@ export const isHostFiber = (fiber: Fiber) =>
   // @ts-expect-error: it exists
   fiber.tag === HostSingletonTag;
 
-// https://github.com/facebook/react/blob/865d2c418d5ba6fb4546e4b58616cd9b7701af85/packages/react/src/jsx/ReactJSXElement.js#L490
+/**
+ * Composite fibers are functional, class components, etc.
+ *
+ * @see https://github.com/facebook/react/blob/865d2c418d5ba6fb4546e4b58616cd9b7701af85/packages/react/src/jsx/ReactJSXElement.js#L490
+ */
 export const isCompositeFiber = (fiber: Fiber) =>
   fiber.tag === FunctionComponentTag ||
   fiber.tag === ClassComponentTag ||
@@ -218,6 +225,9 @@ export const didFiberRender = (fiber: Fiber): boolean => {
   }
 };
 
+/**
+ * A commit is means reconciliation occured and the host tree is updated
+ */
 export const didFiberCommit = (fiber: Fiber): boolean => {
   return Boolean(
     (fiber.flags & (Update | Placement | ChildDeletion)) !== 0 ||
@@ -654,6 +664,16 @@ const rootInstanceMap = new WeakMap<
   }
 >();
 
+/**
+ * Creates a fiber visitor function.
+ * @param options { onRender, onError }
+ * @example
+ * const visitor = createFiberVisitor({
+ *   onRender(fiber, phase) {
+ *     console.log(phase)
+ *   },
+ * });
+ */
 export const createFiberVisitor = ({
   onRender: onRenderWithoutState,
   onError,
@@ -715,6 +735,19 @@ export const createFiberVisitor = ({
   };
 };
 
+/**
+ * Instruments the DevTools hook.
+ * @param options { onCommitFiberRoot, onCommitFiberUnmount, onPostCommitFiberRoot, onActive, name }
+ * @example
+ * const hook = instrument({
+ *   onActive() {
+ *     console.log('initialized');
+ *   },
+ *   onCommitFiberRoot(rendererID, root) {
+ *     console.log('fiberRoot', root.current)
+ *   },
+ * });
+ */
 export const instrument = ({
   onCommitFiberRoot,
   onCommitFiberUnmount,
