@@ -412,41 +412,46 @@ const NO_OP = () => {
   /**/
 };
 
+export const installRDTHook = (onActive?: () => unknown) => {
+  const renderers = new Map();
+  let i = 0;
+  const rdtHook: ReactDevToolsGlobalHook = {
+    checkDCE,
+    supportsFiber: true,
+    supportsFlight: true,
+    renderers,
+    onCommitFiberRoot: NO_OP,
+    onCommitFiberUnmount: NO_OP,
+    onPostCommitFiberRoot: NO_OP,
+    inject(renderer) {
+      const nextID = ++i;
+      renderers.set(nextID, renderer);
+      if (!rdtHook._instrumentationIsActive) {
+        rdtHook._instrumentationIsActive = true;
+        onActive?.();
+      }
+      return nextID;
+    },
+    _instrumentationSource: 'bippy',
+    _instrumentationIsActive: false,
+  };
+  try {
+    Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
+      configurable: true,
+      value: rdtHook,
+    });
+  } catch {
+    // this will fail if RDT already installed the hook
+  }
+  return rdtHook;
+};
+
 export const getRDTHook = (onActive?: () => unknown) => {
   let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
   if (rdtHook) onActive?.();
 
   if (!window.hasOwnProperty('__REACT_DEVTOOLS_GLOBAL_HOOK__')) {
-    const renderers = new Map();
-    let i = 0;
-    rdtHook ??= {
-      checkDCE,
-      supportsFiber: true,
-      supportsFlight: true,
-      renderers,
-      onCommitFiberRoot: NO_OP,
-      onCommitFiberUnmount: NO_OP,
-      onPostCommitFiberRoot: NO_OP,
-      inject(renderer) {
-        const nextID = ++i;
-        renderers.set(nextID, renderer);
-        if (!rdtHook._instrumentationIsActive) {
-          rdtHook._instrumentationIsActive = true;
-          onActive?.();
-        }
-        return nextID;
-      },
-      _instrumentationSource: 'bippy',
-      _instrumentationIsActive: Boolean(rdtHook),
-    };
-    try {
-      Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
-        configurable: true,
-        value: rdtHook,
-      });
-    } catch {
-      // this will fail if RDT already installed the hook
-    }
+    rdtHook = installRDTHook(onActive);
   }
   return rdtHook;
 };
@@ -455,13 +460,6 @@ export const isInstrumentationActive = () => {
   const rdtHook = getRDTHook();
   return Boolean(rdtHook._instrumentationIsActive) || isUsingRDT();
 };
-
-// __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
-// this is the case with the React Devtools extension, but without it, we need
-if (typeof window !== 'undefined') {
-  performance.now();
-  getRDTHook();
-}
 
 type RenderHandler = <S>(
   fiber: Fiber,
@@ -806,3 +804,9 @@ export const instrument = ({
 
   return devtoolsHook;
 };
+
+// __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
+// this is the case with the React Devtools extension, but without it, we need
+if (typeof window !== 'undefined') {
+  installRDTHook();
+}
