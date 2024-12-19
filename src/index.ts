@@ -48,6 +48,9 @@ export const LegacyHiddenComponent = 23;
 export const OffscreenComponent = 22;
 export const HostRoot = 3;
 export const CONCURRENT_MODE_NUMBER = 0xeacf;
+export const ELEMENT_TYPE_SYMBOL_STRING = 'Symbol(react.element)';
+export const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
+  'Symbol(react.transitional.element)';
 export const CONCURRENT_MODE_SYMBOL_STRING = 'Symbol(react.concurrent_mode)';
 export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = 'Symbol(react.async_mode)';
 
@@ -79,9 +82,10 @@ export const isValidElement = (
   element != null &&
   '$$typeof' in element &&
   // react 18 uses Symbol.for('react.element'), react 19 uses Symbol.for('react.transitional.element')
-  ['Symbol(react.element)', 'Symbol(react.transitional.element)'].includes(
-    String(element.$$typeof),
-  );
+  [
+    ELEMENT_TYPE_SYMBOL_STRING,
+    TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING,
+  ].includes(String(element.$$typeof));
 
 /**
  * Host fibers are DOM nodes in react-dom, `View` in react-native, etc.
@@ -464,9 +468,11 @@ export const isInstrumentationActive = () => {
   return Boolean(rdtHook._instrumentationIsActive) || isUsingRDT();
 };
 
-type RenderHandler = <S>(
+export type RenderPhase = 'mount' | 'update' | 'unmount';
+
+export type RenderHandler = <S>(
   fiber: Fiber,
-  phase: 'mount' | 'update' | 'unmount',
+  phase: RenderPhase,
   state?: S,
 ) => unknown;
 
@@ -684,7 +690,7 @@ export const createFiberVisitor = ({
 }) => {
   return <S>(_rendererID: number, root: FiberRoot, state?: S) => {
     const rootFiber = root.current;
-    const onRender = (fiber: Fiber, phase: 'mount' | 'update' | 'unmount') =>
+    const onRender = (fiber: Fiber, phase: RenderPhase) =>
       onRenderWithoutState<S>(fiber, phase, state);
 
     let rootInstance = rootInstanceMap.get(root);
