@@ -1,4 +1,5 @@
 import { defineConfig, type Options } from 'tsup';
+import fs from 'fs';
 
 const banner = `/**
  * @license bippy
@@ -26,6 +27,7 @@ const DEFAULT_OPTIONS: Options = {
   minify: false,
   env: {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
+    VERSION: JSON.parse(fs.readFileSync('package.json', 'utf8')).version,
   },
   globalName: 'Bippy',
   external: ['react', 'react-dom', 'react-reconciler'],

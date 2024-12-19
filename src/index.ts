@@ -28,6 +28,8 @@ export interface ReactDevToolsGlobalHook {
   _instrumentationIsActive?: boolean;
 }
 
+export const version = process.env.VERSION;
+export const BIPPY_INSTRUMENTATION_STRING = `bippy-${version}`;
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
 export const ContextConsumerTag = 9;
@@ -433,7 +435,7 @@ export const installRDTHook = (onActive?: () => unknown) => {
       }
       return nextID;
     },
-    _instrumentationSource: 'bippy',
+    _instrumentationSource: BIPPY_INSTRUMENTATION_STRING,
     _instrumentationIsActive: false,
   };
   try {
@@ -767,7 +769,7 @@ export const instrument = ({
   name?: string;
 }) => {
   const devtoolsHook = getRDTHook(onActive);
-  devtoolsHook._instrumentationSource = name ?? 'bippy';
+  devtoolsHook._instrumentationSource = name ?? BIPPY_INSTRUMENTATION_STRING;
 
   const prevOnCommitFiberRoot = devtoolsHook.onCommitFiberRoot;
   if (onCommitFiberRoot) {
