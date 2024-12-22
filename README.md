@@ -21,6 +21,14 @@ bippy attempts to solve two problems:
 
   → **bippy provides friendly low-level utils for interacting with fibers**
 
+## installation
+
+Install bippy from NPM:
+
+```bash
+npm install bippy
+```
+
 ## how it works
 
 bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-refresh/src/ReactFreshRuntime.js#L427). this gives us access to react internals without needing to use react devtools.
