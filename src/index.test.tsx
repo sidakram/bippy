@@ -363,14 +363,19 @@ describe("getFiberStack", () => {
 describe("getNearestHostFiber", () => {
 	it("should return the nearest host fiber", () => {
 		let maybeFiber: Fiber | null = null;
+		let maybeHostFiber: Fiber | null = null;
 		instrument({
 			onCommitFiberRoot: (_rendererID, fiberRoot) => {
 				maybeFiber = fiberRoot.current.child;
+				maybeHostFiber = fiberRoot.current.child.child;
 			},
 		});
 		render(<BasicComponent />);
 		expect(getNearestHostFiber(maybeFiber as unknown as Fiber)).toBe(
 			(maybeFiber as unknown as Fiber).child,
+		);
+		expect(maybeHostFiber).toBe(
+			getNearestHostFiber(maybeFiber as unknown as Fiber),
 		);
 	});
 

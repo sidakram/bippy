@@ -27,13 +27,8 @@ const highlightFiber = (fiber) => {
 
 const visit = createFiberVisitor({
 	onRender(fiber) {
-		if (isHostFiber(fiber)) {
-			highlightFiber(fiber);
-		} else {
-			// can be a component
-			const hostFiber = getNearestHostFiber(fiber);
-			highlightFiber(hostFiber);
-		}
+		const hostFiber = getNearestHostFiber(fiber);
+		highlightFiber(hostFiber);
 	},
 });
 

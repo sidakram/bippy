@@ -16,14 +16,13 @@ bippy attempts\* to solve two problems:
 1. it's not possible to write instrumentation for React without the end user changing code
 2. doing anything useful with fibers requires you to know react source code very well
 
-→ **bippy allows you to access fiber information from outside of react**
-→ **bippy provides friendly low-level utils for interacting with fibers**
+bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
-<small>\* disclaimer: in a very hacky way, i highly recommend not relying on this in production</small>
+<sub><sup>\* disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
 
 ## how it works
 
-bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-refresh/src/ReactFreshRuntime.js#L427). this gives us access to react internals without needing to use react devtools.
+bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6907aa2a309bdc47dc3504683159cb50b590eed8/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L112). this gives us access to react internals without needing to use react devtools.
 
 [`react-scan`](https://github.com/aidenybai/react-scan) is a tool that highlights renders in your react app. under the hood, it uses bippy to detect rendered fibers.
 
@@ -75,6 +74,81 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 ```
 
 we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
+
+# example
+
+here's a mini toy version of [`react-scan`](https://github.com/aidenybai/react-scan) that highlights renders in your app.
+
+first, install bippy:
+
+```bash
+npm install bippy
+```
+
+then, use the `instrument` function to set up the hook:
+
+```javascript
+import {
+  instrument,
+  isHostFiber,
+  getNearestHostFiber,
+  createFiberVisitor,
+} from 'bippy'; // must be imported BEFORE react
+
+const highlightFiber = (fiber) => {
+  if (!(fiber.stateNode instanceof HTMLElement)) return;
+  // fiber.stateNode is a DOM element
+  const rect = fiber.stateNode.getBoundingClientRect();
+  const highlight = document.createElement('div');
+  highlight.style.border = '1px solid red';
+  highlight.style.position = 'fixed';
+  highlight.style.top = `${rect.top}px`;
+  highlight.style.left = `${rect.left}px`;
+  highlight.style.width = `${rect.width}px`;
+  highlight.style.height = `${rect.height}px`;
+  highlight.style.zIndex = 999999999;
+  document.documentElement.appendChild(highlight);
+  setTimeout(() => {
+    document.documentElement.removeChild(highlight);
+  }, 100);
+};
+
+/**
+ * `createFiberVisitor` traverses the fiber tree and determines which fibers have actually rendered.
+ *
+ * A fiber tree contains many fibers that may have not rendered. This can be because it bailed out (e.g. `useMemo`) or because it wasn't actually rendered (if <Child> re-rendered, then <Parent> didn't actually render, but exists in the fiber tree).
+ */
+const visit = createFiberVisitor({
+  onRender(fiber) {
+    /**
+     * `getNearestHostFiber` is a utility function that finds the nearest host fiber to a given fiber.
+     *
+     * a host fiber for `react-dom` is a fiber that has a DOM element as its `stateNode`.
+     */
+    const hostFiber = getNearestHostFiber(fiber);
+    highlightFiber(hostFiber);
+  },
+});
+
+/**
+ * `instrument` is a function that installs the React DevTools global hook and allows you to set up custom handlers for React fiber events.
+ */
+instrument(
+  /**
+   * `secure` is a function that wraps your handlers in a try/catch and prevents it from crashing the app. It also prevents it from running on unsupported React versions and during production.
+   *
+   * this is not required but highly recommended to provide "safeguards" in case something breaks.
+   */
+  secure({
+    /**
+     * `onCommitFiberRoot` is a handler that is called when React is ready to commit a fiber root. this means that React is has rendered your entire app and is ready to apply changes to the host tree (e.g. via DOM mutations).
+     */
+    onCommitFiberRoot(rendererID, root) {
+      visit(rendererID, root);
+    },
+  })
+);
+```
 
 ## api reference
 
@@ -169,8 +243,6 @@ const devtoolsHook = installRDTHook(() => {
 #### parameters
 
 - `onActive?: () => unknown` - Optional callback when the hook becomes active.
-
-## fiber utilities
 
 ### isValidElement
 
@@ -330,8 +402,6 @@ traverseProps(fiber, (propName, nextValue, prevValue) => {
 - `fiber: Fiber` - The starting fiber.
 - `selector: (propName, nextValue, prevValue) => boolean | void` - Called with prop values. Return `true` to stop traversal.
 
-## render utilities
-
 ### didFiberRender
 
 Returns `true` if the fiber has rendered.
@@ -389,8 +459,6 @@ console.log('Total time:', totalTime);
 #### parameters
 
 - `fiber?: Fiber | null | undefined` - The fiber to get timings for.
-
-## other utilities
 
 ### hasMemoCache
 
@@ -478,206 +546,6 @@ console.log('Instrumentation active:', active);
 You can learn more about bippy by [reading the source code](https://github.com/aidenybai/bippy/blob/main/src/index.ts).
 
 Looking for a more robust tool? Try out [react-scan](https://github.com/aidenybai/react-scan).
-
-## example: create a mini react-scan
-
-[`react-scan`](https://github.com/aidenybai/react-scan) is a tool that highlights renders in your react app. under the hood, it uses bippy to detect rendered fibers.
-
-fibers are how "work" is represented in react. each fiber either represents a composite (function/class component) or a host (dom element). [here is a live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
-
-a simplified version of a fiber looks roughly like this:
-
-```typescript
-interface Fiber {
-  // component type (function/class)
-  type: any;
-
-  child: Fiber | null;
-  sibling: Fiber | null;
-
-  // parent fiber
-  return: Fiber | null;
-
-  // saved props input
-  memoizedProps: any;
-
-  // state (useState, useReducer, useSES, etc.)
-  memoizedState: any;
-
-  // contexts (useContext)
-  dependencies: Dependencies | null;
-}
-```
-
-however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
-
-luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L48) in the window object: `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this is intended for react devtools, but we can use it to our advantage.
-
-here's what it roughly looks like:
-
-```typescript
-interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
-  // list of renderers (react-dom, react-native, etc.)
-  renderers: Map<RendererID, ReactRenderer>;
-
-  // called when react has rendered everythign and ready to apply changes to the host tree (e.g. DOM mutations)
-  onCommitFiberRoot: (
-    rendererID: RendererID,
-    fiber: Record<string, unknown>,
-    commitPriority?: number,
-    didError?: boolean
-  ) => void;
-}
-```
-
-we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
-
-### 0. setup
-
-first, [create a new react project via stackblitz](https://stackblitz.com/fork/github/vitejs/vite/tree/main/packages/create-vite/template-react?file=src/App.jsx&terminal=dev)
-
-then, install bippy:
-
-```bash
-npm install bippy
-```
-
-finally, re-run the dev server:
-
-```bash
-npm run dev
-```
-
-### 1. use `onCommitFiberRoot` to get fibers
-
-let's use `instrument` to stub the `__REACT_DEVTOOLS_GLOBAL_HOOK__` object, and setup a custom handler for `onCommitFiberRoot`.
-
-```jsx
-import { instrument } from 'bippy'; // must be imported BEFORE react
-
-// rest of your code ...
-
-instrument({
-  onCommitFiberRoot(rendererID, root) {
-    const fiberRoot = root.current;
-    console.log('fiberRoot', fiberRoot);
-  },
-});
-```
-
-running this should log `fiberRoot` to the console. i recommend you playing with this code to get a feel for how fibers work.
-
-### 2. create a fiber visitor
-
-now, let's create a fiber visitor with `createFiberVisitor` to "visit" fibers that render. not every fiber actually renders, so we need to filter for the ones that do.
-
-```jsx
-import { instrument, createFiberVisitor } from 'bippy'; // must be imported BEFORE react
-
-// rest of your code ...
-
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    console.log('fiber render', fiber);
-  },
-});
-
-instrument({
-  onCommitFiberRoot(rendererID, root) {
-    visit(rendererID, root);
-  },
-});
-```
-
-### 3. determine DOM nodes to highlight
-
-next, we need to identify which DOM nodes we are going to highlight. we can do this by checking if the fiber is a host fiber, or if it's not, find the nearest host fiber.
-
-```jsx
-import {
-  instrument,
-  isHostFiber,
-  getNearestHostFiber,
-  createFiberVisitor,
-} from 'bippy'; // must be imported BEFORE react
-
-// rest of your code ...
-
-const highlightFiber = (fiber) => {
-  if (!(fiber instanceof HTMLElement)) return;
-
-  console.log('highlight dom node', fiber.stateNode);
-};
-
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    if (isHostFiber(fiber)) {
-      highlightFiber(fiber);
-    } else {
-      // can be a component
-      const hostFiber = getNearestHostFiber(fiber);
-      highlightFiber(hostFiber);
-    }
-  },
-});
-
-instrument({
-  onCommitFiberRoot(rendererID, root) {
-    visit(rendererID, root);
-  },
-});
-```
-
-### 4. highlight DOM nodes
-
-now, let's implement the `highlightFiber` function to highlight the DOM node. the simplest way is to just overlay a div (with a red border) on top of the DOM node.
-
-```jsx
-import {
-  instrument,
-  isHostFiber,
-  getNearestHostFiber,
-  createFiberVisitor,
-} from 'bippy'; // must be imported BEFORE react
-
-// rest of your code ...
-
-const highlightFiber = (fiber) => {
-  if (!(fiber.stateNode instanceof HTMLElement)) return;
-
-  const rect = fiber.stateNode.getBoundingClientRect();
-  const highlight = document.createElement('div');
-  highlight.style.border = '1px solid red';
-  highlight.style.position = 'fixed';
-  highlight.style.top = `${rect.top}px`;
-  highlight.style.left = `${rect.left}px`;
-  highlight.style.width = `${rect.width}px`;
-  highlight.style.height = `${rect.height}px`;
-  highlight.style.zIndex = 999999999;
-  document.documentElement.appendChild(highlight);
-  setTimeout(() => {
-    document.documentElement.removeChild(highlight);
-  }, 100);
-};
-
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    if (isHostFiber(fiber)) {
-      highlightFiber(fiber);
-    } else {
-      // can be a component
-      const hostFiber = getNearestHostFiber(fiber);
-      highlightFiber(hostFiber);
-    }
-  },
-});
-
-instrument({
-  onCommitFiberRoot(rendererID, root) {
-    visit(rendererID, root);
-  },
-});
-```
 
 ## misc
 
