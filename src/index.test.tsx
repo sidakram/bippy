@@ -2,6 +2,7 @@ import {
 	createFiberVisitor,
 	didFiberCommit,
 	type Fiber,
+	type FiberContext,
 	type FiberRoot,
 	getDisplayName,
 	getFiberStack,
@@ -17,7 +18,10 @@ import {
 	isInstrumentationActive,
 	isValidFiber,
 	secure,
+	traverseContexts,
 	traverseFiber,
+	traverseProps,
+	traverseState,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
@@ -79,6 +83,25 @@ class ClassComponent extends React.Component {
 		return <div>Hello</div>;
 	}
 }
+
+const CountContext = React.createContext(0);
+const ExtraContext = React.createContext(0);
+
+const ComplexComponent = ({
+	countProp = 0,
+}: { countProp?: number; extraProp?: unknown }) => {
+	const countContextValue = React.useContext(CountContext);
+	const _extraContextValue = React.useContext(ExtraContext);
+	const [countState, setCountState] = React.useState(0);
+	const [_extraState, _setExtraState] = React.useState(0);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
+	React.useEffect(() => {
+		setCountState(countState + 1);
+	}, []);
+
+	return <div>{countContextValue + countState + countProp}</div>;
+};
 
 describe("instrument", () => {
 	it("should not fail if __REACT_DEVTOOLS_GLOBAL_HOOK__ exists already", () => {
@@ -167,16 +190,30 @@ describe("instrument", () => {
 	});
 });
 
-// describe("createFiberVisitor", () => {
-// 	it("should return a fiber visitor", () => {
-// 		const fiberVisitor = createFiberVisitor(
-// 			(_rendererID, fiber, type, name, displayName) => {
-// 				console.log(fiber, type, name, displayName);
-// 			},
-// 		);
-// 		expect(fiberVisitor).toBeDefined();
-// 	});
-// });
+describe("createFiberVisitor", () => {
+	it("should return a fiber visitor", () => {
+		const visitedFibers: Fiber[] = [];
+		const visit = createFiberVisitor({
+			onRender: (fiber) => {
+				visitedFibers.push(fiber);
+			},
+			onError: (error) => {
+				throw error;
+			},
+		});
+		instrument({
+			onCommitFiberRoot: (rendererID, fiberRoot) => {
+				visit(rendererID, fiberRoot.current.child);
+			},
+		});
+		render(<BasicComponentWithMutation />);
+		expect(visitedFibers).toHaveLength(2);
+
+		// TODO: investigate why the first fiber is not the mutation fiber
+		expect(visitedFibers[0].type).toBe(BasicComponentWithMutation);
+		expect(visitedFibers[1].type).toBe(BasicComponentWithMutation);
+	});
+});
 
 describe("isValidElement", () => {
 	it("should return true for a valid element", () => {
@@ -480,5 +517,139 @@ describe("getDisplayName", () => {
 
 	it("should return null for a non-fiber", () => {
 		expect(getDisplayName({})).toBe(null);
+	});
+});
+
+describe("traverseProps", () => {
+	it("should return the props of the fiber", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={0} />);
+		const selector = vi.fn();
+		traverseProps(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toHaveBeenCalledWith("countProp", 0, 0);
+	});
+
+	it("should stop selector at the first prop", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} extraProp={null} />);
+		const selector = vi.fn();
+		traverseProps(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toBeCalledTimes(2);
+	});
+
+	it("should stop selector at the first prop", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} extraProp={null} />);
+		const selector = vi.fn(() => true);
+		traverseProps(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toBeCalledTimes(1);
+	});
+});
+
+describe("traverseState", () => {
+	it("should return the state of the fiber", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} />);
+		const states: Array<{ next: unknown; prev: unknown }> = [];
+		const selector = vi.fn((nextState, prevState) => {
+			states.push({
+				next: nextState.memoizedState,
+				prev: prevState.memoizedState,
+			});
+		});
+		traverseState(maybeFiber as unknown as Fiber, selector);
+		expect(states[0].next).toEqual(1);
+		expect(states[0].prev).toEqual(0);
+		expect(states[1].next).toEqual(0);
+		expect(states[1].prev).toEqual(0);
+		// @ts-expect-error
+		expect("deps" in states[2].next).toEqual(true);
+		// @ts-expect-error
+		expect("deps" in states[2].prev).toEqual(true);
+	});
+
+	it("should call selector many times for a fiber with multiple states", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} />);
+		const selector = vi.fn();
+		traverseState(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toBeCalledTimes(3);
+	});
+
+	it("should stop selector at the first state", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} />);
+		const selector = vi.fn(() => true);
+		traverseState(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toBeCalledTimes(1);
+	});
+});
+
+describe("traverseContexts", () => {
+	it("should return the contexts of the fiber", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child.child;
+			},
+		});
+		render(
+			<CountContext.Provider value={1}>
+				<ComplexComponent countProp={1} />
+			</CountContext.Provider>,
+		);
+		const contexts: FiberContext[] = [];
+		const selector = vi.fn((context) => {
+			contexts.push(context);
+		});
+		traverseContexts(maybeFiber as unknown as Fiber, selector);
+		expect(contexts).toHaveLength(2);
+		expect(contexts[0].context).toBe(CountContext);
+		expect(contexts[0].memoizedValue).toBe(1);
+		expect(contexts[1].context).toBe(ExtraContext);
+		expect(contexts[1].memoizedValue).toBe(0);
+	});
+
+	it("should stop selector at the first context", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<ComplexComponent countProp={1} />);
+		const selector = vi.fn(() => true);
+		traverseContexts(maybeFiber as unknown as Fiber, selector);
+		expect(selector).toBeCalledTimes(1);
 	});
 });

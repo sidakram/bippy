@@ -141,7 +141,8 @@ export const isCompositeFiber = (fiber: Fiber) =>
 	fiber.tag === MemoComponentTag ||
 	fiber.tag === ForwardRefTag;
 
-interface FiberContext {
+// FIXME: make this type comprehensive
+export interface FiberContext {
 	context: React.Context<unknown>;
 	memoizedValue: unknown;
 }
@@ -197,26 +198,32 @@ export const traverseContexts = (
 	return false;
 };
 
+// FIXME: make this type comprehensive
+export interface FiberState {
+	memoizedState: unknown;
+	next: FiberState | null;
+}
+
 /**
  * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
  */
 export const traverseState = (
 	fiber: Fiber,
 	selector: (
-		prevValue: { memoizedState: unknown },
-		nextValue: { memoizedState: unknown },
+		nextValue: FiberState,
+		prevValue: FiberState,
 		// biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
 	) => boolean | void,
 ) => {
 	try {
-		let prevState = fiber.memoizedState;
-		let nextState = fiber.alternate?.memoizedState;
+		let nextState = fiber.memoizedState;
+		let prevState = fiber.alternate?.memoizedState;
 
-		while (prevState && nextState) {
-			if (selector(prevState, nextState) === true) return true;
+		while (nextState && prevState) {
+			if (selector(nextState, prevState) === true) return true;
 
-			prevState = prevState.next;
 			nextState = nextState.next;
+			prevState = prevState.next;
 		}
 	} catch {
 		/**/

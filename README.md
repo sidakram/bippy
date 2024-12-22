@@ -11,14 +11,14 @@
 
 a hacky way to get fibers from react. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
 
-bippy attempts\* to solve two problems:
+bippy _attempts\*_ to solve two problems:
 
 1. it's not possible to write instrumentation for React without the end user changing code
 2. doing anything useful with fibers requires you to know react source code very well
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
-<sub><sup>\* disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
+<sub><sup>\*disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
 
 ## how it works
 
@@ -37,6 +37,9 @@ interface Fiber {
 
   child: Fiber | null;
   sibling: Fiber | null;
+
+  // stateNode is the host fiber (e.g. DOM element)
+  stateNode: Node | null;
 
   // parent fiber
   return: Fiber | null;
@@ -63,7 +66,8 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
   // list of renderers (react-dom, react-native, etc.)
   renderers: Map<RendererID, ReactRenderer>;
 
-  // called when react has rendered everythign and ready to apply changes to the host tree (e.g. DOM mutations)
+  // called when react has rendered everythign and ready to apply
+  // changes to the host tree (e.g. DOM mutations)
   onCommitFiberRoot: (
     rendererID: RendererID,
     fiber: Record<string, unknown>,
@@ -75,7 +79,7 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 
 we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
 
-# example
+## example
 
 here's a mini toy version of [`react-scan`](https://github.com/aidenybai/react-scan) that highlights renders in your app.
 
@@ -114,16 +118,22 @@ const highlightFiber = (fiber) => {
 };
 
 /**
- * `createFiberVisitor` traverses the fiber tree and determines which fibers have actually rendered.
+ * `createFiberVisitor` traverses the fiber tree and determines which
+ * fibers have actually rendered.
  *
- * A fiber tree contains many fibers that may have not rendered. This can be because it bailed out (e.g. `useMemo`) or because it wasn't actually rendered (if <Child> re-rendered, then <Parent> didn't actually render, but exists in the fiber tree).
+ * A fiber tree contains many fibers that may have not rendered. this
+ * can be because it bailed out (e.g. `useMemo`) or because it wasn't
+ * actually rendered (if <Child> re-rendered, then <Parent> didn't
+ * actually render, but exists in the fiber tree).
  */
 const visit = createFiberVisitor({
   onRender(fiber) {
     /**
-     * `getNearestHostFiber` is a utility function that finds the nearest host fiber to a given fiber.
+     * `getNearestHostFiber` is a utility function that finds the
+     * nearest host fiber to a given fiber.
      *
-     * a host fiber for `react-dom` is a fiber that has a DOM element as its `stateNode`.
+     * a host fiber for `react-dom` is a fiber that has a DOM element
+     * as its `stateNode`.
      */
     const hostFiber = getNearestHostFiber(fiber);
     highlightFiber(hostFiber);
@@ -131,17 +141,24 @@ const visit = createFiberVisitor({
 });
 
 /**
- * `instrument` is a function that installs the React DevTools global hook and allows you to set up custom handlers for React fiber events.
+ * `instrument` is a function that installs the React DevTools global
+ * hook and allows you to set up custom handlers for React fiber events.
  */
 instrument(
   /**
-   * `secure` is a function that wraps your handlers in a try/catch and prevents it from crashing the app. It also prevents it from running on unsupported React versions and during production.
+   * `secure` is a function that wraps your handlers in a try/catch
+   * and prevents it from crashing the app. it also prevents it from
+   * running on unsupported React versions and during production.
    *
-   * this is not required but highly recommended to provide "safeguards" in case something breaks.
+   * this is not required but highly recommended to provide "safeguards"
+   * in case something breaks.
    */
   secure({
     /**
-     * `onCommitFiberRoot` is a handler that is called when React is ready to commit a fiber root. this means that React is has rendered your entire app and is ready to apply changes to the host tree (e.g. via DOM mutations).
+     * `onCommitFiberRoot` is a handler that is called when React is
+     * ready to commit a fiber root. this means that React is has
+     * rendered your entire app and is ready to apply changes to
+     * the host tree (e.g. via DOM mutations).
      */
     onCommitFiberRoot(rendererID, root) {
       visit(rendererID, root);
@@ -375,7 +392,7 @@ Traverses a fiber's state updates. Calls the selector with each state value.
 ```typescript
 import { traverseState } from 'bippy';
 
-traverseState(fiber, (prevState, nextState) => {
+traverseState(fiber, (nextState, prevState) => {
   console.log('State changed from', prevState, 'to', nextState);
 });
 ```
@@ -549,4 +566,4 @@ Looking for a more robust tool? Try out [react-scan](https://github.com/aidenyba
 
 ## misc
 
-the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is c
+the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is cute.
