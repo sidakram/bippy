@@ -9,7 +9,7 @@ a hacky way to get fibers from react. <small>used internally by [`react-scan`](h
 bippy attempts to solve two problems:
 
 1. it's not possible to write instrumentation software without the end user changing code → **bippy allows you to access fiber information from outside of react**
-2. fiber data structure can change and require you to know react source code well → **bippy provides friendly utils for interacting with fibers**
+2. fiber data structure can change and require you to know react source code well → **bippy provides friendly low-level utils for interacting with fibers**
 
 > [!WARNING]
 > ⚠️⚠️⚠️ **bippy may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
