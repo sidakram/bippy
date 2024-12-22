@@ -53,19 +53,19 @@
   "scripts": {
     "build": "NODE_ENV=production tsup",
     "dev": "NODE_ENV=development tsup --watch",
-    "lint": "eslint 'src/**/*.{ts,tsx}' --fix",
-    "prettier": "prettier --config .prettierrc.mjs -w src",
+    "lint": "pnpm biome lint --write src/*.ts",
+    "format": "pnpm biome format --write src/*.ts",
+    "check": "pnpm biome check --write src/*.ts",
     "publint": "publint",
     "test": "vitest --dom",
     "test:watch": "vitest --dom --watch"
   },
   "devDependencies": {
+    "@biomejs/biome": "1.9.4",
     "@testing-library/react": "^16.1.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^19.0.2",
     "@types/react-reconciler": "^0.28.8",
-    "@vercel/style-guide": "^6.0.0",
-    "eslint": "^8.57.1",
     "happy-dom": "^15.11.7",
     "prettier": "^3.3.3",
     "publint": "^0.2.12",

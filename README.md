@@ -1,13 +1,457 @@
 # <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
-a hacky way to get fibers from react. used internally for [`react-scan`](https://github.com/aidenybai/react-scan).
+[![Size](https://img.shields.io/bundlephobia/minzip/bippy?label=gzip&style=flat&colorA=000000&colorB=000000)](https://bundlephobia.com/package/bippy)
+[![Version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
+[![Downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
+
+a hacky way to get fibers from react. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
 
 bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-refresh/src/ReactFreshRuntime.js#L427). this gives us access to react internals without needing to use react devtools.
 
 > [!WARNING]
-> this project uses react internals, which can change at any time. **this is not recommended for usage and may break production apps** - unless you acknowledge this risk and know exactly you're doing.
+> this project uses react internals, which can change at any time.
+>
+> ⚠️⚠️⚠️ **bippy may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
+>
+> only use if you acknowledge this risk and know exactly you're doing.
 
-## tutorial: create a mini react-scan
+# api reference
+
+## Table of Contents
+
+- [Setup](#setup)
+  - [instrument](#instrument)
+  - [createFiberVisitor](#createfibervisitor)
+  - [getRDTHook](#getrdthook)
+  - [installRDTHook](#installrdthook)
+- [Fiber Utilities](#fiber-utilities)
+  - [isValidElement](#isvalidelement)
+  - [isHostFiber](#ishostfiber)
+  - [isCompositeFiber](#iscompositefiber)
+  - [traverseFiber](#traversefiber)
+  - [getNearestHostFiber](#getnearesthostfiber)
+  - [getNearestHostFibers](#getnearesthostfibers)
+  - [getFiberStack](#getfiberstack)
+  - [traverseContexts](#traversecontexts)
+  - [traverseState](#traversestate)
+  - [traverseProps](#traverseprops)
+- [Render Utilities](#render-utilities)
+  - [didFiberRender](#didfiberrender)
+  - [didFiberCommit](#didfibercommit)
+  - [getMutatedHostFibers](#getmutatedhostfibers)
+  - [getTimings](#gettimings)
+- [Other Utilities](#other-utilities)
+  - [hasMemoCache](#hasmemocache)
+  - [getType](#gettype)
+  - [getDisplayName](#getdisplayname)
+  - [isUsingRDT](#isusingrdt)
+  - [detectReactBuildType](#detectreactbuildtype)
+  - [isInstrumentationActive](#isinstrumentationactive)
+
+## Setup
+
+### instrument
+
+Installs the React DevTools global hook and allows you to set up custom handlers for React fiber events. This function must be called before React is imported.
+
+```typescript
+import { instrument } from 'bippy';
+
+// Instrument the DevTools hook
+instrument({
+  onCommitFiberRoot(rendererID, root) {
+    console.log('Fiber root committed:', root);
+  },
+  onCommitFiberUnmount(rendererID, fiber) {
+    console.log('Fiber unmounted:', fiber);
+  },
+  onActive() {
+    console.log('Instrumentation is active.');
+  },
+});
+```
+
+#### Parameters
+
+- `options: { onCommitFiberRoot?: Function; onCommitFiberUnmount?: Function; onPostCommitFiberRoot?: Function; onActive?: Function; name?: string; }`
+  - `onCommitFiberRoot` - Called when React commits a fiber root.
+  - `onCommitFiberUnmount` - Called when a fiber is unmounted.
+  - `onPostCommitFiberRoot` - Called after React commits a fiber root.
+  - `onActive` - Called when the instrumentation becomes active.
+  - `name` - Optional name for the instrumentation source.
+
+### createFiberVisitor
+
+Creates a fiber visitor function that can be used to traverse fiber trees and handle render phases.
+
+```typescript
+import { createFiberVisitor } from 'bippy';
+
+const visit = createFiberVisitor({
+  onRender(fiber, phase) {
+    console.log(`Fiber ${phase}:`, fiber);
+  },
+  onError(error) {
+    console.error('Error during fiber traversal:', error);
+  },
+});
+
+// Use the visitor in your instrumentation
+instrument({
+  onCommitFiberRoot(rendererID, root) {
+    visit(rendererID, root);
+  },
+});
+```
+
+#### Parameters
+
+- `options: { onRender: Function; onError?: Function; }`
+  - `onRender` - Called when a fiber is rendered, updated, or unmounted.
+  - `onError` - Optional error handler.
+
+### getRDTHook
+
+Returns the current React DevTools global hook, installing it if necessary.
+
+```typescript
+import { getRDTHook } from 'bippy';
+
+const devtoolsHook = getRDTHook(() => {
+  console.log('React DevTools hook is active.');
+});
+```
+
+#### Parameters
+
+- `onActive?: () => unknown` - Optional callback when the hook becomes active.
+
+### installRDTHook
+
+Installs the React DevTools global hook.
+
+```typescript
+import { installRDTHook } from 'bippy';
+
+const devtoolsHook = installRDTHook(() => {
+  console.log('React DevTools hook installed.');
+});
+```
+
+#### Parameters
+
+- `onActive?: () => unknown` - Optional callback when the hook becomes active.
+
+## Fiber Utilities
+
+### isValidElement
+
+Returns `true` if the object is a valid React element.
+
+```typescript
+import { isValidElement } from 'bippy';
+import React from 'react';
+
+const element = <div />;
+console.log(isValidElement(element)); // true
+```
+
+#### Parameters
+
+- `element: unknown` - The object to check.
+
+### isHostFiber
+
+Checks if a fiber is a host fiber (e.g., DOM nodes in `react-dom`).
+
+```typescript
+import { isHostFiber } from 'bippy';
+
+const result = isHostFiber(fiber);
+console.log('Is host fiber:', result);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The fiber to check.
+
+### isCompositeFiber
+
+Determines if a fiber is a composite fiber (e.g., function or class components).
+
+```typescript
+import { isCompositeFiber } from 'bippy';
+
+const result = isCompositeFiber(fiber);
+console.log('Is composite fiber:', result);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The fiber to check.
+
+### traverseFiber
+
+Traverses up or down a fiber tree. Returns the first fiber for which the selector returns `true`.
+
+```typescript
+import { traverseFiber } from 'bippy';
+
+const targetFiber = traverseFiber(fiber, (node) => {
+  return node.type === MyComponent;
+});
+```
+
+#### Parameters
+
+- `fiber: Fiber | null` - The starting fiber.
+- `selector: (node: Fiber) => boolean` - The function to select the target fiber.
+- `ascending?: boolean` - Whether to traverse up (true) or down (false). Defaults to false.
+
+### getNearestHostFiber
+
+Finds the nearest host fiber to a given fiber.
+
+```typescript
+import { getNearestHostFiber } from 'bippy';
+
+const hostFiber = getNearestHostFiber(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+- `ascending?: boolean` - Whether to search upwards. Defaults to false.
+
+### getNearestHostFibers
+
+Gets all host fibers associated with the given fiber.
+
+```typescript
+import { getNearestHostFibers } from 'bippy';
+
+const hostFibers = getNearestHostFibers(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+
+### getFiberStack
+
+Retrieves the stack of fibers from the current fiber to the root.
+
+```typescript
+import { getFiberStack } from 'bippy';
+
+const fiberStack = getFiberStack(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+
+### traverseContexts
+
+Traverses a fiber's contexts. Calls the selector with each context value.
+
+```typescript
+import { traverseContexts } from 'bippy';
+
+traverseContexts(fiber, (nextValue, prevValue) => {
+  console.log('Context changed from', prevValue, 'to', nextValue);
+});
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+- `selector: (nextValue, prevValue) => boolean | void` - Called with context values. Return `true` to stop traversal.
+
+### traverseState
+
+Traverses a fiber's state updates. Calls the selector with each state value.
+
+```typescript
+import { traverseState } from 'bippy';
+
+traverseState(fiber, (prevState, nextState) => {
+  console.log('State changed from', prevState, 'to', nextState);
+});
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+- `selector: (prevState, nextState) => boolean | void` - Called with state values. Return `true` to stop traversal.
+
+### traverseProps
+
+Traverses a fiber's props. Calls the selector with each prop value.
+
+```typescript
+import { traverseProps } from 'bippy';
+
+traverseProps(fiber, (propName, nextValue, prevValue) => {
+  console.log(`Prop "${propName}" changed from`, prevValue, 'to', nextValue);
+});
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+- `selector: (propName, nextValue, prevValue) => boolean | void` - Called with prop values. Return `true` to stop traversal.
+
+## Render Utilities
+
+### didFiberRender
+
+Returns `true` if the fiber has rendered.
+
+```typescript
+import { didFiberRender } from 'bippy';
+
+const hasRendered = didFiberRender(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The fiber to check.
+
+### didFiberCommit
+
+Checks if the fiber has committed.
+
+```typescript
+import { didFiberCommit } from 'bippy';
+
+const hasCommitted = didFiberCommit(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The fiber to check.
+
+### getMutatedHostFibers
+
+Retrieves all host fibers that have mutated.
+
+```typescript
+import { getMutatedHostFibers } from 'bippy';
+
+const mutatedFibers = getMutatedHostFibers(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The starting fiber.
+
+### getTimings
+
+Gets the self and total render times for a fiber.
+
+```typescript
+import { getTimings } from 'bippy';
+
+const { selfTime, totalTime } = getTimings(fiber);
+console.log('Self time:', selfTime);
+console.log('Total time:', totalTime);
+```
+
+#### Parameters
+
+- `fiber?: Fiber | null | undefined` - The fiber to get timings for.
+
+## Other Utilities
+
+### hasMemoCache
+
+Checks if the fiber uses React Compiler's memo cache.
+
+```typescript
+import { hasMemoCache } from 'bippy';
+
+const usesMemoCache = hasMemoCache(fiber);
+```
+
+#### Parameters
+
+- `fiber: Fiber` - The fiber to check.
+
+### getType
+
+Gets the component type of the fiber.
+
+```typescript
+import { getType } from 'bippy';
+
+const type = getType(fiber.type);
+if (type) {
+  console.log('Fiber type:', type.name);
+}
+```
+
+#### Parameters
+
+- `type: unknown` - The type to get.
+
+### getDisplayName
+
+Gets the display name of the fiber's component.
+
+```typescript
+import { getDisplayName } from 'bippy';
+
+const displayName = getDisplayName(fiber.type);
+console.log('Display name:', displayName);
+```
+
+#### Parameters
+
+- `type: unknown` - The type to get the display name for.
+
+### isUsingRDT
+
+Checks if the React DevTools backend is injected.
+
+```typescript
+import { isUsingRDT } from 'bippy';
+
+const usingDevTools = isUsingRDT();
+console.log('Is using React DevTools:', usingDevTools);
+```
+
+### detectReactBuildType
+
+Detects the build type (development or production) of the React renderer.
+
+```typescript
+import { detectReactBuildType } from 'bippy';
+
+const buildType = detectReactBuildType(renderer);
+console.log('React build type:', buildType);
+```
+
+#### Parameters
+
+- `renderer: ReactRenderer` - The React renderer to check.
+
+### isInstrumentationActive
+
+Determines if bippy's instrumentation is active.
+
+```typescript
+import { isInstrumentationActive } from 'bippy';
+
+const active = isInstrumentationActive();
+console.log('Instrumentation active:', active);
+```
+
+You can learn more about bippy by [reading the source code](https://github.com/aidenybai/bippy/blob/main/src/index.ts).
+
+Looking for a more robust tool? Try out [react-scan](https://github.com/aidenybai/react-scan).
+
+## example: create a mini react-scan
 
 [`react-scan`](https://github.com/aidenybai/react-scan) is a tool that highlights renders in your react app. under the hood, it uses bippy to detect rendered fibers.
 
@@ -53,7 +497,7 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
     rendererID: RendererID,
     fiber: Record<string, unknown>,
     commitPriority?: number,
-    didError?: boolean,
+    didError?: boolean
   ) => void;
 }
 ```
@@ -217,4 +661,4 @@ looking for a more robust version of our mini react-scan? try out [react-scan](h
 
 ## misc
 
-the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is cute
+the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is c
