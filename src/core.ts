@@ -232,6 +232,14 @@ export const traverseState = (
 	return false;
 };
 
+export const isStateState = (memoizedState: FiberState) => {
+	return Boolean(memoizedState.queue);
+};
+
+export const isStateEffect = (memoizedState: FiberState) => {
+	return Boolean(memoizedState.memoizedState.deps);
+};
+
 /**
  * Traverses up or down a {@link Fiber}'s props, return `true` to stop and select the current and previous props value.
  */
