@@ -11,23 +11,15 @@
 
 a hacky way to get fibers from react. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
 
-bippy attempts to solve two problems:
+bippy attempts\* to solve two problems:
 
-1. it's not possible to write instrumentation software without the end user changing code
+1. it's not possible to write instrumentation for React without the end user changing code
+2. doing anything useful with fibers requires you to know react source code very well
 
-  → **bippy allows you to access fiber information from outside of react**
+→ **bippy allows you to access fiber information from outside of react**
+→ **bippy provides friendly low-level utils for interacting with fibers**
 
-2. fiber data structure can change and require you to know react source code well
-
-  → **bippy provides friendly low-level utils for interacting with fibers**
-
-## installation
-
-Install bippy from NPM:
-
-```bash
-npm install bippy
-```
+<small>\* disclaimer: in a very hacky way, i highly recommend not relying on this in production</small>
 
 ## how it works
 
