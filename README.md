@@ -1,8 +1,13 @@
+> [!WARNING]
+> ⚠️⚠️⚠️ **this project may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
+>
+> this project uses react internals, which can change at any time. it is not recommended to depend on internals unless you really, _really_ have to. by proceeding, you acknowledge the risk of breaking your own code or apps that use your code.
+
 # <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
-[![Size](https://img.shields.io/bundlephobia/minzip/bippy?label=gzip&style=flat&colorA=000000&colorB=000000)](https://bundlephobia.com/package/bippy)
-[![Version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
-[![Downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
+[![size](https://img.shields.io/bundlephobia/minzip/bippy?label=gzip&style=flat&colorA=000000&colorB=000000)](https://bundlephobia.com/package/bippy)
+[![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
+[![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
 a hacky way to get fibers from react. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
 
@@ -10,16 +15,11 @@ bippy attempts to solve two problems:
 
 1. it's not possible to write instrumentation software without the end user changing code
 
-→ **bippy allows you to access fiber information from outside of react**
+  → **bippy allows you to access fiber information from outside of react**
 
 2. fiber data structure can change and require you to know react source code well
 
-→ **bippy provides friendly low-level utils for interacting with fibers**
-
-> [!WARNING]
-> ⚠️⚠️⚠️ **bippy may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
->
-> this project uses react internals, which can change at any time. it is not recommended to depend on internals unless you really, _really_ have to. the risk of breaking your own code or app is non-zero.
+  → **bippy provides friendly low-level utils for interacting with fibers**
 
 ## how it works
 
