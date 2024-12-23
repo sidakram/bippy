@@ -28,6 +28,7 @@ const highlightFiber = (fiber) => {
 const visit = createFiberVisitor({
 	onRender(fiber) {
 		const hostFiber = getNearestHostFiber(fiber);
+		console.log(fiber);
 		highlightFiber(hostFiber);
 	},
 });
@@ -38,9 +39,12 @@ instrument({
 	},
 });
 
+const Context = React.createContext(null);
+
 function TodoList() {
 	const [todos, setTodos] = useState([]);
 	const [input, setInput] = useState("");
+	const _ctxValue = React.useContext(Context);
 
 	const addTodo = () => {
 		if (!input.trim()) return;
@@ -59,6 +63,10 @@ function TodoList() {
 	const deleteTodo = (index) => {
 		setTodos(todos.filter((_, i) => i !== index));
 	};
+
+	React.useEffect(() => {
+		console.log("useEffect");
+	}, []);
 
 	return (
 		<div>

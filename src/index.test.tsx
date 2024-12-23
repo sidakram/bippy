@@ -21,6 +21,7 @@ import {
 	traverseContexts,
 	traverseFiber,
 	traverseProps,
+	traverseMemoizedState,
 	traverseState,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
@@ -582,10 +583,6 @@ describe("traverseState", () => {
 		expect(states[0].prev).toEqual(0);
 		expect(states[1].next).toEqual(0);
 		expect(states[1].prev).toEqual(0);
-		// @ts-expect-error
-		expect("deps" in states[2].next).toEqual(true);
-		// @ts-expect-error
-		expect("deps" in states[2].prev).toEqual(true);
 	});
 
 	it("should call selector many times for a fiber with multiple states", () => {
@@ -598,7 +595,7 @@ describe("traverseState", () => {
 		render(<ComplexComponent countProp={1} />);
 		const selector = vi.fn();
 		traverseState(maybeFiber as unknown as Fiber, selector);
-		expect(selector).toBeCalledTimes(3);
+		expect(selector).toBeCalledTimes(2);
 	});
 
 	it("should stop selector at the first state", () => {

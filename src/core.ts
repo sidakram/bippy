@@ -41,43 +41,41 @@ export interface ReactDevToolsGlobalHook {
 
 export const version = process.env.VERSION;
 export const BIPPY_INSTRUMENTATION_STRING = `bippy-${version}`;
-export const ClassComponentTag = 1;
-export const FunctionComponentTag = 0;
-export const ContextConsumerTag = 9;
-export const SuspenseComponentTag = 13;
-export const OffscreenComponentTag = 22;
-export const ForwardRefTag = 11;
-export const MemoComponentTag = 14;
-export const SimpleMemoComponentTag = 15;
-export const HostComponentTag = 5;
-export const HostHoistableTag = 26;
-export const HostSingletonTag = 27;
-export const DehydratedSuspenseComponent = 18;
-export const HostText = 6;
-export const Fragment = 7;
-export const LegacyHiddenComponent = 23;
-export const OffscreenComponent = 22;
-export const HostRoot = 3;
-export const CONCURRENT_MODE_NUMBER = 0xeacf;
-export const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
-export const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
+const ClassComponentTag = 1;
+const FunctionComponentTag = 0;
+const ContextConsumerTag = 9;
+const SuspenseComponentTag = 13;
+const OffscreenComponentTag = 22;
+const ForwardRefTag = 11;
+const MemoComponentTag = 14;
+const SimpleMemoComponentTag = 15;
+const HostComponentTag = 5;
+const HostHoistableTag = 26;
+const HostSingletonTag = 27;
+const DehydratedSuspenseComponent = 18;
+const HostText = 6;
+const Fragment = 7;
+const LegacyHiddenComponent = 23;
+const OffscreenComponent = 22;
+const HostRoot = 3;
+const CONCURRENT_MODE_NUMBER = 0xeacf;
+const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
+const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
 	"Symbol(react.transitional.element)";
-export const CONCURRENT_MODE_SYMBOL_STRING = "Symbol(react.concurrent_mode)";
-export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = "Symbol(react.async_mode)";
+const CONCURRENT_MODE_SYMBOL_STRING = "Symbol(react.concurrent_mode)";
+const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = "Symbol(react.async_mode)";
 
 // https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactFiberFlags.js
-export const PerformedWork = 0b1;
-export const Placement = 0b10;
-export const DidCapture = 0b10000000;
-export const Hydrating = 0b1000000000000;
-export const Update = 0b100;
-export const Cloned = 0b1000;
-export const ChildDeletion = 0b10000;
-export const ContentReset = 0b100000;
-export const Ref = 0b1000000000;
-export const Snapshot = 0b10000000000;
-export const Visibility = 0b10000000000000;
-export const MutationMask =
+const PerformedWork = 0b1;
+const Placement = 0b10;
+const Hydrating = 0b1000000000000;
+const Update = 0b100;
+const Cloned = 0b1000;
+const ChildDeletion = 0b10000;
+const ContentReset = 0b100000;
+const Snapshot = 0b10000000000;
+const Visibility = 0b10000000000000;
+const MutationMask =
 	Placement |
 	Update |
 	ChildDeletion |
@@ -145,6 +143,8 @@ export const isCompositeFiber = (fiber: Fiber) =>
 export interface FiberContext {
 	context: React.Context<unknown>;
 	memoizedValue: unknown;
+	next: FiberContext | null;
+	[key: string]: unknown;
 }
 
 /**
@@ -155,7 +155,7 @@ export const traverseContexts = (
 	selector: (
 		nextValue: FiberContext,
 		prevValue: FiberContext,
-		// biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
 	try {
@@ -198,21 +198,21 @@ export const traverseContexts = (
 	return false;
 };
 
-// FIXME: make this type comprehensive
-export interface FiberState {
+export interface FiberMemoizedState {
 	memoizedState: unknown;
-	next: FiberState | null;
+	next: FiberMemoizedState | null;
+	[key: string]: unknown;
 }
 
 /**
- * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
+ * Traverses up or down a {@link Fiber}'s memoized states, return `true` to stop and select the current and previous state value.
  */
-export const traverseState = (
+export const traverseMemoizedState = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberState,
-		prevValue: FiberState,
-		// biome-ignore lint/suspicious/noConfusingVoidType: <explanation>
+		nextValue: FiberMemoizedState,
+		prevValue: FiberMemoizedState,
+		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
 	try {
@@ -232,12 +232,47 @@ export const traverseState = (
 	return false;
 };
 
-export const isStateState = (memoizedState: FiberState) => {
-	return Boolean(memoizedState.queue);
+/**
+ * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
+ */
+export const traverseState = (
+	fiber: Fiber,
+	selector: (
+		nextValue: FiberMemoizedState,
+		prevValue: FiberMemoizedState,
+		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
+	) => boolean | void,
+) => {
+	return traverseMemoizedState(fiber, (nextValue, prevValue) => {
+		if (nextValue.queue && prevValue.queue) {
+			return selector(nextValue, prevValue);
+		}
+	});
 };
 
-export const isStateEffect = (memoizedState: FiberState) => {
-	return Boolean(memoizedState.memoizedState.deps);
+/**
+ * Traverses up or down a {@link Fiber}'s effects, return `true` to stop and select the current and previous effect value.
+ */
+export const traverseEffects = (
+	fiber: Fiber,
+	selector: (
+		nextValue: FiberMemoizedState,
+		prevValue: FiberMemoizedState,
+		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
+	) => boolean | void,
+) => {
+	return traverseMemoizedState(fiber, (nextValue, prevValue) => {
+		if (
+			nextValue.memoizedState &&
+			prevValue.memoizedState &&
+			typeof nextValue.memoizedState === "object" &&
+			typeof prevValue.memoizedState === "object" &&
+			"create" in nextValue.memoizedState &&
+			"create" in prevValue.memoizedState
+		) {
+			return selector(nextValue, prevValue);
+		}
+	});
 };
 
 /**
@@ -307,8 +342,8 @@ export const didFiberRender = (fiber: Fiber): boolean => {
  */
 export const didFiberCommit = (fiber: Fiber): boolean => {
 	return Boolean(
-		(fiber.flags & (Update | Placement | ChildDeletion)) !== 0 ||
-			(fiber.subtreeFlags & (Update | Placement | ChildDeletion)) !== 0,
+		(fiber.flags & (MutationMask | Cloned)) !== 0 ||
+			(fiber.subtreeFlags & (MutationMask | Cloned)) !== 0,
 	);
 };
 
