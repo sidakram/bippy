@@ -52,6 +52,9 @@ interface Fiber {
 
   // contexts (useContext)
   dependencies: Dependencies | null;
+
+  // effects (useEffect, useLayoutEffect, etc.)
+  updateQueue: any;
 }
 ```
 

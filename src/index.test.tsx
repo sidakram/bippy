@@ -2,7 +2,6 @@ import {
 	createFiberVisitor,
 	didFiberCommit,
 	type Fiber,
-	type FiberContext,
 	type FiberEffect,
 	type FiberRoot,
 	getDisplayName,
@@ -20,11 +19,12 @@ import {
 	isValidFiber,
 	secure,
 	traverseContexts,
-	traverseStatefulEffects,
+	traverseEffects,
 	traverseFiber,
 	traverseProps,
 	traverseState,
 	didFiberRender,
+	type ContextDependency,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
@@ -37,6 +37,7 @@ const BasicComponent = () => {
 BasicComponent.displayName = "BasicComponent";
 
 const BasicComponentWithEffect = () => {
+	const [shouldUnmount, setShouldUnmount] = React.useState(true);
 	React.useEffect(() => {}, []);
 	return <div>Hello</div>;
 };
@@ -621,12 +622,12 @@ describe("traverseEffects", () => {
 				maybeFiber = fiberRoot.current.child;
 			},
 		});
-		render(<BasicComponentWithUnmount />);
+		render(<BasicComponentWithEffect />);
 		const effects: Array<FiberEffect> = [];
 		const selector = vi.fn((effect) => {
 			effects.push(effect);
 		});
-		traverseStatefulEffects(maybeFiber as unknown as Fiber, selector);
+		traverseEffects(maybeFiber as unknown as Fiber, selector);
 		expect(effects).toHaveLength(1);
 	});
 });
@@ -644,7 +645,7 @@ describe("traverseContexts", () => {
 				<ComplexComponent countProp={1} />
 			</CountContext.Provider>,
 		);
-		const contexts: FiberContext[] = [];
+		const contexts: ContextDependency<unknown>[] = [];
 		const selector = vi.fn((context) => {
 			contexts.push(context);
 		});

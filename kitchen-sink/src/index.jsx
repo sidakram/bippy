@@ -1,5 +1,6 @@
 import {
 	instrument,
+	isHostFiber,
 	getNearestHostFiber,
 	createFiberVisitor,
 } from "bippy"; // must be imported BEFORE react
@@ -27,7 +28,6 @@ const highlightFiber = (fiber) => {
 const visit = createFiberVisitor({
 	onRender(fiber) {
 		const hostFiber = getNearestHostFiber(fiber);
-		console.log(fiber);
 		highlightFiber(hostFiber);
 	},
 });
@@ -38,12 +38,9 @@ instrument({
 	},
 });
 
-const Context = React.createContext(null);
-
 function TodoList() {
 	const [todos, setTodos] = useState([]);
 	const [input, setInput] = useState("");
-	const _ctxValue = React.useContext(Context);
 
 	const addTodo = () => {
 		if (!input.trim()) return;

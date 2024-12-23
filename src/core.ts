@@ -2,9 +2,86 @@
 // since it will be executed before the react devtools hook is created
 
 import type * as React from "react";
-import type { Fiber as ReactFiber, FiberRoot } from "react-reconciler";
+import type {
+	HostConfig,
+	Thenable,
+	RootTag,
+	WorkTag,
+	HookType,
+	Source,
+	LanePriority,
+	Lanes,
+	Flags,
+	TypeOfMode,
+	ReactProvider,
+	ReactProviderType,
+	ReactConsumer,
+	ReactContext,
+	ReactPortal,
+	RefObject,
+	Fiber as ReactFiber,
+	FiberRoot,
+	MutableSource,
+	OpaqueHandle,
+	OpaqueRoot,
+	BundleType,
+	DevToolsConfig,
+	SuspenseHydrationCallbacks,
+	TransitionTracingCallbacks,
+	ComponentSelector,
+	HasPseudoClassSelector,
+	RoleSelector,
+	TextSelector,
+	TestNameSelector,
+	Selector,
+	React$AbstractComponent,
+} from "react-reconciler";
 
-export type { FiberRoot };
+export type {
+	HostConfig,
+	Thenable,
+	RootTag,
+	WorkTag,
+	HookType,
+	Source,
+	LanePriority,
+	Lanes,
+	Flags,
+	TypeOfMode,
+	ReactProvider,
+	ReactProviderType,
+	ReactConsumer,
+	ReactContext,
+	ReactPortal,
+	RefObject,
+	FiberRoot,
+	MutableSource,
+	OpaqueHandle,
+	OpaqueRoot,
+	BundleType,
+	DevToolsConfig,
+	SuspenseHydrationCallbacks,
+	TransitionTracingCallbacks,
+	ComponentSelector,
+	HasPseudoClassSelector,
+	RoleSelector,
+	TextSelector,
+	TestNameSelector,
+	Selector,
+	React$AbstractComponent,
+};
+
+export interface ContextDependency<T> {
+	context: ReactContext<T>;
+	memoizedValue: T;
+	observedBits: number;
+	next: ContextDependency<unknown> | null;
+}
+
+export interface Dependencies {
+	lanes: Lanes;
+	firstContext: ContextDependency<unknown> | null;
+}
 
 /**
  * Represents a react-internal Fiber node.
@@ -12,6 +89,11 @@ export type { FiberRoot };
 // biome-ignore lint/suspicious/noExplicitAny: stateNode is not typed in react-reconciler
 export type Fiber<T = any> = Omit<ReactFiber, "stateNode"> & {
 	stateNode: T;
+	dependencies: Dependencies;
+	child: Fiber | null;
+	sibling: Fiber | null;
+	return: Fiber | null;
+	alternate: Fiber | null;
 };
 
 // https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-devtools-shared/src/backend/types.js
@@ -139,22 +221,14 @@ export const isCompositeFiber = (fiber: Fiber) =>
 	fiber.tag === MemoComponentTag ||
 	fiber.tag === ForwardRefTag;
 
-// FIXME: make this type comprehensive
-export interface FiberContext {
-	context: React.Context<unknown>;
-	memoizedValue: unknown;
-	next: FiberContext | null;
-	[key: string]: unknown;
-}
-
 /**
  * Traverses up or down a {@link Fiber}'s contexts, return `true` to stop and select the current and previous context value.
  */
 export const traverseContexts = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberContext,
-		prevValue: FiberContext,
+		nextValue: ContextDependency<unknown> | null | undefined,
+		prevValue: ContextDependency<unknown> | null | undefined,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
@@ -171,26 +245,22 @@ export const traverseContexts = (
 		) {
 			return false;
 		}
-		let nextContext = nextDependencies.firstContext;
-		let prevContext = prevDependencies.firstContext;
+		let nextContext: ContextDependency<unknown> | null | undefined =
+			nextDependencies.firstContext;
+		let prevContext: ContextDependency<unknown> | null | undefined =
+			prevDependencies.firstContext;
 		while (
-			nextContext &&
-			typeof nextContext === "object" &&
-			"memoizedValue" in nextContext &&
-			prevContext &&
-			typeof prevContext === "object" &&
-			"memoizedValue" in prevContext
+			(nextContext &&
+				typeof nextContext === "object" &&
+				"memoizedValue" in nextContext) ||
+			(prevContext &&
+				typeof prevContext === "object" &&
+				"memoizedValue" in prevContext)
 		) {
-			if (
-				selector(
-					nextContext as unknown as FiberContext,
-					prevContext as unknown as FiberContext,
-				) === true
-			)
-				return true;
+			if (selector(nextContext, prevContext) === true) return true;
 
-			nextContext = nextContext.next;
-			prevContext = prevContext.next;
+			nextContext = nextContext?.next;
+			prevContext = prevContext?.next;
 		}
 	} catch {
 		/**/
@@ -210,8 +280,8 @@ export interface FiberMemoizedState {
 export const traverseState = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberMemoizedState,
-		prevValue: FiberMemoizedState,
+		nextValue: FiberMemoizedState | null | undefined,
+		prevValue: FiberMemoizedState | null | undefined,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
@@ -219,10 +289,8 @@ export const traverseState = (
 		let nextState = fiber.memoizedState;
 		let prevState = fiber.alternate?.memoizedState;
 
-		while (nextState && prevState) {
-			if ("queue" in nextState && "queue" in prevState) {
-				if (selector(nextState, prevState) === true) return true;
-			}
+		while (nextState || prevState) {
+			if (selector(nextState, prevState) === true) return true;
 
 			nextState = nextState.next;
 			prevState = prevState.next;
@@ -246,34 +314,30 @@ export interface FiberEffect {
 /**
  * Traverses up or down a {@link Fiber}'s effects that cause state changes, return `true` to stop and select the current and previous effect value.
  */
-export const traverseStatefulEffects = (
+export const traverseEffects = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberEffect,
-		prevValue: FiberEffect,
+		nextValue: FiberEffect | null | undefined,
+		prevValue: FiberEffect | null | undefined,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
 	try {
-		let nextState = (
-			fiber.updateQueue as unknown as {
-				lastEffect: FiberEffect | null;
-			}
-		)?.lastEffect;
-		let prevState = (
-			fiber.alternate?.updateQueue as unknown as {
-				lastEffect: FiberEffect | null;
-			}
-		)?.lastEffect;
+		let nextState: FiberEffect | null | undefined =
+			// biome-ignore lint/suspicious/noExplicitAny: underlying type is unknown
+			(fiber.updateQueue as any)?.lastEffect;
+		let prevState: FiberEffect | null | undefined =
+			// biome-ignore lint/suspicious/noExplicitAny: underlying type is unknown
+			(fiber.alternate?.updateQueue as any)?.lastEffect;
 
-		while (nextState && prevState) {
+		while (nextState || prevState) {
 			if (selector(nextState, prevState) === true) return true;
 
-			if (nextState.next === nextState || prevState.next === prevState) {
+			if (nextState?.next === nextState || prevState?.next === prevState) {
 				break;
 			}
-			nextState = nextState.next;
-			prevState = prevState.next;
+			nextState = nextState?.next;
+			prevState = prevState?.next;
 		}
 	} catch {
 		/**/
