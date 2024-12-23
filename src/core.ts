@@ -205,9 +205,9 @@ export interface FiberMemoizedState {
 }
 
 /**
- * Traverses up or down a {@link Fiber}'s memoized states, return `true` to stop and select the current and previous state value.
+ * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
  */
-export const traverseMemoizedState = (
+export const traverseState = (
 	fiber: Fiber,
 	selector: (
 		nextValue: FiberMemoizedState,
@@ -220,7 +220,9 @@ export const traverseMemoizedState = (
 		let prevState = fiber.alternate?.memoizedState;
 
 		while (nextState && prevState) {
-			if (selector(nextState, prevState) === true) return true;
+			if ("queue" in nextState && "queue" in prevState) {
+				if (selector(nextState, prevState) === true) return true;
+			}
 
 			nextState = nextState.next;
 			prevState = prevState.next;
@@ -232,47 +234,52 @@ export const traverseMemoizedState = (
 	return false;
 };
 
-/**
- * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
- */
-export const traverseState = (
-	fiber: Fiber,
-	selector: (
-		nextValue: FiberMemoizedState,
-		prevValue: FiberMemoizedState,
-		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
-	) => boolean | void,
-) => {
-	return traverseMemoizedState(fiber, (nextValue, prevValue) => {
-		if (nextValue.queue && prevValue.queue) {
-			return selector(nextValue, prevValue);
-		}
-	});
-};
+export interface FiberEffect {
+	next: FiberEffect | null;
+	create: (...args: Array<unknown>) => unknown;
+	destroy: ((...args: Array<unknown>) => unknown) | null;
+	deps: Array<unknown> | null;
+	tag: number;
+	[key: string]: unknown;
+}
 
 /**
- * Traverses up or down a {@link Fiber}'s effects, return `true` to stop and select the current and previous effect value.
+ * Traverses up or down a {@link Fiber}'s effects that cause state changes, return `true` to stop and select the current and previous effect value.
  */
-export const traverseEffects = (
+export const traverseStatefulEffects = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberMemoizedState,
-		prevValue: FiberMemoizedState,
+		nextValue: FiberEffect,
+		prevValue: FiberEffect,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
-	return traverseMemoizedState(fiber, (nextValue, prevValue) => {
-		if (
-			nextValue.memoizedState &&
-			prevValue.memoizedState &&
-			typeof nextValue.memoizedState === "object" &&
-			typeof prevValue.memoizedState === "object" &&
-			"create" in nextValue.memoizedState &&
-			"create" in prevValue.memoizedState
-		) {
-			return selector(nextValue, prevValue);
+	try {
+		let nextState = (
+			fiber.updateQueue as unknown as {
+				lastEffect: FiberEffect | null;
+			}
+		)?.lastEffect;
+		let prevState = (
+			fiber.alternate?.updateQueue as unknown as {
+				lastEffect: FiberEffect | null;
+			}
+		)?.lastEffect;
+
+		while (nextState && prevState) {
+			if (selector(nextState, prevState) === true) return true;
+
+			if (nextState.next === nextState || prevState.next === prevState) {
+				break;
+			}
+			nextState = nextState.next;
+			prevState = prevState.next;
 		}
-	});
+	} catch {
+		/**/
+	}
+
+	return false;
 };
 
 /**

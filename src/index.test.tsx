@@ -3,6 +3,7 @@ import {
 	didFiberCommit,
 	type Fiber,
 	type FiberContext,
+	type FiberEffect,
 	type FiberRoot,
 	getDisplayName,
 	getFiberStack,
@@ -19,15 +20,15 @@ import {
 	isValidFiber,
 	secure,
 	traverseContexts,
+	traverseStatefulEffects,
 	traverseFiber,
 	traverseProps,
-	traverseMemoizedState,
 	traverseState,
+	didFiberRender,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
 import { render } from "@testing-library/react";
 import React, { isValidElement } from "react";
-import { didFiberRender } from "../dist/index.js";
 
 const BasicComponent = () => {
 	return <div>Hello</div>;
@@ -595,7 +596,7 @@ describe("traverseState", () => {
 		render(<ComplexComponent countProp={1} />);
 		const selector = vi.fn();
 		traverseState(maybeFiber as unknown as Fiber, selector);
-		expect(selector).toBeCalledTimes(2);
+		expect(selector).toBeCalledTimes(3);
 	});
 
 	it("should stop selector at the first state", () => {
@@ -609,6 +610,24 @@ describe("traverseState", () => {
 		const selector = vi.fn(() => true);
 		traverseState(maybeFiber as unknown as Fiber, selector);
 		expect(selector).toBeCalledTimes(1);
+	});
+});
+
+describe("traverseEffects", () => {
+	it("should return the effects of the fiber", () => {
+		let maybeFiber: Fiber | null = null;
+		instrument({
+			onCommitFiberRoot: (_rendererID, fiberRoot) => {
+				maybeFiber = fiberRoot.current.child;
+			},
+		});
+		render(<BasicComponentWithUnmount />);
+		const effects: Array<FiberEffect> = [];
+		const selector = vi.fn((effect) => {
+			effects.push(effect);
+		});
+		traverseStatefulEffects(maybeFiber as unknown as Fiber, selector);
+		expect(effects).toHaveLength(1);
 	});
 });
 

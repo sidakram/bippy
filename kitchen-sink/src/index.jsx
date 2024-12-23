@@ -1,6 +1,5 @@
 import {
 	instrument,
-	isHostFiber,
 	getNearestHostFiber,
 	createFiberVisitor,
 } from "bippy"; // must be imported BEFORE react
