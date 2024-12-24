@@ -28,7 +28,7 @@ a react fiber is a "unit of execution." this means react will do something based
 
 > here is a [live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
 
-for our purposes, a simplified version of a fiber looks roughly like this:
+fibers are useful because they contain information about the React app (component props, state, contexts, etc.). a simplified version of a fiber looks roughly like this:
 
 ```typescript
 interface Fiber {
@@ -58,29 +58,16 @@ interface Fiber {
 }
 ```
 
-however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
+here, the `child`, `sibling`, and `return` properties are pointers to other fibers in the tree.
 
-luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L48) in the window object: `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
+additionally, `memoizedProps`, `memoizedState`, and `dependencies` are the fiber's props, state, and contexts.
 
-here's what it roughly looks like:
+while all of the information is there, it's not super easy to work with, and changes frequently across different versions of react. bippy simplifies this by providing utility functions like:
 
-```typescript
-interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
-  // list of renderers (react-dom, react-native, etc.)
-  renderers: Map<RendererID, ReactRenderer>;
-
-  // called when react has rendered everythign and ready to apply
-  // changes to the host tree (e.g. DOM mutations)
-  onCommitFiberRoot: (
-    rendererID: RendererID,
-    fiber: Record<string, unknown>,
-    commitPriority?: number,
-    didError?: boolean
-  ) => void;
-}
-```
-
-works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6907aa2a309bdc47dc3504683159cb50b590eed8/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L112). this gives us access to react internals without needing to use react devtools.
+- `createFiberVisitor` to detect renders and `traverseFiber` to traverse the overall fiber tree
+  - _(instead of `child`, `sibling`, and `return` pointers)_
+- `traverseProps`, `traverseState`, and `traverseContexts` to traverse the fiber's props, state, and contexts
+  - _(instead of `memoizedProps`, `memoizedState`, and `dependencies`)_
 
 however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
 
@@ -93,20 +80,32 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
   // list of renderers (react-dom, react-native, etc.)
   renderers: Map<RendererID, ReactRenderer>;
 
-  // called when react has rendered everythign and ready to apply
-  // changes to the host tree (e.g. DOM mutations)
+  // called when react has rendered everything for an update and is ready to
+  // apply changes to the host tree (e.g. DOM mutations)
   onCommitFiberRoot: (
     rendererID: RendererID,
-    fiber: Record<string, unknown>,
-    commitPriority?: number,
-    didError?: boolean
+    root: FiberRoot,
+    commitPriority?: number
   ) => void;
+
+  // called when effects run
+  onPostCommitFiberRoot: (rendererID: RendererID, root: FiberRoot) => void;
+
+  // called when a specific fiber unmounts
+  onCommitFiberUnmount: (rendererID: RendererID, Fiber: Fiber) => void;
 }
 ```
 
-we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
+bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with our own custom handlers. bippy simplifies this by providing utility functions like:
+
+- `instrument` to safely patch `window.__REACT_DEVTOOLS_GLOBAL_HOOK__`
+  - _(instead of directly mutating `onCommitFiberRoot`, ...)_
+- `secure` to wrap your handlers in a try/catch and determine if handlers are safe to run
+  - _(instead of rawdogging `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
 
 ## examples
+
+the best way to understand bippy is to [read the source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts). here are some examples of how you can use it:
 
 ### a mini react-scan
 
