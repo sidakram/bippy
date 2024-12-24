@@ -35,6 +35,16 @@
 				"default": "./dist/index.cjs"
 			}
 		},
+		"./core": {
+			"import": {
+				"types": "./dist/core.d.ts",
+				"default": "./dist/core.js"
+			},
+			"require": {
+				"types": "./dist/core.d.cts",
+				"default": "./dist/core.cjs"
+			}
+		},
 		"./dist/*": "./dist/*.js",
 		"./dist/*.js": "./dist/*.js",
 		"./dist/*.cjs": "./dist/*.cjs",
@@ -43,13 +53,7 @@
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
-	"files": [
-		"dist",
-		"bin",
-		"package.json",
-		"README.md",
-		"LICENSE"
-	],
+	"files": ["dist", "bin", "package.json", "README.md", "LICENSE"],
 	"scripts": {
 		"build": "NODE_ENV=production tsup",
 		"dev": "NODE_ENV=development tsup --watch",

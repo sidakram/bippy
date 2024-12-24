@@ -567,6 +567,7 @@ export const traverseFiber = (
 export const getTimings = (fiber?: Fiber | null | undefined) => {
 	const totalTime = fiber?.actualDuration ?? 0;
 	let selfTime = totalTime;
+	// TODO: calculate a DOM time, which is just host component summed up
 	let child = fiber?.child ?? null;
 	while (totalTime > 0 && child != null) {
 		selfTime -= child.actualDuration ?? 0;

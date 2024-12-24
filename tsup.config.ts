@@ -1,5 +1,5 @@
 import { defineConfig, type Options } from 'tsup';
-import fs from 'fs';
+import fs from 'node:fs';
 
 const banner = `/**
  * @license bippy
@@ -37,12 +37,12 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: ['./src/index.ts'],
+    entry: ['./src/index.ts', './src/core.ts'],
   },
   {
     ...DEFAULT_OPTIONS,
     format: ['iife'],
     minify: true,
-    entry: ['./src/index.ts'],
+    entry: ['./src/index.ts', './src/core.ts'],
   },
 ]);

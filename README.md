@@ -18,6 +18,8 @@ bippy _attempts\*_ to solve two problems:
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
+if [OpenTelemetry](https://opentelemetry.io/) is a general-purpose instrumentation protocol for apps, then imagine bippy as an un-official protocol for react.js.
+
 <sub><sup>\*disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
 
 ## how it works
