@@ -149,7 +149,7 @@ function Link({ children, className, href, ...props }) {
 
 function List({ children }) {
 	return (
-		<ul className="pl-[1ch] list-disc marker:content-['→'] marker:text-neutral-400 marker:pr-[1ch] space-y-[1ch]">
+		<ul className="pl-[2ch] list-disc marker:content-['→'] marker:text-neutral-400 marker:pr-[1ch] space-y-[1ch]">
 			{children}
 		</ul>
 	);
