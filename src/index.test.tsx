@@ -25,9 +25,10 @@ import {
 	traverseState,
 	didFiberRender,
 	type ContextDependency,
+	safeTry,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, waitFor } from "@testing-library/react";
 import React, { isValidElement } from "react";
 
 const BasicComponent = () => {
@@ -74,7 +75,7 @@ const BasicComponentWithMultipleElements = () => {
 };
 
 const SlowComponent = () => {
-	for (let i = 0; i < 1000000000; i++) {}
+	for (let i = 0; i < 100; i++) {} // simulate slowdown
 	return <div>Hello</div>;
 };
 
@@ -193,8 +194,69 @@ describe("instrument", () => {
 	});
 });
 
+const isContainerFiber = (fiber: Fiber) =>
+	fiber.stateNode.containerInfo instanceof Element;
+
 describe("createFiberVisitor", () => {
 	it("should return a fiber visitor", () => {
+		let visitedFibers: Fiber[] = [];
+		const visit = createFiberVisitor({
+			onRender: (fiber) => {
+				visitedFibers.push(fiber);
+			},
+			onError: (error) => {
+				throw error;
+			},
+		});
+		instrument({
+			onCommitFiberRoot: (rendererID, fiberRoot) => {
+				visitedFibers = [];
+				visit(rendererID, fiberRoot);
+			},
+		});
+		render(<BasicComponentWithMutation />);
+		expect(visitedFibers).toHaveLength(3);
+
+		expect(isContainerFiber(visitedFibers[0])).toBe(true); // root
+		expect(visitedFibers[1].type).toBe(BasicComponentWithMutation);
+		expect(visitedFibers[2].type).toBe("div");
+	});
+
+	it("should traverse nested components with multiple levels", () => {
+		let visitedFibers: Fiber[] = [];
+		const visit = createFiberVisitor({
+			onRender: (fiber) => {
+				visitedFibers.push(fiber);
+			},
+			onError: (error) => {
+				throw error;
+			},
+		});
+		instrument({
+			onCommitFiberRoot: (rendererID, fiberRoot) => {
+				visitedFibers = [];
+				visit(rendererID, fiberRoot);
+			},
+		});
+		render(
+			<BasicComponentWithChildren>
+				<BasicComponentWithChildren>
+					<BasicComponent />
+				</BasicComponentWithChildren>
+			</BasicComponentWithChildren>,
+		);
+		expect(visitedFibers).toHaveLength(7);
+
+		expect(isContainerFiber(visitedFibers[0])).toBe(true);
+		expect(visitedFibers[1].type).toBe(BasicComponentWithChildren);
+		expect(visitedFibers[2].type).toBe("div");
+		expect(visitedFibers[3].type).toBe(BasicComponentWithChildren);
+		expect(visitedFibers[4].type).toBe("div");
+		expect(visitedFibers[5].type).toBe(BasicComponent);
+		expect(visitedFibers[6].type).toBe("div");
+	});
+
+	it("should handle multiple sibling components", () => {
 		const visitedFibers: Fiber[] = [];
 		const visit = createFiberVisitor({
 			onRender: (fiber) => {
@@ -206,15 +268,173 @@ describe("createFiberVisitor", () => {
 		});
 		instrument({
 			onCommitFiberRoot: (rendererID, fiberRoot) => {
-				visit(rendererID, fiberRoot.current.child);
+				visit(rendererID, fiberRoot);
 			},
 		});
-		render(<BasicComponentWithMutation />);
-		expect(visitedFibers).toHaveLength(2);
+		render(
+			<>
+				<BasicComponent />
+				<BasicComponentWithEffect />
+				<ClassComponent />
+			</>,
+		);
+		expect(visitedFibers).toHaveLength(7);
 
-		// TODO: investigate why the first fiber is not the mutation fiber
-		expect(visitedFibers[0].type).toBe(BasicComponentWithMutation);
-		expect(visitedFibers[1].type).toBe(BasicComponentWithMutation);
+		expect(isContainerFiber(visitedFibers[0])).toBe(true);
+		expect(visitedFibers[1].type).toBe(BasicComponent);
+		expect(visitedFibers[2].type).toBe("div");
+		expect(visitedFibers[3].type).toBe(BasicComponentWithEffect);
+		expect(visitedFibers[4].type).toBe("div");
+		expect(visitedFibers[5].type).toBe(ClassComponent);
+		expect(visitedFibers[6].type).toBe("div");
+	});
+
+	it("should handle components with context and multiple hooks", () => {
+		const visitedFibers: Fiber[] = [];
+		const visit = createFiberVisitor({
+			onRender: (fiber) => {
+				visitedFibers.push(fiber);
+			},
+			onError: (error) => {
+				throw error;
+			},
+		});
+		instrument({
+			onCommitFiberRoot: (rendererID, fiberRoot) => {
+				visit(rendererID, fiberRoot);
+			},
+		});
+		render(
+			<CountContext.Provider value={5}>
+				<ExtraContext.Provider value={10}>
+					<ComplexComponent countProp={2} />
+				</ExtraContext.Provider>
+			</CountContext.Provider>,
+		);
+		expect(visitedFibers).toHaveLength(8);
+
+		expect(isContainerFiber(visitedFibers[0])).toBe(true);
+		expect(visitedFibers[1].type).toBe(CountContext);
+		expect(visitedFibers[2].type).toBe(ExtraContext);
+		expect(visitedFibers[3].type).toBe(ComplexComponent);
+		expect(visitedFibers[4].type).toBe("div");
+		expect(isContainerFiber(visitedFibers[5])).toBe(true);
+		expect(visitedFibers[6].type).toBe(ComplexComponent);
+		expect(visitedFibers[7].type).toBe("div");
+	});
+
+	it("should handle random/complex case", async () => {
+		const expectedRendersMap = new Map<string, number>();
+		const visit = createFiberVisitor({
+			onRender: (fiber) => {
+				if (isCompositeFiber(fiber)) {
+					const displayName = getDisplayName(fiber);
+					if (!displayName) {
+						return;
+					}
+					const currentRenderCount = expectedRendersMap.get(displayName);
+					expectedRendersMap.set(displayName, (currentRenderCount ?? 0) + 1);
+				}
+			},
+			onError: (error) => {
+				throw error;
+			},
+		});
+		instrument({
+			onCommitFiberRoot: (rendererID, fiberRoot) => {
+				visit(rendererID, fiberRoot);
+			},
+		});
+
+		const generateRandomDisplayName = (length: number) => {
+			let result = "";
+			const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+			const charactersLength = characters.length;
+			for (let i = 0; i < length; i++) {
+				result += characters.charAt(
+					Math.floor(Math.random() * charactersLength),
+				);
+			}
+			return result;
+		};
+
+		const generateRandomNumber = (min: number, max: number) => {
+			return Math.floor(Math.random() * (max - min + 1)) + min;
+		};
+
+		const rendersMap = new Map<string, number>();
+
+		const createComponent = (depth: number) => {
+			if (depth > 5) {
+				return <div key={generateRandomDisplayName(10)}>base</div>;
+			}
+			const displayName = generateRandomDisplayName(10);
+			const Component = () => {
+				const [count, setCount] = React.useState(generateRandomNumber(0, 100));
+				const [text, setText] = React.useState(generateRandomDisplayName(5));
+				const [updates, setUpdates] = React.useState(0);
+
+				// Random effects
+				React.useEffect(() => {
+					// Randomly schedule multiple updates
+					const updateCount = generateRandomNumber(1, 5);
+					for (let i = 0; i < updateCount; i++) {
+						if (Math.random() > 0.3) setCount((c) => c + 1);
+						if (Math.random() > 0.3) setText(generateRandomDisplayName(5));
+						setUpdates((u) => u + 1);
+					}
+				}, []);
+
+				// Track renders
+				const currentRenderCount = rendersMap.get(displayName);
+				rendersMap.set(displayName, (currentRenderCount ?? 0) + 1);
+
+				return (
+					<div className={text} data-count={count} data-updates={updates}>
+						{Array(generateRandomNumber(1, 5))
+							.fill(0)
+							.map((_, index) => {
+								const elementKey = `${displayName}-${generateRandomDisplayName(5)}`;
+								return Math.random() > 0.75 ? (
+									<div key={elementKey}>{displayName}</div>
+								) : (
+									createComponent(depth + 1)
+								);
+							})}
+					</div>
+				);
+			};
+			Component.displayName = displayName;
+
+			// Randomly wrap in context providers
+			let element = <Component key={displayName} />;
+			if (Math.random() > 0.8) {
+				element = (
+					<CountContext.Provider
+						value={generateRandomNumber(0, 100)}
+						key={generateRandomDisplayName(10)}
+					>
+						{element}
+					</CountContext.Provider>
+				);
+			}
+			if (Math.random() > 0.9) {
+				element = (
+					<ExtraContext.Provider
+						value={generateRandomNumber(0, 100)}
+						key={generateRandomDisplayName(10)}
+					>
+						{element}
+					</ExtraContext.Provider>
+				);
+			}
+
+			return element;
+		};
+
+		render(createComponent(0));
+
+		expect(expectedRendersMap).toEqual(rendersMap);
 	});
 });
 
@@ -668,5 +888,18 @@ describe("traverseContexts", () => {
 		const selector = vi.fn(() => true);
 		traverseContexts(maybeFiber as unknown as Fiber, selector);
 		expect(selector).toBeCalledTimes(1);
+	});
+});
+
+describe("safeTry", () => {
+	it("should return the result of the function", () => {
+		const onError = vi.fn();
+		const fn = vi.fn(() => {
+			throw err;
+		});
+		const err = new Error("test");
+		safeTry(fn, onError);
+		expect(onError).toHaveBeenCalledWith(err);
+		expect(fn).toThrowError(err);
 	});
 });

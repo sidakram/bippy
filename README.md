@@ -22,13 +22,13 @@ bippy allows you to access fiber information from outside of react and provides 
 
 ## how it works
 
-bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6907aa2a309bdc47dc3504683159cb50b590eed8/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L112). this gives us access to react internals without needing to use react devtools.
+bippy allows you to **access** and **use** fibers from outside of react.
 
-[`react-scan`](https://github.com/aidenybai/react-scan) is a tool that highlights renders in your react app. under the hood, it uses bippy to detect rendered fibers.
+a react fiber is a "unit of execution." this means react will do something based on the data in a fiber. each fiber either represents a composite (function/class component) or a host (dom element).
 
-fibers are how "work" is represented in react. each fiber either represents a composite (function/class component) or a host (dom element). [here is a live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
+> [here is a live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
 
-a simplified version of a fiber looks roughly like this:
+for our purposes, a simplified version of a fiber looks roughly like this:
 
 ```typescript
 interface Fiber {
@@ -80,9 +80,34 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 }
 ```
 
+
+works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6907aa2a309bdc47dc3504683159cb50b590eed8/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L112). this gives us access to react internals without needing to use react devtools.
+
+however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
+
+luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L48) in the window object: `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
+
+here's what it roughly looks like:
+
+```typescript
+interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
+  // list of renderers (react-dom, react-native, etc.)
+  renderers: Map<RendererID, ReactRenderer>;
+
+  // called when react has rendered everythign and ready to apply
+  // changes to the host tree (e.g. DOM mutations)
+  onCommitFiberRoot: (
+    rendererID: RendererID,
+    fiber: Record<string, unknown>,
+    commitPriority?: number,
+    didError?: boolean
+  ) => void;
+}
+```
+
 we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
 
-## example
+## example usage
 
 here's a mini toy version of [`react-scan`](https://github.com/aidenybai/react-scan) that highlights renders in your app.
 
