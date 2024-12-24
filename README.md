@@ -26,7 +26,7 @@ bippy allows you to **access** and **use** fibers from outside of react.
 
 a react fiber is a "unit of execution." this means react will do something based on the data in a fiber. each fiber either represents a composite (function/class component) or a host (dom element).
 
-> [here is a live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
+> here is a [live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
 
 for our purposes, a simplified version of a fiber looks roughly like this:
 
@@ -80,7 +80,6 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 }
 ```
 
-
 works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with [custom handlers](https://github.com/facebook/react/blob/6907aa2a309bdc47dc3504683159cb50b590eed8/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L112). this gives us access to react internals without needing to use react devtools.
 
 however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
@@ -107,17 +106,11 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 
 we can use bippy's utils and the `onCommitFiberRoot` handler to detect renders!
 
-## example usage
+## examples
+
+### a mini react-scan
 
 here's a mini toy version of [`react-scan`](https://github.com/aidenybai/react-scan) that highlights renders in your app.
-
-first, install bippy:
-
-```bash
-npm install bippy
-```
-
-then, use the `instrument` function to set up the hook:
 
 ```javascript
 import {
@@ -188,6 +181,105 @@ instrument(
      * rendered your entire app and is ready to apply changes to
      * the host tree (e.g. via DOM mutations).
      */
+    onCommitFiberRoot(rendererID, root) {
+      visit(rendererID, root);
+    },
+  })
+);
+```
+
+### a mini why-did-you-render
+
+here's a mini toy version of [`why-did-you-render`](https://github.com/welldone-software/why-did-you-render) that logs why components re-render.
+
+```typescript
+import {
+  instrument,
+  isHostFiber,
+  createFiberVisitor,
+  isCompositeFiber,
+  getDisplayName,
+  traverseProps,
+  traverseContexts,
+  traverseState,
+} from 'bippy'; // must be imported BEFORE react
+
+const visit = createFiberVisitor({
+  onRender(fiber) {
+    /**
+     * `isCompositeFiber` is a utility function that checks if a fiber is a composite fiber.
+     * a composite fiber is a fiber that represents a function or class component.
+     */
+    if (!isCompositeFiber(fiber)) return;
+
+    /**
+     * `getDisplayName` is a utility function that gets the display name of a fiber.
+     */
+    const displayName = getDisplayName(fiber);
+    if (!displayName) return;
+
+    const changes = [];
+
+    /**
+     * `traverseProps` is a utility function that traverses the props of a fiber.
+     */
+    traverseProps(fiber, (propName, next, prev) => {
+      if (next !== prev) {
+        changes.push({
+          name: `prop ${propName}`,
+          prev,
+          next,
+        });
+      }
+    });
+
+    let contextId = 0;
+    /**
+     * `traverseContexts` is a utility function that traverses the contexts of a fiber.
+     * Contexts don't have a "name" like props, so we use an id to identify them.
+     */
+    traverseContexts(fiber, (next, prev) => {
+      if (next !== prev) {
+        changes.push({
+          name: `context ${contextId}`,
+          prev,
+          next,
+          contextId,
+        });
+      }
+      contextId++;
+    });
+
+    let stateId = 0;
+    /**
+     * `traverseState` is a utility function that traverses the state of a fiber.
+     *
+     * State don't have a "name" like props, so we use an id to identify them.
+     */
+    traverseState(fiber, (value, prevValue) => {
+      if (next !== prev) {
+        changes.push({
+          name: `state ${stateId}`,
+          prev,
+          next,
+        });
+      }
+      stateId++;
+    });
+
+    console.group(
+      `%c${displayName}`,
+      'background: hsla(0,0%,70%,.3); border-radius:3px; padding: 0 2px;'
+    );
+    for (const { name, prev, next } of changes) {
+      console.log(`${name}:`, prev, '!==', next);
+    }
+    console.groupEnd();
+  },
+});
+
+instrument(
+  secure({
     onCommitFiberRoot(rendererID, root) {
       visit(rendererID, root);
     },
