@@ -83,6 +83,8 @@ export interface Dependencies {
 	firstContext: ContextDependency<unknown> | null;
 }
 
+export type FiberContext = ContextDependency<unknown>;
+
 /**
  * Represents a react-internal Fiber node.
  */

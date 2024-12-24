@@ -9,7 +9,7 @@
 [![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 [![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
-a hacky way to get fibers from react. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
+hack into react internals. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
 
 bippy _attempts\*_ to solve two problems:
 

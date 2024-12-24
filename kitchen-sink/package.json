@@ -4,12 +4,15 @@
     "dev": "vite"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
     "bippy": "^0.0.14",
-    "react": "*",
-    "react-dom": "*"
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-inspector": "^6.0.2"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "4.0.0-beta.8",
+    "@vitejs/plugin-react": "^4.3.4",
+    "tailwindcss": "4.0.0-beta.8",
     "vite": "^6.0.2"
   }
 }
