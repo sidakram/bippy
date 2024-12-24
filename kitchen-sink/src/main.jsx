@@ -88,8 +88,8 @@ export const HoverOverlay = () => {
 					top: rect?.top,
 					left: rect?.left + rect?.width,
 					opacity: rect ? 1 : 0,
-					transform: rect ? 'translateY(0)' : 'translateY(10px)',
-					pointerEvents: rect ? 'auto' : 'none',
+					transform: rect ? "translateY(0)" : "translateY(10px)",
+					pointerEvents: rect ? "auto" : "none",
 				}}
 			>
 				<Text
@@ -219,15 +219,9 @@ export default function Main() {
 
 				<div className="flex flex-col gap-[1ch] my-[1ch]">
 					<Text className="text-muted-foreground">
-						if <Link href="https://opentelemetry.io">OpenTelemetry</Link> is a
-						general-purpose instrumentation protocol for apps, then imagine
-						bippy as an un-official protocol for react.js.
-					</Text>
-				</div>
-
-				<div className="flex flex-col gap-[1ch] my-[1ch]">
-					<Text className="text-muted-foreground">
-						<Link href="https://opentelemetry.io">{">"} view source</Link>
+						<Link href="https://github.com/aidenybai/bippy">
+							{">"} view source
+						</Link>
 					</Text>
 				</div>
 
