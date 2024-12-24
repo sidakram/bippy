@@ -83,7 +83,7 @@ export const HoverOverlay = () => {
 	return (
 		<>
 			<div
-				className="border border-black fixed bg-white z-50 p-[1ch] max-w-[50ch] transition-all duration-150 overflow-auto max-h-[40ch]"
+				className="border border-black fixed bg-white z-50 p-[1ch] max-w-[50ch] transition-all duration-150 overflow-auto max-h-[40ch] shadow"
 				style={{
 					top: rect?.top,
 					left: rect?.left + rect?.width,
@@ -160,6 +160,7 @@ function ListItem({ children }) {
 }
 
 export default function Main() {
+	const [imgSize, setImgSize] = useState(30);
 	return (
 		<>
 			<HoverOverlay />
@@ -169,9 +170,15 @@ export default function Main() {
 						<img
 							src="/bippy.png"
 							alt="bippy logo"
-							className="w-[30px] h-[30px] animate-spin"
-							width={30}
-							height={30}
+							className="animate-spin select-none"
+							width={imgSize}
+							height={imgSize}
+							onClick={() => setImgSize(imgSize + 10)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter") {
+									setImgSize(imgSize + 10);
+								}
+							}}
 						/>
 						<Text className="font-bold" as="h1">
 							bippy
