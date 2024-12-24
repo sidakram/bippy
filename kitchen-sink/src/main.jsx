@@ -96,7 +96,7 @@ export const HoverOverlay = () => {
 					as="h3"
 					className="text-sm mb-[1ch] bg-neutral-100 px-[0.5ch] rounded-sm w-fit"
 				>
-					{`<${getDisplayName(fiber) || "unknown"}>`}
+					{`<${typeof fiber?.type === "string" ? fiber?.type : getDisplayName(fiber) || "unknown"}>`}
 				</Text>
 				<Inspector data={fiber} expandLevel={1} />
 			</div>
