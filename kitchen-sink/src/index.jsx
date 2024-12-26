@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 
-const PROJECT = "main";
+const PROJECT = "mini-react-scan";
 
 const render = async () => {
 	const Component = (

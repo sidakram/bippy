@@ -125,29 +125,29 @@ export interface ReactDevToolsGlobalHook {
 
 export const version = process.env.VERSION;
 export const BIPPY_INSTRUMENTATION_STRING = `bippy-${version}`;
-const ClassComponentTag = 1;
-const FunctionComponentTag = 0;
-const ContextConsumerTag = 9;
-const SuspenseComponentTag = 13;
-const OffscreenComponentTag = 22;
-const ForwardRefTag = 11;
-const MemoComponentTag = 14;
-const SimpleMemoComponentTag = 15;
-const HostComponentTag = 5;
-const HostHoistableTag = 26;
-const HostSingletonTag = 27;
-const DehydratedSuspenseComponent = 18;
-const HostText = 6;
-const Fragment = 7;
-const LegacyHiddenComponent = 23;
-const OffscreenComponent = 22;
-const HostRoot = 3;
-const CONCURRENT_MODE_NUMBER = 0xeacf;
-const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
-const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
+export const ClassComponentTag = 1;
+export const FunctionComponentTag = 0;
+export const ContextConsumerTag = 9;
+export const SuspenseComponentTag = 13;
+export const OffscreenComponentTag = 22;
+export const ForwardRefTag = 11;
+export const MemoComponentTag = 14;
+export const SimpleMemoComponentTag = 15;
+export const HostComponentTag = 5;
+export const HostHoistableTag = 26;
+export const HostSingletonTag = 27;
+export const DehydratedSuspenseComponent = 18;
+export const HostText = 6;
+export const Fragment = 7;
+export const LegacyHiddenComponent = 23;
+export const OffscreenComponent = 22;
+export const HostRoot = 3;
+export const CONCURRENT_MODE_NUMBER = 0xeacf;
+export const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
+export const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
 	"Symbol(react.transitional.element)";
-const CONCURRENT_MODE_SYMBOL_STRING = "Symbol(react.concurrent_mode)";
-const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = "Symbol(react.async_mode)";
+export const CONCURRENT_MODE_SYMBOL_STRING = "Symbol(react.concurrent_mode)";
+export const DEPRECATED_ASYNC_MODE_SYMBOL_STRING = "Symbol(react.async_mode)";
 
 // https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactFiberFlags.js
 const PerformedWork = 0b1;
@@ -1066,6 +1066,10 @@ export const instrument = (options: InstrumentationOptions) => {
 
 export const secure = (
 	options: InstrumentationOptions,
+	bypassOptions: {
+		minReactMajorVersion?: number;
+		dangerouslyRunInProduction?: boolean;
+	} = {},
 ): InstrumentationOptions => {
 	const onActive = options.onActive;
 
@@ -1077,11 +1081,14 @@ export const secure = (
 
 			for (const renderer of rdtHook.renderers.values()) {
 				const [majorVersion] = renderer.version.split(".");
-				if (Number(majorVersion) < 17) {
+				if (Number(majorVersion) < (bypassOptions.minReactMajorVersion ?? 17)) {
 					isSecure = false;
 				}
 				const buildType = detectReactBuildType(renderer);
-				if (buildType !== "development") {
+				if (
+					buildType !== "development" &&
+					!bypassOptions.dangerouslyRunInProduction
+				) {
 					isSecure = false;
 				}
 			}

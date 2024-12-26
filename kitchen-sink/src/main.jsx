@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import "./main.css";
 import { getRDTHook, getDisplayName, traverseFiber } from "bippy";
-import { Inspector } from "../node_modules/react-inspector/dist/index";
+import { Inspector } from "react-inspector";
 
-export const getFiberFromElement = (element) => {
+const getFiberFromElement = (element) => {
 	const { renderers } = getRDTHook();
 	for (const [_, renderer] of Array.from(renderers || [])) {
 		try {
@@ -205,7 +204,7 @@ export default function Main() {
 				<List>
 					<ListItem>
 						<Text className="text-muted-foreground">
-							it's not possible to write instrumentation for React without the
+							it's not possible to write instrumentation for react without the
 							end user changing code
 						</Text>
 					</ListItem>

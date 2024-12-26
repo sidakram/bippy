@@ -13,7 +13,7 @@ hack into react internals. <small>used internally by [`react-scan`](https://gith
 
 bippy _attempts\*_ to solve two problems:
 
-1. it's not possible to write instrumentation for React without the end user changing code
+1. it's not possible to write instrumentation for react without the end user changing code
 2. doing anything useful with fibers requires you to know react source code very well
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
@@ -28,7 +28,7 @@ a react fiber is a "unit of execution." this means react will do something based
 
 > here is a [live visualization](https://jser.pro/ddir/rie?reactVersion=18.3.1&snippetKey=hq8jm2ylzb9u8eh468) of what the fiber tree looks like, and here is a [deep dive article](https://jser.dev/2023-07-18-how-react-rerenders/).
 
-fibers are useful because they contain information about the React app (component props, state, contexts, etc.). a simplified version of a fiber looks roughly like this:
+fibers are useful because they contain information about the react app (component props, state, contexts, etc.). a simplified version of a fiber looks roughly like this:
 
 ```typescript
 interface Fiber {
@@ -71,14 +71,14 @@ while all of the information is there, it's not super easy to work with, and cha
 
 however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
 
-luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/ReactFiberDevToolsHook.js#L48) in the window object: `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
+luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/reactFiberDevToolsHook.js#L48) in the window object: `window.__react_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
 
 here's what it roughly looks like:
 
 ```typescript
-interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
+interface __react_DEVTOOLS_GLOBAL_HOOK__ {
   // list of renderers (react-dom, react-native, etc.)
-  renderers: Map<RendererID, ReactRenderer>;
+  renderers: Map<RendererID, reactRenderer>;
 
   // called when react has rendered everything for an update and is ready to
   // apply changes to the host tree (e.g. DOM mutations)
@@ -96,12 +96,12 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
 }
 ```
 
-bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with our own custom handlers. bippy simplifies this by providing utility functions like:
+bippy works by monkey-patching `window.__react_DEVTOOLS_GLOBAL_HOOK__` with our own custom handlers. bippy simplifies this by providing utility functions like:
 
-- `instrument` to safely patch `window.__REACT_DEVTOOLS_GLOBAL_HOOK__`
+- `instrument` to safely patch `window.__react_DEVTOOLS_GLOBAL_HOOK__`
   - _(instead of directly mutating `onCommitFiberRoot`, ...)_
 - `secure` to wrap your handlers in a try/catch and determine if handlers are safe to run
-  - _(instead of rawdogging `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
+  - _(instead of rawdogging `window.__react_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
 
 ## examples
 
@@ -161,22 +161,22 @@ const visit = createFiberVisitor({
 });
 
 /**
- * `instrument` is a function that installs the React DevTools global
- * hook and allows you to set up custom handlers for React fiber events.
+ * `instrument` is a function that installs the react DevTools global
+ * hook and allows you to set up custom handlers for react fiber events.
  */
 instrument(
   /**
    * `secure` is a function that wraps your handlers in a try/catch
    * and prevents it from crashing the app. it also prevents it from
-   * running on unsupported React versions and during production.
+   * running on unsupported react versions and during production.
    *
    * this is not required but highly recommended to provide "safeguards"
    * in case something breaks.
    */
   secure({
     /**
-     * `onCommitFiberRoot` is a handler that is called when React is
-     * ready to commit a fiber root. this means that React is has
+     * `onCommitFiberRoot` is a handler that is called when react is
+     * ready to commit a fiber root. this means that react is has
      * rendered your entire app and is ready to apply changes to
      * the host tree (e.g. via DOM mutations).
      */

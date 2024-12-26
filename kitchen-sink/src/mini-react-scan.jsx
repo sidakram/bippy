@@ -1,5 +1,6 @@
 import { instrument, getNearestHostFiber, createFiberVisitor } from "bippy"; // must be imported BEFORE react
 import React, { useState } from "react";
+import * as BippyScan from "bippy/dist/scan/index";
 
 const highlightFiber = (fiber) => {
 	if (!(fiber.stateNode instanceof HTMLElement)) return;
@@ -19,25 +20,27 @@ const highlightFiber = (fiber) => {
 	}, 100);
 };
 
-const visit = createFiberVisitor({
-	onRender(fiber) {
-		const hostFiber = getNearestHostFiber(fiber);
-		highlightFiber(hostFiber);
-	},
-});
+// const visit = createFiberVisitor({
+// 	onRender(fiber) {
+// 		// const hostFiber = getNearestHostFiber(fiber);
+// 		// highlightFiber(hostFiber);
+// 		BippyScan.pushOutline(fiber);
+// 	},
+// });
 
-instrument({
-	onCommitFiberRoot(rendererID, root) {
-		visit(rendererID, root);
-	},
-});
+// instrument({
+// 	onCommitFiberRoot(rendererID, root) {
+// 		visit(rendererID, root);
+// 	},
+// });
+
+console.log(BippyScan);
 
 export default function TodoList() {
 	const [todos, setTodos] = useState([]);
 	const [input, setInput] = useState("");
 
 	const addTodo = () => {
-		if (!input.trim()) return;
 		setTodos([...todos, { text: input, completed: false }]);
 		setInput("");
 	};

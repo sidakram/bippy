@@ -1,6 +1,9 @@
 // https://x.com/jjenzz/status/1859954446140334277
 import { instrument, getNearestHostFibers, createFiberVisitor } from "bippy"; // must be imported BEFORE react
 import * as React from "react";
+import * as BippyScan from "bippy/dist/scan/index";
+
+BippyScan;
 
 const mergeRects = (rects) => {
 	const left = Math.min(...rects.map((r) => r.left));
@@ -28,18 +31,18 @@ const highlightFiber = (fibers) => {
 	}, 100);
 };
 
-const visit = createFiberVisitor({
-	onRender(fiber) {
-		const hostFibers = getNearestHostFibers(fiber);
-		highlightFiber(hostFibers);
-	},
-});
+// const visit = createFiberVisitor({
+// 	onRender(fiber) {
+// 		const hostFibers = getNearestHostFibers(fiber);
+// 		highlightFiber(hostFibers);
+// 	},
+// });
 
-instrument({
-	onCommitFiberRoot(rendererID, root) {
-		visit(rendererID, root);
-	},
-});
+// instrument({
+// 	onCommitFiberRoot(rendererID, root) {
+// 		visit(rendererID, root);
+// 	},
+// });
 
 const MyContext = React.createContext(0);
 
