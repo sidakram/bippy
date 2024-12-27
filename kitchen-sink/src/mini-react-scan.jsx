@@ -1,24 +1,5 @@
-import { instrument, getNearestHostFiber, createFiberVisitor } from "bippy"; // must be imported BEFORE react
-import React, { useState } from "react";
+import React, { useState, createContext } from "react";
 import * as BippyScan from "bippy/dist/scan/index";
-
-const highlightFiber = (fiber) => {
-	if (!(fiber.stateNode instanceof HTMLElement)) return;
-
-	const rect = fiber.stateNode.getBoundingClientRect();
-	const highlight = document.createElement("div");
-	highlight.style.border = "1px solid red";
-	highlight.style.position = "fixed";
-	highlight.style.top = `${rect.top}px`;
-	highlight.style.left = `${rect.left}px`;
-	highlight.style.width = `${rect.width}px`;
-	highlight.style.height = `${rect.height}px`;
-	highlight.style.zIndex = 999999999;
-	document.documentElement.appendChild(highlight);
-	setTimeout(() => {
-		document.documentElement.removeChild(highlight);
-	}, 100);
-};
 
 // const visit = createFiberVisitor({
 // 	onRender(fiber) {
@@ -36,61 +17,122 @@ const highlightFiber = (fiber) => {
 
 console.log(BippyScan);
 
-export default function TodoList() {
-	const [todos, setTodos] = useState([]);
-	const [input, setInput] = useState("");
+const TooltipContext = createContext({ tooltip: "" });
 
-	const addTodo = () => {
-		setTodos([...todos, { text: input, completed: false }]);
-		setInput("");
-	};
-
-	const toggleComplete = (index) => {
-		setTodos(
-			todos.map((todo, i) =>
-				i === index ? { ...todo, completed: !todo.completed } : todo,
-			),
-		);
-	};
-
-	const deleteTodo = (index) => {
-		setTodos(todos.filter((_, i) => i !== index));
-	};
-
-	React.useEffect(() => {
-		console.log("useEffect");
-	}, []);
+export const App = () => {
+	const [tasks, setTasks] = useState([]);
 
 	return (
-		<div>
-			<h2>Todo List</h2>
-			<input
-				value={input}
-				onChange={(e) => setInput(e.target.value)}
-				onKeyDown={(e) => e.key === "Enter" && addTodo()}
-			/>
-			<button type="button" onClick={addTodo}>
-				Add Todo
-			</button>
-			<ul>
-				{todos.map((todo, index) => (
-					<li key={todo.id}>
-						<span
-							onClick={() => toggleComplete(index)}
-							onKeyDown={(e) => e.key === "Enter" && toggleComplete(index)}
-							style={{
-								textDecoration: todo.completed ? "line-through" : "none",
-								cursor: "pointer",
+		<TooltipContext.Provider value={{ tooltip: "Hello" }}>
+			<div className="p-16 text-xs">
+				<div className="main-content">
+					<nav className="navbar">
+						<a href="/" className="navbar-brand">
+							<h3>
+								<strong style={{ fontFamily: "Geist Mono, monospace" }}>
+									React Scan
+								</strong>
+							</h3>
+						</a>
+					</nav>
+
+					<div className="task-section">
+						<AddTaskBar
+							onCreate={(value) => {
+								if (!value) return;
+								setTasks([...tasks, value]);
 							}}
-						>
-							{todo.text}
-						</span>
-						<button type="button" onClick={() => deleteTodo(index)}>
-							Delete
-						</button>
-					</li>
-				))}
-			</ul>
+						/>
+						<TaskList
+							tasks={tasks}
+							onDelete={(value) =>
+								setTasks(tasks.filter((task) => task !== value))
+							}
+						/>
+					</div>
+				</div>
+			</div>
+		</TooltipContext.Provider>
+	);
+};
+
+export const TaskList = ({ tasks, onDelete }) => {
+	return (
+		<ul className="mt-4 list-disc pl-4">
+			{tasks.map((task) => (
+				<TaskItem key={task} task={task} onDelete={onDelete} />
+			))}
+		</ul>
+	);
+};
+
+export const TaskItem = ({ task, onDelete }) => {
+	const { tooltip } = React.useContext(TooltipContext);
+	return (
+		<li className="task-item" tooltip={tooltip}>
+			{task}
+			<Button onClick={() => onDelete(task)}>Delete</Button>
+		</li>
+	);
+};
+
+export const Text = ({ children }) => {
+	return <span>{children}</span>;
+};
+
+export const Button = ({ onClick, children }) => {
+	return (
+		<button
+			type="button"
+			className="ml-2 border border-gray-300 bg-black text-white rounded-md p-2"
+			onClick={onClick}
+		>
+			<Text>{children}</Text>
+		</button>
+	);
+};
+
+export const AddTaskBar = ({ onCreate }) => {
+	const [value, setValue] = useState("");
+	const [id, setId] = useState(0);
+	return (
+		<div className="add-task-container flex">
+			<Input
+				onChange={(value) => setValue(value)}
+				onEnter={(value) => {
+					onCreate(`${value} (${id})`);
+					setValue("");
+					setId(id + 1);
+				}}
+				value={value}
+			/>
+			<Button
+				onClick={() => {
+					onCreate(value);
+					setValue("");
+				}}
+			>
+				Add Task
+			</Button>
 		</div>
 	);
-}
+};
+
+export const Input = ({ onChange, onEnter, value }) => {
+	return (
+		<input
+			type="text"
+			className="border border-gray-300 rounded-md p-2"
+			placeholder="Today I will..."
+			onChange={(e) => onChange(e.target.value)}
+			onKeyDown={(e) => {
+				if (e.key === "Enter") {
+					onEnter(e.target.value);
+				}
+			}}
+			value={value}
+		/>
+	);
+};
+
+export default App;

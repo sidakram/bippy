@@ -1,10 +1,11 @@
-import type { Outline } from "./shared.js";
+import type { CompressedPendingOutline } from "./types.js";
 
 let canvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let dpr = 1;
 
-let currentOutlines: Outline[] = [];
+let pendingOutlines: CompressedPendingOutline[] = [];
+let activeOutlines: Map<string, CompressedPendingOutline> = new Map();
 
 const color = { r: 115, g: 97, b: 230 };
 
@@ -12,6 +13,11 @@ let animationFrameId: number | null = null;
 
 const MONO_FONT =
 	"Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
+
+const getOutlineKey = (outline: CompressedPendingOutline) => {
+	const [name, _count, x, y, width, height] = outline;
+	return `${name},${x},${y},${width},${height}`;
+};
 
 const getOverlapArea = (rect1: DOMRect, rect2: DOMRect): number => {
 	if (rect1.right <= rect2.left || rect2.right <= rect1.left) {
@@ -30,7 +36,7 @@ const getOverlapArea = (rect1: DOMRect, rect2: DOMRect): number => {
 	return xOverlap * yOverlap;
 };
 
-const getLabelText = (outlines: Outline[]): string => {
+const getLabelText = (outlines: CompressedPendingOutline[]): string => {
 	const parts: string[] = [];
 	for (const outline of outlines) {
 		const [name, count] = outline;
@@ -54,10 +60,10 @@ function draw() {
 	//   const alpha = invariantActiveOutline.alpha;
 	//   const fillAlpha = alpha * 0.1;
 
-	const labelMap = new Map<string, Outline[]>();
+	const labelMap = new Map<string, CompressedPendingOutline[]>();
 
-	for (let i = currentOutlines.length - 1; i >= 0; i--) {
-		const [name, count, x, y, width, height, frame] = currentOutlines[i];
+	for (const outline of activeOutlines.values()) {
+		const [_name, _count, x, y, width, height, frame] = outline;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const fillAlpha = alpha * 0.1;
 
@@ -70,14 +76,14 @@ function draw() {
 		ctx.rect(x, y, width, height);
 		ctx.stroke();
 		ctx.fill();
-		currentOutlines[i][6]++; // update frame
+		outline[6]++; // update frame
 
 		const key = `${x},${y}`;
 		const label = labelMap.get(key);
 		if (label) {
-			label.push(currentOutlines[i]);
+			label.push(outline);
 		} else {
-			labelMap.set(key, [currentOutlines[i]]);
+			labelMap.set(key, [outline]);
 		}
 		// slow?
 	}
@@ -86,6 +92,18 @@ function draw() {
 
 	// ctx.save();
 	ctx.font = `11px ${MONO_FONT}`;
+
+	// dedupe overlapping outlines
+	for (const outlines of labelMap.values()) {
+		const [_name, _count, x, y, _width, _height, frame] = outlines[0];
+		const alpha = 1 - frame / TOTAL_FRAMES;
+		const text = getLabelText(outlines);
+
+		const textMetrics = ctx.measureText(text);
+		const textWidth = textMetrics.width;
+		const textHeight = 11;
+
+	}
 
 	for (const outlines of labelMap.values()) {
 		const [_name, _count, x, y, _width, _height, frame] = outlines[0];
@@ -104,15 +122,20 @@ function draw() {
 
 		ctx.fillStyle = `rgba(255,255,255,${alpha})`;
 		ctx.fillText(text, labelX + 2, labelY + textHeight);
+
+		if (frame > TOTAL_FRAMES) {
+			for (const outline of outlines) {
+				activeOutlines.delete(getOutlineKey(outline));
+			}
+		}
 	}
 
 	// ctx.restore();
 
-	if (currentOutlines.length) {
+	if (activeOutlines.size) {
 		animationFrameId = requestAnimationFrame(() => draw());
 	} else {
 		animationFrameId = null;
-		currentOutlines = [];
 	}
 }
 
@@ -163,9 +186,31 @@ self.onmessage = (event) => {
 			]);
 		}
 
-		currentOutlines = newOutlines as Outline[];
+		pendingOutlines = newOutlines as CompressedPendingOutline[];
 		if (!animationFrameId) {
-			animationFrameId = requestAnimationFrame(() => draw());
+			animationFrameId = requestAnimationFrame(() => {
+				for (const outline of pendingOutlines) {
+					if (activeOutlines.has(getOutlineKey(outline))) {
+						// biome-ignore lint/style/noNonNullAssertion: <explanation>
+						activeOutlines.get(getOutlineKey(outline))![1]++; // count
+					} else {
+						activeOutlines.set(getOutlineKey(outline), outline);
+					}
+				}
+				pendingOutlines = [];
+				draw();
+			});
+		} else {
+			for (const outline of pendingOutlines) {
+				if (activeOutlines.has(getOutlineKey(outline))) {
+					// biome-ignore lint/style/noNonNullAssertion: <explanation>
+					activeOutlines.get(getOutlineKey(outline))![1]++; // count
+					// biome-ignore lint/style/noNonNullAssertion: <explanation>
+					activeOutlines.get(getOutlineKey(outline))![6] = 0; // reset frame
+				} else {
+					activeOutlines.set(getOutlineKey(outline), outline);
+				}
+			}
 		}
 	}
 };

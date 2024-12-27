@@ -1,41 +1,38 @@
 import {
 	createFiberVisitor,
-	type Fiber,
 	getDisplayName,
 	getNearestHostFibers,
 	instrument,
 	isCompositeFiber,
 } from "../index.js";
-import type { Outline } from "./shared.js";
+import type {
+	CompressedPendingOutline,
+	Fiber,
+	FiberMetadata,
+} from "./types.js";
 
 const canvasHtmlStr = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 let worker: Worker;
 
-interface PendingOutline {
-	displayName: string;
-	count: number;
-	elements: Array<Element>;
-}
-
-const pendingOutlinesMap = new WeakMap<Fiber, PendingOutline>();
-const pendingOutlineKeys = new Set<Fiber>();
+const fiberMap = new WeakMap<Fiber, FiberMetadata>();
+const fiberMapKeys = new Set<Fiber>();
 
 export const pushOutline = (fiber: Fiber) => {
-	// if (!isCompositeFiber(fiber)) return;
-	const displayName =
+	if (!isCompositeFiber(fiber)) return;
+	const name =
 		typeof fiber.type === "string" ? fiber.type : getDisplayName(fiber);
-	if (!displayName) return;
-	const outline = pendingOutlinesMap.get(fiber);
+	if (!name) return;
+	const fiberMetadata = fiberMap.get(fiber);
 	const nearestFibers = getNearestHostFibers(fiber);
-	if (!outline) {
-		pendingOutlinesMap.set(fiber, {
-			displayName: displayName || "",
+	if (!fiberMetadata) {
+		fiberMap.set(fiber, {
+			name,
 			count: 1,
-			elements: nearestFibers.map((fiber) => fiber.stateNode as Element),
+			elements: nearestFibers.map((fiber) => fiber.stateNode),
 		});
-		pendingOutlineKeys.add(fiber);
+		fiberMapKeys.add(fiber);
 	} else {
-		outline.count++;
+		fiberMetadata.count++;
 	}
 };
 
@@ -73,11 +70,11 @@ export const getRect = (
 };
 
 export const flushOutlines = async () => {
-	const outlines: Outline[] = [];
+	const outlines: CompressedPendingOutline[] = [];
 	const elements: Element[] = [];
 
-	for (const fiber of pendingOutlineKeys) {
-		const outline = pendingOutlinesMap.get(fiber);
+	for (const fiber of fiberMapKeys) {
+		const outline = fiberMap.get(fiber);
 		if (!outline) continue;
 		for (let i = 0; i < outline.elements.length; i++) {
 			elements.push(outline.elements[i]);
@@ -86,8 +83,8 @@ export const flushOutlines = async () => {
 
 	const rectsMap = await getRect(elements);
 
-	for (const fiber of pendingOutlineKeys) {
-		const outline = pendingOutlinesMap.get(fiber);
+	for (const fiber of fiberMapKeys) {
+		const outline = fiberMap.get(fiber);
 		if (!outline) continue;
 		const rects: DOMRect[] = [];
 		for (let i = 0; i < outline.elements.length; i++) {
@@ -96,13 +93,13 @@ export const flushOutlines = async () => {
 			if (!rect) continue;
 			rects.push(rect);
 		}
-		pendingOutlinesMap.delete(fiber);
-		pendingOutlineKeys.delete(fiber);
+		fiberMap.delete(fiber);
+		fiberMapKeys.delete(fiber);
 		if (!rects.length) continue;
 		const { x, y, width, height } =
 			rects.length === 1 ? rects[0] : mergeRects(rects);
 
-		outlines.push([outline.displayName, outline.count, x, y, width, height, 0]);
+		outlines.push([outline.name, outline.count, x, y, width, height]);
 	}
 
 	const buffer = new (
@@ -111,19 +108,18 @@ export const flushOutlines = async () => {
 	const sharedView = new Float32Array(buffer);
 
 	for (let i = 0; i < outlines.length; i++) {
-		const [_displayName, count, x, y, width, height, frame] = outlines[i];
+		const [, count, x, y, width, height] = outlines[i];
 		sharedView[i * 6 + 0] = count;
 		sharedView[i * 6 + 1] = x;
 		sharedView[i * 6 + 2] = y;
 		sharedView[i * 6 + 3] = width;
 		sharedView[i * 6 + 4] = height;
-		sharedView[i * 6 + 5] = frame;
 	}
 
 	worker.postMessage({
 		type: "draw",
 		outlinesBuffer: buffer,
-		names: outlines.map(([displayName]) => displayName),
+		names: outlines.map(([name]) => name),
 	});
 };
 
@@ -168,6 +164,7 @@ export const getCanvasEl = () => {
 
 	window.addEventListener("scroll", () => {
 		requestAnimationFrame(() => {
+			// TODO: adjust rects
 			flushOutlines();
 		});
 	});
@@ -186,12 +183,11 @@ export const getCanvasEl = () => {
 		[offscreenCanvas],
 	);
 	setInterval(() => {
-		if (pendingOutlineKeys.size) {
-			requestAnimationFrame(() => {
-				flushOutlines();
-			});
+		if (fiberMapKeys.size) {
+			// adding a rAF here makes everything slow
+			flushOutlines();
 		}
-	}, 30);
+	}, 16 * 2);
 
 	const visit = createFiberVisitor({
 		onRender(fiber) {

@@ -517,20 +517,20 @@ export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
  */
 export const getNearestHostFibers = (fiber: Fiber) => {
 	const hostFibers: Fiber[] = [];
+	const stack: Fiber[] = [fiber];
 
-	const traverse = (node: Fiber | null) => {
-		let currentNode = node;
-		while (currentNode) {
-			if (isHostFiber(currentNode)) {
-				hostFibers.push(currentNode);
-			} else if (currentNode.child) {
-				traverse(currentNode.child);
-			}
-			currentNode = currentNode.sibling;
+	while (stack.length) {
+		const currentNode = stack.pop();
+		if (!currentNode) break;
+		if (isHostFiber(currentNode)) {
+			hostFibers.push(currentNode);
+		} else if (currentNode.child) {
+			stack.push(currentNode.child);
 		}
-	};
-
-	traverse(fiber);
+		if (currentNode.sibling) {
+			stack.push(currentNode.sibling);
+		}
+	}
 
 	return hostFibers;
 };
