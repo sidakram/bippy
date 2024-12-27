@@ -1,11 +1,22 @@
-import type { CompressedPendingOutline } from "./types.js";
+import type { CompressedPendingOutline, ActiveOutline } from "./types.js";
+
+// Use separate functions for keys if we're dealing with both Compressed and Active outlines:
+function getCompressedOutlineKey(outline: CompressedPendingOutline): string {
+	const [name, , x, y, width, height] = outline;
+	return `${name},${x},${y},${width},${height}`;
+}
+
+function getActiveOutlineKey(outline: ActiveOutline): string {
+	const { name, x, y, width, height } = outline;
+	return `${name},${x},${y},${width},${height}`;
+}
 
 let canvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let dpr = 1;
 
 let pendingOutlines: CompressedPendingOutline[] = [];
-let activeOutlines: Map<string, CompressedPendingOutline> = new Map();
+const activeOutlines: Map<string, ActiveOutline> = new Map();
 
 const color = { r: 115, g: 97, b: 230 };
 
@@ -13,11 +24,6 @@ let animationFrameId: number | null = null;
 
 const MONO_FONT =
 	"Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
-
-const getOutlineKey = (outline: CompressedPendingOutline) => {
-	const [name, _count, x, y, width, height] = outline;
-	return `${name},${x},${y},${width},${height}`;
-};
 
 const getOverlapArea = (rect1: DOMRect, rect2: DOMRect): number => {
 	if (rect1.right <= rect2.left || rect2.right <= rect1.left) {
@@ -36,16 +42,29 @@ const getOverlapArea = (rect1: DOMRect, rect2: DOMRect): number => {
 	return xOverlap * yOverlap;
 };
 
-const getLabelText = (outlines: CompressedPendingOutline[]): string => {
+const getLabelText = (outlines: ActiveOutline[]): string => {
 	const parts: string[] = [];
 	for (const outline of outlines) {
-		const [name, count] = outline;
+		const { name, count } = outline;
 		parts.push(count > 1 ? `${name} ×${count}` : name);
 	}
 	return parts.join(", ");
 };
 
 const TOTAL_FRAMES = 45;
+
+// Convert compressed outline to an ActiveOutline
+function toActiveOutline(c: CompressedPendingOutline): ActiveOutline {
+	return {
+		name: c[0],
+		count: c[1],
+		x: c[2],
+		y: c[3],
+		width: c[4],
+		height: c[5],
+		frame: 0,
+	};
+}
 
 function draw() {
 	if (!ctx || !canvas) return;
@@ -60,10 +79,10 @@ function draw() {
 	//   const alpha = invariantActiveOutline.alpha;
 	//   const fillAlpha = alpha * 0.1;
 
-	const labelMap = new Map<string, CompressedPendingOutline[]>();
+	const labelMap = new Map<string, ActiveOutline[]>();
 
 	for (const outline of activeOutlines.values()) {
-		const [_name, _count, x, y, width, height, frame] = outline;
+		const { x, y, width, height, frame } = outline;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const fillAlpha = alpha * 0.1;
 
@@ -76,14 +95,14 @@ function draw() {
 		ctx.rect(x, y, width, height);
 		ctx.stroke();
 		ctx.fill();
-		outline[6]++; // update frame
+		outline.frame++;
 
-		const key = `${x},${y}`;
-		const label = labelMap.get(key);
-		if (label) {
-			label.push(outline);
+		const labelKey = `${x},${y}`;
+		const group = labelMap.get(labelKey);
+		if (group) {
+			group.push(outline);
 		} else {
-			labelMap.set(key, [outline]);
+			labelMap.set(labelKey, [outline]);
 		}
 		// slow?
 	}
@@ -95,18 +114,19 @@ function draw() {
 
 	// dedupe overlapping outlines
 	for (const outlines of labelMap.values()) {
-		const [_name, _count, x, y, _width, _height, frame] = outlines[0];
+		const first = outlines[0];
+		const { x, y, frame } = first;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const text = getLabelText(outlines);
 
 		const textMetrics = ctx.measureText(text);
 		const textWidth = textMetrics.width;
 		const textHeight = 11;
-
 	}
 
 	for (const outlines of labelMap.values()) {
-		const [_name, _count, x, y, _width, _height, frame] = outlines[0];
+		const first = outlines[0];
+		const { x, y, frame } = first;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const text = getLabelText(outlines);
 
@@ -124,8 +144,8 @@ function draw() {
 		ctx.fillText(text, labelX + 2, labelY + textHeight);
 
 		if (frame > TOTAL_FRAMES) {
-			for (const outline of outlines) {
-				activeOutlines.delete(getOutlineKey(outline));
+			for (const o of outlines) {
+				activeOutlines.delete(getActiveOutlineKey(o));
 			}
 		}
 	}
@@ -172,7 +192,7 @@ self.onmessage = (event) => {
 	if (type === "draw") {
 		const { outlinesBuffer, names } = event.data;
 		const floatView = new Float32Array(outlinesBuffer);
-		const newOutlines = [];
+		const newOutlines: CompressedPendingOutline[] = [];
 
 		for (let i = 0; i < floatView.length; i += 6) {
 			newOutlines.push([
@@ -182,33 +202,33 @@ self.onmessage = (event) => {
 				floatView[i + 2],
 				floatView[i + 3],
 				floatView[i + 4],
-				floatView[i + 5],
 			]);
 		}
 
-		pendingOutlines = newOutlines as CompressedPendingOutline[];
+		pendingOutlines = newOutlines;
 		if (!animationFrameId) {
 			animationFrameId = requestAnimationFrame(() => {
-				for (const outline of pendingOutlines) {
-					if (activeOutlines.has(getOutlineKey(outline))) {
-						// biome-ignore lint/style/noNonNullAssertion: <explanation>
-						activeOutlines.get(getOutlineKey(outline))![1]++; // count
+				for (const c of pendingOutlines) {
+					const key = getCompressedOutlineKey(c);
+					const existingOutline = activeOutlines.get(key);
+					if (existingOutline) {
+						existingOutline.count++;
 					} else {
-						activeOutlines.set(getOutlineKey(outline), outline);
+						activeOutlines.set(key, toActiveOutline(c));
 					}
 				}
 				pendingOutlines = [];
 				draw();
 			});
 		} else {
-			for (const outline of pendingOutlines) {
-				if (activeOutlines.has(getOutlineKey(outline))) {
-					// biome-ignore lint/style/noNonNullAssertion: <explanation>
-					activeOutlines.get(getOutlineKey(outline))![1]++; // count
-					// biome-ignore lint/style/noNonNullAssertion: <explanation>
-					activeOutlines.get(getOutlineKey(outline))![6] = 0; // reset frame
+			for (const c of pendingOutlines) {
+				const key = getCompressedOutlineKey(c);
+				const existingOutline = activeOutlines.get(key);
+				if (existingOutline) {
+					existingOutline.count++;
+					existingOutline.frame = 0;
 				} else {
-					activeOutlines.set(getOutlineKey(outline), outline);
+					activeOutlines.set(key, toActiveOutline(c));
 				}
 			}
 		}
