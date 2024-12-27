@@ -4,6 +4,10 @@ export type Fiber = ReactFiber<Element>;
 
 export type CompressedPendingOutline = [
 	/**
+	 * id
+	 */
+	number,
+	/**
 	 * name
 	 */
 	string,
@@ -30,6 +34,7 @@ export type CompressedPendingOutline = [
 ];
 
 export interface ActiveOutline {
+	id: number;
 	name: string;
 	count: number;
 	x: number;

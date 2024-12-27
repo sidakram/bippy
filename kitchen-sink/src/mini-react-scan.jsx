@@ -26,6 +26,8 @@ export const App = () => {
 		<TooltipContext.Provider value={{ tooltip: "Hello" }}>
 			<div className="p-16 text-xs">
 				<div className="main-content">
+					<h1 id="btn-block-main-thread">Status: unblocked</h1>
+					<br />
 					<nav className="navbar">
 						<a href="/" className="navbar-brand">
 							<h3>
@@ -80,9 +82,10 @@ export const Text = ({ children }) => {
 	return <span>{children}</span>;
 };
 
-export const Button = ({ onClick, children }) => {
+export const Button = ({ onClick, children, id }) => {
 	return (
 		<button
+			id={id}
 			type="button"
 			className="ml-2 border border-gray-300 bg-black text-white rounded-md p-2"
 			onClick={onClick}
@@ -99,20 +102,35 @@ export const AddTaskBar = ({ onCreate }) => {
 		<div className="add-task-container flex">
 			<Input
 				onChange={(value) => setValue(value)}
-				onEnter={(value) => {
+				onEnter={async (value) => {
 					onCreate(`${value} (${id})`);
 					setValue("");
 					setId(id + 1);
+					await new Promise((resolve) => setTimeout(resolve, 0));
+					for (let i = 0; i < 1000000000; i++) {}
 				}}
 				value={value}
 			/>
 			<Button
-				onClick={() => {
+				onClick={async () => {
 					onCreate(value);
 					setValue("");
+					document.getElementById("btn-block-main-thread").textContent =
+						"blocked";
+					document.getElementById(
+						"btn-block-main-thread",
+					).style.backgroundColor = "red";
+					await new Promise((resolve) => setTimeout(resolve, 0));
+					for (let i = 0; i < 1000000000; i++) {}
+					console.log("unblocking main thread");
+					document.getElementById("btn-block-main-thread").textContent =
+						"unblocked";
+					document.getElementById(
+						"btn-block-main-thread",
+					).style.backgroundColor = "lightgreen";
 				}}
 			>
-				Add Task
+				Add Task and block main thread
 			</Button>
 		</div>
 	);

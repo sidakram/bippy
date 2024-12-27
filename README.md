@@ -80,7 +80,7 @@ interface __react_DEVTOOLS_GLOBAL_HOOK__ {
   // list of renderers (react-dom, react-native, etc.)
   renderers: Map<RendererID, reactRenderer>;
 
-  // called when react has rendered everything for an update and is ready to
+  // called when react has rendered everything for an update and the fiber tree is fully built and ready to
   // apply changes to the host tree (e.g. DOM mutations)
   onCommitFiberRoot: (
     rendererID: RendererID,
@@ -102,6 +102,12 @@ bippy works by monkey-patching `window.__react_DEVTOOLS_GLOBAL_HOOK__` with our 
   - _(instead of directly mutating `onCommitFiberRoot`, ...)_
 - `secure` to wrap your handlers in a try/catch and determine if handlers are safe to run
   - _(instead of rawdogging `window.__react_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
+- `createFiberVisitor` to traverse the fiber tree and determine which fibers have actually rendered
+  - _(instead of `child`, `sibling`, and `return` pointers)_
+- `traverseFiber` to traverse the fiber tree, regardless of whether it has rendered
+  - _(instead of `child`, `sibling`, and `return` pointers)_
+- `setFiberId` / `getFiberId` to set and get a fiber's id
+  - _(instead of anonymous fibers with no identity)_
 
 ## examples
 

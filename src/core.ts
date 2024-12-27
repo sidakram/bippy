@@ -735,6 +735,28 @@ export type RenderHandler = <S>(
 	state?: S,
 ) => unknown;
 
+let fiberId = 0;
+export const fiberIdMap = new WeakMap<Fiber, number>();
+
+export const setFiberId = (fiber: Fiber, id: number) => {
+	fiberIdMap.set(fiber, id);
+};
+
+// react fibers are double buffered, so the alternate fiber may
+// be switched to the current fiber and vice versa.
+// fiber === fiber.alternate.alternate
+export const getFiberId = (fiber: Fiber) => {
+	let id = fiberIdMap.get(fiber);
+	if (!id && fiber.alternate) {
+		id = fiberIdMap.get(fiber.alternate);
+	}
+	if (!id) {
+		id = fiberId++;
+		setFiberId(fiber, id);
+	}
+	return id;
+};
+
 export const mountFiberRecursively = (
 	onRender: RenderHandler,
 	firstChild: Fiber,
@@ -743,6 +765,7 @@ export const mountFiberRecursively = (
 	let fiber: Fiber | null = firstChild;
 
 	while (fiber != null) {
+		getFiberId(fiber);
 		const shouldIncludeInTree = !shouldFilterFiber(fiber);
 		if (shouldIncludeInTree && didFiberRender(fiber)) {
 			onRender(fiber, "mount");
@@ -790,7 +813,9 @@ export const updateFiberRecursively = (
 	prevFiber: Fiber,
 	parentFiber: Fiber | null,
 ) => {
+	getFiberId(nextFiber);
 	if (!prevFiber) return;
+	getFiberId(prevFiber);
 
 	const isSuspense = nextFiber.tag === SuspenseComponentTag;
 

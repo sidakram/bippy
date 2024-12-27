@@ -56,12 +56,13 @@ const TOTAL_FRAMES = 45;
 // Convert compressed outline to an ActiveOutline
 function toActiveOutline(c: CompressedPendingOutline): ActiveOutline {
 	return {
-		name: c[0],
-		count: c[1],
-		x: c[2],
-		y: c[3],
-		width: c[4],
-		height: c[5],
+		id: c[0],
+		name: c[1],
+		count: c[2],
+		x: c[3],
+		y: c[4],
+		width: c[5],
+		height: c[6],
 		frame: 0,
 	};
 }
@@ -196,12 +197,13 @@ self.onmessage = (event) => {
 
 		for (let i = 0; i < floatView.length; i += 6) {
 			newOutlines.push([
-				names[i / 6],
 				floatView[i],
+				names[i / 6],
 				floatView[i + 1],
 				floatView[i + 2],
 				floatView[i + 3],
 				floatView[i + 4],
+				floatView[i + 5],
 			]);
 		}
 

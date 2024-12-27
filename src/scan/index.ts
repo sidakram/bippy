@@ -1,6 +1,7 @@
 import {
 	createFiberVisitor,
 	getDisplayName,
+	getFiberId,
 	getNearestHostFibers,
 	instrument,
 	isCompositeFiber,
@@ -14,6 +15,7 @@ import type {
 const canvasHtmlStr = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 let worker: Worker;
 
+const fiberIdMap = new WeakMap<Fiber, number>();
 const fiberMap = new WeakMap<Fiber, FiberMetadata>();
 const fiberMapKeys = new Set<Fiber>();
 
@@ -54,6 +56,7 @@ export const getRect = (
 				const entry = entries[i];
 				const element = entry.target;
 				const rect = entry.boundingClientRect;
+				console.log(entry.intersectionRatio);
 				if (entry.isIntersecting && rect.width && rect.height) {
 					rects.set(element, rect);
 				}
@@ -99,7 +102,15 @@ export const flushOutlines = async () => {
 		const { x, y, width, height } =
 			rects.length === 1 ? rects[0] : mergeRects(rects);
 
-		outlines.push([outline.name, outline.count, x, y, width, height]);
+		outlines.push([
+			getFiberId(fiber),
+			outline.name,
+			outline.count,
+			x,
+			y,
+			width,
+			height,
+		]);
 	}
 
 	const buffer = new (
@@ -108,18 +119,19 @@ export const flushOutlines = async () => {
 	const sharedView = new Float32Array(buffer);
 
 	for (let i = 0; i < outlines.length; i++) {
-		const [, count, x, y, width, height] = outlines[i];
-		sharedView[i * 6 + 0] = count;
-		sharedView[i * 6 + 1] = x;
-		sharedView[i * 6 + 2] = y;
-		sharedView[i * 6 + 3] = width;
-		sharedView[i * 6 + 4] = height;
+		const [id, _name, count, x, y, width, height] = outlines[i];
+		sharedView[i * 6 + 0] = id;
+		sharedView[i * 6 + 1] = count;
+		sharedView[i * 6 + 2] = x;
+		sharedView[i * 6 + 3] = y;
+		sharedView[i * 6 + 4] = width;
+		sharedView[i * 6 + 5] = height;
 	}
 
 	worker.postMessage({
 		type: "draw",
 		outlinesBuffer: buffer,
-		names: outlines.map(([name]) => name),
+		names: outlines.map(([_id, name]) => name),
 	});
 };
 
