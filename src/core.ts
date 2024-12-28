@@ -516,20 +516,18 @@ export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
  * Returns all host {@link Fiber}s in the tree that are associated with the current {@link Fiber}.
  */
 export const getNearestHostFibers = (fiber: Fiber) => {
-	const hostFibers: Fiber[] = [];
-	const stack: Fiber[] = [fiber];
+	const nearestHostFiber = getNearestHostFiber(fiber);
+	if (!nearestHostFiber) return [];
 
-	while (stack.length) {
-		const currentNode = stack.pop();
-		if (!currentNode) break;
-		if (isHostFiber(currentNode)) {
-			hostFibers.push(currentNode);
-		} else if (currentNode.child) {
-			stack.push(currentNode.child);
+	const hostFibers: Fiber[] = [nearestHostFiber];
+
+	let sibling = nearestHostFiber?.sibling;
+
+	while (sibling) {
+		if (isHostFiber(sibling)) {
+			hostFibers.push(sibling);
 		}
-		if (currentNode.sibling) {
-			stack.push(currentNode.sibling);
-		}
+		sibling = sibling.sibling;
 	}
 
 	return hostFibers;
@@ -765,7 +763,9 @@ export const mountFiberRecursively = (
 	let fiber: Fiber | null = firstChild;
 
 	while (fiber != null) {
-		getFiberId(fiber);
+		if (!fiberIdMap.has(fiber)) {
+			getFiberId(fiber);
+		}
 		const shouldIncludeInTree = !shouldFilterFiber(fiber);
 		if (shouldIncludeInTree && didFiberRender(fiber)) {
 			onRender(fiber, "mount");
@@ -813,9 +813,13 @@ export const updateFiberRecursively = (
 	prevFiber: Fiber,
 	parentFiber: Fiber | null,
 ) => {
-	getFiberId(nextFiber);
+	if (!fiberIdMap.has(nextFiber)) {
+		getFiberId(nextFiber);
+	}
 	if (!prevFiber) return;
-	getFiberId(prevFiber);
+	if (!fiberIdMap.has(prevFiber)) {
+		getFiberId(prevFiber);
+	}
 
 	const isSuspense = nextFiber.tag === SuspenseComponentTag;
 

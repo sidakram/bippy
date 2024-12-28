@@ -540,8 +540,6 @@ Returns an array of all host Fibers that have committed and rendered in the prov
 ```typescript
 import { getMutatedHostFibers } from 'bippy';
 
-// ...
-
 console.log(getMutatedHostFibers(fiber));
 ```
 

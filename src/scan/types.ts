@@ -2,15 +2,16 @@ import type { Fiber as ReactFiber } from "../index.js";
 
 export type Fiber = ReactFiber<Element>;
 
-export type CompressedPendingOutline = [
+export interface PendingOutline {
+	name: string;
+	data: InlineOutlineData;
+}
+
+export type InlineOutlineData = [
 	/**
 	 * id
 	 */
 	number,
-	/**
-	 * name
-	 */
-	string,
 	/**
 	 * count
 	 */

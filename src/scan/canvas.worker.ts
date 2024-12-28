@@ -1,21 +1,9 @@
-import type { CompressedPendingOutline, ActiveOutline } from "./types.js";
-
-// Use separate functions for keys if we're dealing with both Compressed and Active outlines:
-function getCompressedOutlineKey(outline: CompressedPendingOutline): string {
-	const [name, , x, y, width, height] = outline;
-	return `${name},${x},${y},${width},${height}`;
-}
-
-function getActiveOutlineKey(outline: ActiveOutline): string {
-	const { name, x, y, width, height } = outline;
-	return `${name},${x},${y},${width},${height}`;
-}
+import type { ActiveOutline } from "./types.js";
 
 let canvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
 let dpr = 1;
 
-let pendingOutlines: CompressedPendingOutline[] = [];
 const activeOutlines: Map<string, ActiveOutline> = new Map();
 
 const color = { r: 115, g: 97, b: 230 };
@@ -25,19 +13,30 @@ let animationFrameId: number | null = null;
 const MONO_FONT =
 	"Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
 
-const getOverlapArea = (rect1: DOMRect, rect2: DOMRect): number => {
-	if (rect1.right <= rect2.left || rect2.right <= rect1.left) {
+const getOverlapArea = (
+	outline1: ActiveOutline,
+	outline2: ActiveOutline,
+): number => {
+	if (
+		outline1.x + outline1.width <= outline2.x ||
+		outline2.x + outline2.width <= outline1.x
+	) {
 		return 0;
 	}
 
-	if (rect1.bottom <= rect2.top || rect2.bottom <= rect1.top) {
+	if (
+		outline1.y + outline1.height <= outline2.y ||
+		outline2.y + outline2.height <= outline1.y
+	) {
 		return 0;
 	}
 
 	const xOverlap =
-		Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left);
+		Math.min(outline1.x + outline1.width, outline2.x + outline2.width) -
+		Math.max(outline1.x, outline2.x);
 	const yOverlap =
-		Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top);
+		Math.min(outline1.y + outline1.height, outline2.y + outline2.height) -
+		Math.max(outline1.y, outline2.y);
 
 	return xOverlap * yOverlap;
 };
@@ -52,20 +51,6 @@ const getLabelText = (outlines: ActiveOutline[]): string => {
 };
 
 const TOTAL_FRAMES = 45;
-
-// Convert compressed outline to an ActiveOutline
-function toActiveOutline(c: CompressedPendingOutline): ActiveOutline {
-	return {
-		id: c[0],
-		name: c[1],
-		count: c[2],
-		x: c[3],
-		y: c[4],
-		width: c[5],
-		height: c[6],
-		frame: 0,
-	};
-}
 
 function draw() {
 	if (!ctx || !canvas) return;
@@ -113,18 +98,6 @@ function draw() {
 	// ctx.save();
 	ctx.font = `11px ${MONO_FONT}`;
 
-	// dedupe overlapping outlines
-	for (const outlines of labelMap.values()) {
-		const first = outlines[0];
-		const { x, y, frame } = first;
-		const alpha = 1 - frame / TOTAL_FRAMES;
-		const text = getLabelText(outlines);
-
-		const textMetrics = ctx.measureText(text);
-		const textWidth = textMetrics.width;
-		const textHeight = 11;
-	}
-
 	for (const outlines of labelMap.values()) {
 		const first = outlines[0];
 		const { x, y, frame } = first;
@@ -146,7 +119,7 @@ function draw() {
 
 		if (frame > TOTAL_FRAMES) {
 			for (const o of outlines) {
-				activeOutlines.delete(getActiveOutlineKey(o));
+				activeOutlines.delete(String(o.id));
 			}
 		}
 	}
@@ -185,54 +158,45 @@ self.onmessage = (event) => {
 		canvas.height = event.data.height;
 		ctx.resetTransform();
 		ctx.scale(dpr, dpr);
-		if (!animationFrameId) {
-			animationFrameId = requestAnimationFrame(() => draw());
-		}
+		draw();
+
+		return;
 	}
 
 	if (type === "draw") {
-		const { outlinesBuffer, names } = event.data;
-		const floatView = new Float32Array(outlinesBuffer);
-		const newOutlines: CompressedPendingOutline[] = [];
+		const { data, names } = event.data;
 
+		const floatView = new Float32Array(data);
 		for (let i = 0; i < floatView.length; i += 6) {
-			newOutlines.push([
-				floatView[i],
-				names[i / 6],
-				floatView[i + 1],
-				floatView[i + 2],
-				floatView[i + 3],
-				floatView[i + 4],
-				floatView[i + 5],
-			]);
-		}
+			const outline = {
+				id: floatView[i],
+				name: names[i / 6],
+				count: floatView[i + 1],
+				x: floatView[i + 2],
+				y: floatView[i + 3],
+				width: floatView[i + 4],
+				height: floatView[i + 5],
+				frame: 0,
+			};
+			const key = String(outline.id);
 
-		pendingOutlines = newOutlines;
-		if (!animationFrameId) {
-			animationFrameId = requestAnimationFrame(() => {
-				for (const c of pendingOutlines) {
-					const key = getCompressedOutlineKey(c);
-					const existingOutline = activeOutlines.get(key);
-					if (existingOutline) {
-						existingOutline.count++;
-					} else {
-						activeOutlines.set(key, toActiveOutline(c));
-					}
-				}
-				pendingOutlines = [];
-				draw();
-			});
-		} else {
-			for (const c of pendingOutlines) {
-				const key = getCompressedOutlineKey(c);
-				const existingOutline = activeOutlines.get(key);
-				if (existingOutline) {
-					existingOutline.count++;
-					existingOutline.frame = 0;
-				} else {
-					activeOutlines.set(key, toActiveOutline(c));
-				}
+			const existingOutline = activeOutlines.get(key);
+			if (existingOutline) {
+				existingOutline.count++;
+				existingOutline.frame = 0;
+				existingOutline.x = outline.x;
+				existingOutline.y = outline.y;
+				existingOutline.width = outline.width;
+				existingOutline.height = outline.height;
+			} else {
+				activeOutlines.set(key, outline);
 			}
 		}
+
+		if (!animationFrameId) {
+			animationFrameId = requestAnimationFrame(draw);
+		}
+
+		return;
 	}
 };

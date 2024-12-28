@@ -106,8 +106,8 @@ export const AddTaskBar = ({ onCreate }) => {
 					onCreate(`${value} (${id})`);
 					setValue("");
 					setId(id + 1);
-					await new Promise((resolve) => setTimeout(resolve, 0));
-					for (let i = 0; i < 1000000000; i++) {}
+					// await new Promise((resolve) => setTimeout(resolve, 0));
+					// for (let i = 0; i < 1000000000; i++) {}
 				}}
 				value={value}
 			/>

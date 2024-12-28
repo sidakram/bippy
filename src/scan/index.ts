@@ -6,16 +6,13 @@ import {
 	instrument,
 	isCompositeFiber,
 } from "../index.js";
-import type {
-	CompressedPendingOutline,
-	Fiber,
-	FiberMetadata,
-} from "./types.js";
+import type { Fiber, FiberMetadata, PendingOutline } from "./types.js";
+// @ts-expect-error OK
+import Worker from "./canvas.worker.js";
 
 const canvasHtmlStr = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 let worker: Worker;
 
-const fiberIdMap = new WeakMap<Fiber, number>();
 const fiberMap = new WeakMap<Fiber, FiberMetadata>();
 const fiberMapKeys = new Set<Fiber>();
 
@@ -56,7 +53,6 @@ export const getRect = (
 				const entry = entries[i];
 				const element = entry.target;
 				const rect = entry.boundingClientRect;
-				console.log(entry.intersectionRatio);
 				if (entry.isIntersecting && rect.width && rect.height) {
 					rects.set(element, rect);
 				}
@@ -73,7 +69,7 @@ export const getRect = (
 };
 
 export const flushOutlines = async () => {
-	const outlines: CompressedPendingOutline[] = [];
+	const outlines: PendingOutline[] = [];
 	const elements: Element[] = [];
 
 	for (const fiber of fiberMapKeys) {
@@ -102,36 +98,36 @@ export const flushOutlines = async () => {
 		const { x, y, width, height } =
 			rects.length === 1 ? rects[0] : mergeRects(rects);
 
-		outlines.push([
-			getFiberId(fiber),
-			outline.name,
-			outline.count,
-			x,
-			y,
-			width,
-			height,
-		]);
+		outlines.push({
+			name: outline.name,
+			data: [getFiberId(fiber), outline.count, x, y, width, height],
+		});
 	}
 
-	const buffer = new (
-		typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer
-	)(outlines.length * 6 * 4);
-	const sharedView = new Float32Array(buffer);
+	const SupportedArrayBuffer =
+		typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
+
+	const data = new SupportedArrayBuffer(outlines.length * 6 * 4);
+	const sharedView = new Float32Array(data);
+
+	const names = new Array(outlines.length);
 
 	for (let i = 0; i < outlines.length; i++) {
-		const [id, _name, count, x, y, width, height] = outlines[i];
+		const { data, name } = outlines[i];
+		const [id, count, x, y, width, height] = data;
 		sharedView[i * 6 + 0] = id;
 		sharedView[i * 6 + 1] = count;
 		sharedView[i * 6 + 2] = x;
 		sharedView[i * 6 + 3] = y;
 		sharedView[i * 6 + 4] = width;
 		sharedView[i * 6 + 5] = height;
+		names[i] = name;
 	}
 
 	worker.postMessage({
 		type: "draw",
-		outlinesBuffer: buffer,
-		names: outlines.map(([_id, name]) => name),
+		data,
+		names,
 	});
 };
 
@@ -145,7 +141,7 @@ export const getCanvasEl = () => {
 	if (!canvasEl) return null;
 
 	const dpr = window.devicePixelRatio || 1;
-	worker = new Worker(new URL("./worker.js", import.meta.url));
+	worker = Worker();
 
 	let isResizeScheduled = false;
 	const updateCanvasSize = () => {
