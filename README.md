@@ -2,6 +2,8 @@
 > ⚠️⚠️⚠️ **this project may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
 >
 > this project uses react internals, which can change at any time. it is not recommended to depend on internals unless you really, _really_ have to. by proceeding, you acknowledge the risk of breaking your own code or apps that use your code.
+>
+> we use this project interally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed in development and production. we use this package "safely" by ensuring that it is only used in development, and when it is deployed to production, it is removed from the bundle or properly error guarded. if you're planning to use this project outside of tinkering, please read over react-scan's source code to see how we safeguard usage.
 
 # <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
@@ -19,12 +21,6 @@ bippy _attempts\*_ to solve two problems:
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
 <sub><sup>\*disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
-
-## how to use this project safely
-
-1. **do not rely on this in production**
-2. **do not rely on this in production**
-3. **do not rely on this in production**
 
 ## how it works
 
