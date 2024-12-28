@@ -20,6 +20,12 @@ bippy allows you to access fiber information from outside of react and provides 
 
 <sub><sup>\*disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
 
+## how to use this project safely
+
+1. **do not rely on this in production**
+2. **do not rely on this in production**
+3. **do not rely on this in production**
+
 ## how it works
 
 bippy allows you to **access** and **use** fibers from outside of react.
@@ -111,19 +117,6 @@ bippy works by monkey-patching `window.__react_DEVTOOLS_GLOBAL_HOOK__` with our 
   - _(instead of `child`, `sibling`, and `return` pointers)_
 - `setFiberId` / `getFiberId` to set and get a fiber's id
   - _(instead of anonymous fibers with no identity)_
-
-## glossary
-
-- fiber: a "unit of execution" in react, representing a component or dom element
-- commit: the process of applying changes to the host tree (e.g. DOM mutations)
-- render: the process of building the fiber tree by executing component function/classes
-- host tree: the tree of UI elements that react mutates (e.g. DOM elements)
-- reconciler (or "renderer"): custom bindings for react, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc to mutate the host tree
-- `rendererID`: the id of the reconciler, starting at 1 (can be from multiple reconciler instances, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc.)
-- `root`: a special `FiberRoot` type that contains the container fiber (the one you pass to `ReactDOM.createRoot`) in the `current` property
-- `onCommitFiberRoot`: called when react is ready to commit a fiber root
-- `onPostCommitFiberRoot`: called when react has committed a fiber root and effects have run
-- `onCommitFiberUnmount`: called when a fiber unmounts
 
 ## examples
 
@@ -310,11 +303,18 @@ instrument(
 
 ## api reference
 
+below is a (useful) subset of the api. for the full api, read the [source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts).
+
 ### instrument
 
-patches `window.__react_DEVTOOLS_GLOBAL_HOOK__` with your handlers. Use with the `secure` function to prevent uncaught errors from crashing your app.
+patches `window.__react_DEVTOOLS_GLOBAL_HOOK__` with your handlers. must be imported before react, and must be initialized to properly run any other methods.
+
+> use with the `secure` function to prevent uncaught errors from crashing your app.
 
 ```typescript
+import { instrument, secure } from 'bippy'; // must be imported BEFORE react
+import * as React from 'react';
+
 instrument(
   secure({
     onCommitFiberRoot(rendererID, root) {
@@ -329,6 +329,128 @@ instrument(
   })
 );
 ```
+
+### createFiberVisitor
+
+not every fiber in the fiber tree renders. `createFiberVisitor` allows you to traverse the fiber tree and determine which fibers have actually rendered.
+
+```typescript
+import { instrument, secure, createFiberVisitor } from 'bippy'; // must be imported BEFORE react
+import * as React from 'react';
+
+const visit = createFiberVisitor({
+  onRender(fiber) {
+    console.log('fiber rendered', fiber);
+  },
+});
+
+instrument(
+  secure({
+    onCommitFiberRoot(rendererID, root) {
+      visit(rendererID, root);
+    },
+  })
+);
+```
+
+### traverseFiber
+
+```typescript
+import { instrument, secure, traverseFiber } from 'bippy'; // must be imported BEFORE react
+import * as React from 'react';
+
+instrument(
+  secure({
+    onCommitFiberRoot(rendererID, root) {
+      traverseFiber(root.current, (fiber) => {
+        console.log(fiber);
+      });
+    },
+  })
+);
+```
+
+### traverseProps
+
+```typescript
+import { traverseProps } from 'bippy';
+
+// ...
+
+traverseProps(fiber, (propName, next, prev) => {
+  console.log(propName, next, prev);
+});
+```
+
+### traverseState
+
+```typescript
+import { traverseState } from 'bippy';
+
+// ...
+
+traverseState(fiber, (next, prev) => {
+  console.log(next, prev);
+});
+```
+
+### traverseEffects
+
+// more
+
+### traverseContexts
+
+```typescript
+import { traverseContexts } from 'bippy';
+
+// ...
+
+traverseContexts(fiber, (next, prev) => {
+  console.log(next, prev);
+});
+```
+
+### setFiberId / getFiberId
+
+```typescript
+import { setFiberId, getFiberId } from 'bippy';
+
+// ...
+
+setFiberId(fiber);
+console.log('unique id for fiber:', getFiberId(fiber));
+```
+
+### isHostFiber
+
+### isCompositeFiber
+
+### getDisplayName
+
+### getType
+
+### getNearestHostFiber / getNearestHostFibers
+
+### getTimings
+
+### getFiberStack
+
+### getMutatedHostFibers
+
+### isValidFiber
+
+## glossary
+
+- fiber: a "unit of execution" in react, representing a component or dom element
+- commit: the process of applying changes to the host tree (e.g. DOM mutations)
+- render: the process of building the fiber tree by executing component function/classes
+- host tree: the tree of UI elements that react mutates (e.g. DOM elements)
+- reconciler (or "renderer"): custom bindings for react, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc to mutate the host tree
+- `rendererID`: the id of the reconciler, starting at 1 (can be from multiple reconciler instances, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc.)
+- `root`: a special `FiberRoot` type that contains the container fiber (the one you pass to `ReactDOM.createRoot`) in the `current` property
+- `onCommitFiberRoot`: called when react is ready to commit a fiber root
+- `onPostCommitFiberRoot`: called when react has committed a fiber root and effects have run
+- `onCommitFiberUnmount`: called when a fiber unmounts
 
 ## misc
 

@@ -738,7 +738,7 @@ export type RenderHandler = <S>(
 let fiberId = 0;
 export const fiberIdMap = new WeakMap<Fiber, number>();
 
-export const setFiberId = (fiber: Fiber, id: number) => {
+export const setFiberId = (fiber: Fiber, id: number = fiberId++) => {
 	fiberIdMap.set(fiber, id);
 };
 
