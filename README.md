@@ -9,7 +9,7 @@
 [![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 [![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
-hack into react internals. <small>used internally by [`react-scan`](https://github.com/aidenybai/react-scan)</small>
+hack into react internals. used internally by [`react-scan`](https://github.com/aidenybai/react-scan).
 
 bippy _attempts\*_ to solve two problems:
 
@@ -44,6 +44,9 @@ interface Fiber {
   // parent fiber
   return: Fiber | null;
 
+  // the previous or current version of the fiber
+  alternate: Fiber | null;
+
   // saved props input
   memoizedProps: any;
 
@@ -76,7 +79,7 @@ luckily, react [reads from a property](https://github.com/facebook/react/blob/6a
 here's what it roughly looks like:
 
 ```typescript
-interface __react_DEVTOOLS_GLOBAL_HOOK__ {
+interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
   // list of renderers (react-dom, react-native, etc.)
   renderers: Map<RendererID, reactRenderer>;
 
@@ -108,6 +111,19 @@ bippy works by monkey-patching `window.__react_DEVTOOLS_GLOBAL_HOOK__` with our 
   - _(instead of `child`, `sibling`, and `return` pointers)_
 - `setFiberId` / `getFiberId` to set and get a fiber's id
   - _(instead of anonymous fibers with no identity)_
+
+## glossary
+
+- fiber: a "unit of execution" in react, representing a component or dom element
+- commit: the process of applying changes to the host tree (e.g. DOM mutations)
+- render: the process of building the fiber tree by executing component function/classes
+- host tree: the tree of UI elements that react mutates (e.g. DOM elements)
+- reconciler (or "renderer"): custom bindings for react, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc to mutate the host tree
+- `rendererID`: the id of the reconciler, starting at 1 (can be from multiple reconciler instances, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc.)
+- `root`: a special `FiberRoot` type that contains the container fiber (the one you pass to `ReactDOM.createRoot`) in the `current` property
+- `onCommitFiberRoot`: called when react is ready to commit a fiber root
+- `onPostCommitFiberRoot`: called when react has committed a fiber root and effects have run
+- `onCommitFiberUnmount`: called when a fiber unmounts
 
 ## examples
 
@@ -287,6 +303,28 @@ instrument(
   secure({
     onCommitFiberRoot(rendererID, root) {
       visit(rendererID, root);
+    },
+  })
+);
+```
+
+## api reference
+
+### instrument
+
+patches `window.__react_DEVTOOLS_GLOBAL_HOOK__` with your handlers. Use with the `secure` function to prevent uncaught errors from crashing your app.
+
+```typescript
+instrument(
+  secure({
+    onCommitFiberRoot(rendererID, root) {
+      console.log('root ready to commit', root);
+    },
+    onPostCommitFiberRoot(rendererID, root) {
+      console.log('root with effects committed', root);
+    },
+    onCommitFiberUnmount(rendererID, fiber) {
+      console.log('fiber unmounted', fiber);
     },
   })
 );
