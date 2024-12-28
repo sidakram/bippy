@@ -13,6 +13,11 @@ let animationFrameId: number | null = null;
 const MONO_FONT =
 	"Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
 
+const INTERPOLATION_SPEED = 0.2;
+const lerp = (start: number, end: number) => {
+	return start + (end - start) * INTERPOLATION_SPEED;
+};
+
 const getOverlapArea = (
 	outline1: ActiveOutline,
 	outline2: ActiveOutline,
@@ -68,6 +73,31 @@ function draw() {
 	const labelMap = new Map<string, ActiveOutline[]>();
 
 	for (const outline of activeOutlines.values()) {
+		if (outline.targetX !== undefined) {
+			outline.x = lerp(outline.x, outline.targetX);
+			if (outline.targetX === outline.x) {
+				outline.targetX = undefined;
+			}
+		}
+		if (outline.targetY !== undefined) {
+			outline.y = lerp(outline.y, outline.targetY);
+			if (outline.targetY === outline.y) {
+				outline.targetY = undefined;
+			}
+		}
+		if (outline.targetWidth !== undefined) {
+			outline.width = lerp(outline.width, outline.targetWidth);
+			if (outline.targetWidth === outline.width) {
+				outline.targetWidth = undefined;
+			}
+		}
+		if (outline.targetHeight !== undefined) {
+			outline.height = lerp(outline.height, outline.targetHeight);
+			if (outline.targetHeight === outline.height) {
+				outline.targetHeight = undefined;
+			}
+		}
+
 		const { x, y, width, height, frame } = outline;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const fillAlpha = alpha * 0.1;
@@ -184,10 +214,10 @@ self.onmessage = (event) => {
 			if (existingOutline) {
 				existingOutline.count++;
 				existingOutline.frame = 0;
-				existingOutline.x = outline.x;
-				existingOutline.y = outline.y;
-				existingOutline.width = outline.width;
-				existingOutline.height = outline.height;
+				existingOutline.targetX = outline.x;
+				existingOutline.targetY = outline.y;
+				existingOutline.targetWidth = outline.width;
+				existingOutline.targetHeight = outline.height;
 			} else {
 				activeOutlines.set(key, outline);
 			}

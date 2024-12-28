@@ -42,6 +42,10 @@ export interface ActiveOutline {
 	y: number;
 	width: number;
 	height: number;
+	targetX?: number;
+	targetY?: number;
+	targetWidth?: number;
+	targetHeight?: number;
 	frame: number;
 }
 
