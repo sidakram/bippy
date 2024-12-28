@@ -253,6 +253,20 @@ export default function Main() {
 							or apps that use your code.
 						</Text>
 					</div>
+					<div className="mt-[1ch]">
+						<Text className="text-xs">
+							we use this project interally in{" "}
+							<Link href="https://github.com/aidenybai/react-scan">
+								react-scan
+							</Link>
+							, which is deployed in development and production. we use this
+							package "safely" by ensuring that it is only used in development,
+							and when it is deployed to production, it is removed from the
+							bundle or properly error guarded. if you're planning to use this
+							project outside of tinkering, please read over react-scan's source
+							code to see how we safeguard usage.
+						</Text>
+					</div>
 				</div>
 			</SideLayout>
 		</>
