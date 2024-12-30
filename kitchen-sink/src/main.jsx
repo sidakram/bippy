@@ -158,7 +158,10 @@ function ListItem({ children }) {
 	return <li className="pl-[1ch]">{children}</li>;
 }
 
+console.log(Main);
+
 export default function Main() {
+	"use scan";
 	const [imgSize, setImgSize] = useState(30);
 	return (
 		<>

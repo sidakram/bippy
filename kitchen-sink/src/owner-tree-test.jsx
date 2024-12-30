@@ -76,10 +76,12 @@ const Title = () => {
 };
 
 const App = () => (
-	<Provider>
-		<Title />
-		<Count />
-	</Provider>
+	<div className="p-10">
+		<Provider>
+			<Title />
+			<Count />
+		</Provider>
+	</div>
 );
 
 export default App;

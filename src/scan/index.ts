@@ -100,7 +100,14 @@ export const flushOutlines = async () => {
 
 		outlines.push({
 			name: outline.name,
-			data: [getFiberId(fiber), outline.count, x, y, width, height],
+			data: [
+				getFiberId(fiber),
+				outline.count,
+				Math.floor(x),
+				Math.floor(y),
+				Math.floor(width),
+				Math.floor(height),
+			],
 		});
 	}
 
@@ -115,12 +122,13 @@ export const flushOutlines = async () => {
 	for (let i = 0; i < outlines.length; i++) {
 		const { data, name } = outlines[i];
 		const [id, count, x, y, width, height] = data;
-		sharedView[i * 6 + 0] = id;
-		sharedView[i * 6 + 1] = count;
-		sharedView[i * 6 + 2] = x;
-		sharedView[i * 6 + 3] = y;
-		sharedView[i * 6 + 4] = width;
-		sharedView[i * 6 + 5] = height;
+		const adjustedIndex = i * 6;
+		sharedView[adjustedIndex] = id;
+		sharedView[adjustedIndex + 1] = count;
+		sharedView[adjustedIndex + 2] = x;
+		sharedView[adjustedIndex + 3] = y;
+		sharedView[adjustedIndex + 4] = width;
+		sharedView[adjustedIndex + 5] = height;
 		names[i] = name;
 	}
 
@@ -140,7 +148,7 @@ export const getCanvasEl = () => {
 	const canvasEl = shadowRoot.firstChild as HTMLCanvasElement;
 	if (!canvasEl) return null;
 
-	const dpr = window.devicePixelRatio || 1;
+	const dpr = Math.min(window.devicePixelRatio || 1, 2);
 	worker = Worker();
 
 	let isResizeScheduled = false;
@@ -157,7 +165,7 @@ export const getCanvasEl = () => {
 	window.addEventListener("resize", () => {
 		if (!isResizeScheduled) {
 			isResizeScheduled = true;
-			requestAnimationFrame(() => {
+			setTimeout(() => {
 				const { width, height } = updateCanvasSize();
 				worker.postMessage({
 					type: "resize",
@@ -170,11 +178,26 @@ export const getCanvasEl = () => {
 		}
 	});
 
+	let prevScrollX = window.scrollX;
+	let prevScrollY = window.scrollY;
+	let isScrollScheduled = false;
 	window.addEventListener("scroll", () => {
-		requestAnimationFrame(() => {
-			// TODO: adjust rects
-			flushOutlines();
-		});
+		if (!isScrollScheduled) {
+			isScrollScheduled = true;
+			setTimeout(() => {
+				const { scrollX, scrollY } = window;
+				const deltaX = scrollX - prevScrollX;
+				const deltaY = scrollY - prevScrollY;
+				prevScrollX = scrollX;
+				prevScrollY = scrollY;
+				worker.postMessage({
+					type: "scroll",
+					deltaX,
+					deltaY,
+				});
+				isScrollScheduled = false;
+			}, 16 * 2);
+		}
 	});
 
 	const { width, height } = updateCanvasSize();

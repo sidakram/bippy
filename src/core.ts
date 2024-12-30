@@ -516,18 +516,21 @@ export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
  * Returns all host {@link Fiber}s in the tree that are associated with the current {@link Fiber}.
  */
 export const getNearestHostFibers = (fiber: Fiber) => {
-	const nearestHostFiber = getNearestHostFiber(fiber);
-	if (!nearestHostFiber) return [];
+	const hostFibers: Fiber[] = [];
+	const stack: Fiber[] = [fiber];
 
-	const hostFibers: Fiber[] = [nearestHostFiber];
-
-	let sibling = nearestHostFiber?.sibling;
-
-	while (sibling) {
-		if (isHostFiber(sibling)) {
-			hostFibers.push(sibling);
+	while (stack.length) {
+		const currentNode = stack.pop();
+		if (!currentNode) break;
+		if (isHostFiber(currentNode)) {
+			hostFibers.push(currentNode);
+		} else if (currentNode.child) {
+			stack.push(currentNode.child);
 		}
-		sibling = sibling.sibling;
+
+		if (currentNode.sibling) {
+			stack.push(currentNode.sibling);
+		}
 	}
 
 	return hostFibers;

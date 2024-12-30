@@ -51,7 +51,7 @@ export default defineConfig([
 	{
 		...DEFAULT_OPTIONS,
 		format: ["iife"],
-		minify: "terser",
+		minify: process.env.NODE_ENV === "production" ? "terser" : false,
 		entry: ["./src/index.ts", "./src/core.ts", "./src/scan/index.ts"],
 	},
 ]);

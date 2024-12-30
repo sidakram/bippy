@@ -1,6 +1,6 @@
 # react scan v1 architecture
 
-- `bippy`
+- `bippy` / `@react-scan/web-vitals`
   - `@react-scan/web-instrumentation`: web instrumentation, export API for renders, types of renders, FPS, CWV
     - `react-scan`:
       - web highlighting overlay
@@ -18,3 +18,4 @@
 
 - [ ] backwards compatibility (for worker, offscreen canvas)
 - [ ] feature compat with existing version (core, instrumentation, highlighting)
+- [ ] fills are not correct, validate we're not oversending stuff

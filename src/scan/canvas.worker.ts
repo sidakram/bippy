@@ -15,7 +15,7 @@ const MONO_FONT =
 
 const INTERPOLATION_SPEED = 0.2;
 const lerp = (start: number, end: number) => {
-	return start + (end - start) * INTERPOLATION_SPEED;
+	return Math.floor(start + (end - start) * INTERPOLATION_SPEED);
 };
 
 const getOverlapArea = (
@@ -46,87 +46,158 @@ const getOverlapArea = (
 	return xOverlap * yOverlap;
 };
 
+const MAX_PARTS_LENGTH = 4;
+const MAX_LABEL_LENGTH = 40;
+
 const getLabelText = (outlines: ActiveOutline[]): string => {
-	const parts: string[] = [];
+	const nameByCount = new Map<string, number>();
 	for (const outline of outlines) {
 		const { name, count } = outline;
-		parts.push(count > 1 ? `${name} ×${count}` : name);
+		nameByCount.set(name, (nameByCount.get(name) || 0) + count);
 	}
-	return parts.join(", ");
+
+	const countByNames = new Map<number, string[]>();
+	for (const [name, count] of nameByCount.entries()) {
+		const names = countByNames.get(count);
+		if (names) {
+			names.push(name);
+		} else {
+			countByNames.set(count, [name]);
+		}
+	}
+
+	const partsEntries = Array.from(countByNames.entries()).sort(
+		([countA], [countB]) => countB - countA,
+	);
+	const partsLength = partsEntries.length;
+	let labelText = "";
+	for (let i = 0; i < partsLength; i++) {
+		const [count, names] = partsEntries[i];
+		let part = `${names.slice(0, MAX_PARTS_LENGTH).join(", ")} ×${count}`;
+		if (part.length > MAX_LABEL_LENGTH) {
+			part = `${part.slice(0, MAX_LABEL_LENGTH)}…`;
+		}
+		if (i !== partsLength - 1) {
+			part += ", ";
+		}
+		labelText += part;
+	}
+
+	if (labelText.length > MAX_LABEL_LENGTH) {
+		return `${labelText.slice(0, MAX_LABEL_LENGTH)}…`;
+	}
+
+	return labelText;
 };
 
 const TOTAL_FRAMES = 45;
+
+const isRectWithin = (rect1: ActiveOutline, rect2: ActiveOutline): boolean => {
+	return (
+		rect1.x + rect1.width <= rect2.x + rect2.width &&
+		rect2.x + rect2.width <= rect1.x + rect1.width &&
+		rect1.y + rect1.height <= rect2.y + rect2.height &&
+		rect2.y + rect2.height <= rect1.y + rect1.height
+	);
+};
 
 function draw() {
 	if (!ctx || !canvas) return;
 
 	ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
-	// ctx.save();
-
-	// const alphaScalar = 0.8;
-	//   invariantActiveOutline.alpha =
-	//     alphaScalar * (1 - frame / invariantActiveOutline.totalFrames);
-
-	//   const alpha = invariantActiveOutline.alpha;
-	//   const fillAlpha = alpha * 0.1;
 
 	const labelMap = new Map<string, ActiveOutline[]>();
+	const rectMap = new Map<
+		string,
+		{
+			x: number;
+			y: number;
+			width: number;
+			height: number;
+			alpha: number;
+		}
+	>();
 
 	for (const outline of activeOutlines.values()) {
-		if (outline.targetX !== undefined) {
-			outline.x = lerp(outline.x, outline.targetX);
-			if (outline.targetX === outline.x) {
+		const {
+			x,
+			y,
+			width,
+			height,
+			targetX,
+			targetY,
+			targetWidth,
+			targetHeight,
+			frame,
+		} = outline;
+		if (targetX !== undefined) {
+			outline.x = lerp(x, targetX);
+			if (targetX === outline.x) {
 				outline.targetX = undefined;
 			}
 		}
-		if (outline.targetY !== undefined) {
-			outline.y = lerp(outline.y, outline.targetY);
-			if (outline.targetY === outline.y) {
+		if (targetY !== undefined) {
+			outline.y = lerp(y, targetY);
+			if (targetY === y) {
 				outline.targetY = undefined;
 			}
 		}
-		if (outline.targetWidth !== undefined) {
-			outline.width = lerp(outline.width, outline.targetWidth);
-			if (outline.targetWidth === outline.width) {
+		if (targetWidth !== undefined) {
+			outline.width = lerp(width, targetWidth);
+			if (targetWidth === width) {
 				outline.targetWidth = undefined;
 			}
 		}
-		if (outline.targetHeight !== undefined) {
-			outline.height = lerp(outline.height, outline.targetHeight);
-			if (outline.targetHeight === outline.height) {
+		if (targetHeight !== undefined) {
+			outline.height = lerp(height, targetHeight);
+			if (targetHeight === height) {
 				outline.targetHeight = undefined;
 			}
 		}
 
-		const { x, y, width, height, frame } = outline;
-		const alpha = 1 - frame / TOTAL_FRAMES;
-		const fillAlpha = alpha * 0.1;
+		const labelKey = `${targetX ?? x},${targetY ?? y}`;
+		const rectKey = `${labelKey},${targetWidth ?? width},${targetHeight ?? height}`;
 
+		const outlines = labelMap.get(labelKey);
+		if (outlines) {
+			outlines.push(outline);
+		} else {
+			labelMap.set(labelKey, [outline]);
+		}
+
+		const alpha = 1 - frame / TOTAL_FRAMES;
+		outline.frame++;
+
+		const rect = rectMap.get(rectKey) || {
+			x,
+			y,
+			width,
+			height,
+			alpha,
+		};
+		if (alpha > rect.alpha) {
+			rect.alpha = alpha;
+		}
+		rectMap.set(rectKey, rect);
+	}
+
+	for (const rect of rectMap.values()) {
+		const { x, y, width, height, alpha } = rect;
 		const rgb = `${color.r},${color.g},${color.b}`;
 		ctx.strokeStyle = `rgba(${rgb},${alpha})`;
 		ctx.lineWidth = 1;
-		ctx.fillStyle = `rgba(${rgb},${fillAlpha})`;
 
 		ctx.beginPath();
 		ctx.rect(x, y, width, height);
 		ctx.stroke();
+		ctx.fillStyle = `rgba(${rgb},${alpha * 0.1})`;
 		ctx.fill();
-		outline.frame++;
-
-		const labelKey = `${x},${y}`;
-		const group = labelMap.get(labelKey);
-		if (group) {
-			group.push(outline);
-		} else {
-			labelMap.set(labelKey, [outline]);
-		}
-		// slow?
 	}
 
-	// ctx.restore();
-
-	// ctx.save();
 	ctx.font = `11px ${MONO_FONT}`;
+
+	// TODO: move out the text measuring to a separate for loop, check overlaps, and then re-draw the merged text
+	// check why there's so many rect overlaps (fills?)
 
 	for (const outlines of labelMap.values()) {
 		const first = outlines[0];
@@ -134,30 +205,33 @@ function draw() {
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const text = getLabelText(outlines);
 
+		ctx.textRendering = "optimizeSpeed";
+
 		const textMetrics = ctx.measureText(text);
 		const textWidth = textMetrics.width;
 		const textHeight = 11;
 
-		const labelX: number = x;
-		const labelY: number = y - textHeight - 4;
+		let labelY: number = y - textHeight - 4;
+
+		if (labelY < 0) {
+			labelY = 0;
+		}
 
 		ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
-		ctx.fillRect(labelX, labelY, textWidth + 4, textHeight + 4);
+		ctx.fillRect(x, labelY, textWidth + 4, textHeight + 4);
 
 		ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-		ctx.fillText(text, labelX + 2, labelY + textHeight);
+		ctx.fillText(text, x + 2, labelY + textHeight);
 
 		if (frame > TOTAL_FRAMES) {
-			for (const o of outlines) {
-				activeOutlines.delete(String(o.id));
+			for (const outline of outlines) {
+				activeOutlines.delete(String(outline.id));
 			}
 		}
 	}
 
-	// ctx.restore();
-
 	if (activeOutlines.size) {
-		animationFrameId = requestAnimationFrame(() => draw());
+		animationFrameId = requestAnimationFrame(draw);
 	} else {
 		animationFrameId = null;
 	}
@@ -228,5 +302,13 @@ self.onmessage = (event) => {
 		}
 
 		return;
+	}
+
+	if (type === "scroll") {
+		const { deltaX, deltaY } = event.data;
+		for (const outline of activeOutlines.values()) {
+			outline.targetX = outline.x - deltaX;
+			outline.targetY = outline.y - deltaY;
+		}
 	}
 };
