@@ -24,7 +24,7 @@ bippy allows you to access fiber information from outside of react and provides 
 
 ## how it works
 
-bippy allows you to **access** and **use** fibers from outside of react.
+bippy allows you to **access** and **use** react fibers **outside** of react components.
 
 a react fiber is a "unit of execution." this means react will do something based on the data in a fiber. each fiber either represents a composite (function/class component) or a host (dom element).
 
