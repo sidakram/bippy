@@ -5,15 +5,12 @@ import {
 	traverseFiber,
 	instrument,
 	createFiberVisitor,
-	isCompositeFiber,
 } from "bippy";
 import { Inspector } from "react-inspector";
 
 const visit = createFiberVisitor({
 	onRender(fiber) {
-		if (isCompositeFiber(fiber)) {
-			console.log(fiber);
-		}
+		console.log(fiber);
 	},
 });
 
