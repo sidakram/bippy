@@ -20,7 +20,7 @@ bippy attempts to solve two problems:
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
-bippy is maintained by me, for projects like [`react-scan`](https://github.com/aidenybai/react-scan) and whatever projects i want to use it for. check out [`its-fine`](https://github.com/pmndrs/its-fine) for a using fibers within react (using hooks), or [react devtools](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headfull interface.
+bippy is maintained by me, for projects like [`react-scan`](https://github.com/aidenybai/react-scan). for more robust solutions, check out [`its-fine`](https://github.com/pmndrs/its-fine) for a using fibers within react (using hooks), or [react devtools](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headfull interface.
 
 ## how it works
 
