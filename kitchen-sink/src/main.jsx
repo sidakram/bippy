@@ -180,6 +180,9 @@ function ListItem({ children }) {
 }
 
 export default function Main() {
+	useState(3);
+	useState("state");
+	useState(false);
 	const [imgSize, setImgSize] = useState(30);
 
 	return (
