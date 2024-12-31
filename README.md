@@ -11,7 +11,7 @@
 [![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 [![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
-hack into react internals.
+**hack into react internals.**
 
 bippy attempts to solve two problems:
 
@@ -20,7 +20,7 @@ bippy attempts to solve two problems:
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
-<sub><sup>bippy is maintained by me, for projects like [`react-scan`](https://github.com/aidenybai/react-scan) and whatever projects i want to use it for. check out [`its-fine`](https://github.com/pmndrs/its-fine) for a using fibers within react (using hooks), or [react devtools](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headfull interface.</sub></sup>
+bippy is maintained by me, for projects like [`react-scan`](https://github.com/aidenybai/react-scan) and whatever projects i want to use it for. check out [`its-fine`](https://github.com/pmndrs/its-fine) for a using fibers within react (using hooks), or [react devtools](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headfull interface.
 
 ## how it works
 
