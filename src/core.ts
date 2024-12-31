@@ -3,128 +3,20 @@
 
 import type * as React from "react";
 import type {
-	HostConfig,
-	Thenable,
-	RootTag,
-	WorkTag,
-	HookType,
-	Source,
-	LanePriority,
-	Lanes,
-	Flags,
-	TypeOfMode,
-	ReactProvider,
-	ReactProviderType,
-	ReactConsumer,
-	ReactContext,
-	ReactPortal,
-	RefObject,
-	Fiber as ReactFiber,
+	ContextDependency,
+	Effect,
+	Fiber,
 	FiberRoot,
-	MutableSource,
-	OpaqueHandle,
-	OpaqueRoot,
-	BundleType,
-	DevToolsConfig,
-	SuspenseHydrationCallbacks,
-	TransitionTracingCallbacks,
-	ComponentSelector,
-	HasPseudoClassSelector,
-	RoleSelector,
-	TextSelector,
-	TestNameSelector,
-	Selector,
-	React$AbstractComponent,
-} from "react-reconciler";
+	MemoizedState,
+	ReactDevToolsGlobalHook,
+	ReactRenderer,
+} from "./types.js";
+import {
+	BIPPY_INSTRUMENTATION_STRING,
+	getRDTHook,
+	hasRDTHook,
+} from "./rdt-hook.js";
 
-export type {
-	HostConfig,
-	Thenable,
-	RootTag,
-	WorkTag,
-	HookType,
-	Source,
-	LanePriority,
-	Lanes,
-	Flags,
-	TypeOfMode,
-	ReactProvider,
-	ReactProviderType,
-	ReactConsumer,
-	ReactContext,
-	ReactPortal,
-	RefObject,
-	FiberRoot,
-	MutableSource,
-	OpaqueHandle,
-	OpaqueRoot,
-	BundleType,
-	DevToolsConfig,
-	SuspenseHydrationCallbacks,
-	TransitionTracingCallbacks,
-	ComponentSelector,
-	HasPseudoClassSelector,
-	RoleSelector,
-	TextSelector,
-	TestNameSelector,
-	Selector,
-	React$AbstractComponent,
-};
-
-export interface ContextDependency<T> {
-	context: ReactContext<T>;
-	memoizedValue: T;
-	observedBits: number;
-	next: ContextDependency<unknown> | null;
-}
-
-export interface Dependencies {
-	lanes: Lanes;
-	firstContext: ContextDependency<unknown> | null;
-}
-
-export type FiberContext = ContextDependency<unknown>;
-
-/**
- * Represents a react-internal Fiber node.
- */
-// biome-ignore lint/suspicious/noExplicitAny: stateNode is not typed in react-reconciler
-export type Fiber<T = any> = Omit<ReactFiber, "stateNode"> & {
-	stateNode: T;
-	dependencies: Dependencies;
-	child: Fiber | null;
-	sibling: Fiber | null;
-	return: Fiber | null;
-	alternate: Fiber | null;
-};
-
-// https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-devtools-shared/src/backend/types.js
-export interface ReactRenderer {
-	version: string;
-	bundleType: 0 /* PROD */ | 1 /* DEV */;
-}
-
-export interface ReactDevToolsGlobalHook {
-	checkDCE: (fn: unknown) => void;
-	supportsFiber: boolean;
-	supportsFlight: boolean;
-	renderers: Map<number, ReactRenderer>;
-	hasUnsupportedRendererAttached: boolean;
-	onCommitFiberRoot: (
-		rendererID: number,
-		root: FiberRoot,
-		// biome-ignore lint/suspicious/noConfusingVoidType: may or may not exist
-		priority: void | number,
-	) => void;
-	onCommitFiberUnmount: (rendererID: number, fiber: Fiber) => void;
-	onPostCommitFiberRoot: (rendererID: number, root: FiberRoot) => void;
-	inject: (renderer: ReactRenderer) => number;
-	_instrumentationSource?: string;
-	_instrumentationIsActive?: boolean;
-}
-
-export const version = process.env.VERSION;
-export const BIPPY_INSTRUMENTATION_STRING = `bippy-${version}`;
 export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
 export const ContextConsumerTag = 9;
@@ -268,45 +160,31 @@ export const traverseContexts = (
 	});
 };
 
-export interface FiberMemoizedState {
-	memoizedState: unknown;
-	next: FiberMemoizedState | null;
-	[key: string]: unknown;
-}
-
 /**
  * Traverses up or down a {@link Fiber}'s states, return `true` to stop and select the current and previous state value.
  */
 export const traverseState = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberMemoizedState | null | undefined,
-		prevValue: FiberMemoizedState | null | undefined,
+		nextValue: MemoizedState | null | undefined,
+		prevValue: MemoizedState | null | undefined,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
 	return safeTry(() => {
-		let nextState = fiber.memoizedState;
-		let prevState = fiber.alternate?.memoizedState;
+		let nextState: MemoizedState | null | undefined = fiber.memoizedState;
+		let prevState: MemoizedState | null | undefined =
+			fiber.alternate?.memoizedState;
 
 		while (nextState || prevState) {
 			if (selector(nextState, prevState) === true) return true;
 
-			nextState = nextState.next;
-			prevState = prevState.next;
+			nextState = nextState?.next;
+			prevState = prevState?.next;
 		}
 		return false;
 	});
 };
-
-export interface FiberEffect {
-	next: FiberEffect | null;
-	create: (...args: unknown[]) => unknown;
-	destroy: ((...args: unknown[]) => unknown) | null;
-	deps: unknown[] | null;
-	tag: number;
-	[key: string]: unknown;
-}
 
 /**
  * Traverses up or down a {@link Fiber}'s effects that cause state changes, return `true` to stop and select the current and previous effect value.
@@ -314,16 +192,16 @@ export interface FiberEffect {
 export const traverseEffects = (
 	fiber: Fiber,
 	selector: (
-		nextValue: FiberEffect | null | undefined,
-		prevValue: FiberEffect | null | undefined,
+		nextValue: Effect | null | undefined,
+		prevValue: Effect | null | undefined,
 		// biome-ignore lint/suspicious/noConfusingVoidType: optional return
 	) => boolean | void,
 ) => {
 	return safeTry(() => {
-		let nextState: FiberEffect | null | undefined =
+		let nextState: Effect | null | undefined =
 			// biome-ignore lint/suspicious/noExplicitAny: underlying type is unknown
 			(fiber.updateQueue as any)?.lastEffect;
-		let prevState: FiberEffect | null | undefined =
+		let prevState: Effect | null | undefined =
 			// biome-ignore lint/suspicious/noExplicitAny: underlying type is unknown
 			(fiber.alternate?.updateQueue as any)?.lastEffect;
 
@@ -517,7 +395,13 @@ export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
  */
 export const getNearestHostFibers = (fiber: Fiber) => {
 	const hostFibers: Fiber[] = [];
-	const stack: Fiber[] = [fiber];
+	const stack: Fiber[] = [];
+
+	if (isHostFiber(fiber)) {
+		hostFibers.push(fiber);
+	} else if (fiber.child) {
+		stack.push(fiber.child);
+	}
 
 	while (stack.length) {
 		const currentNode = stack.pop();
@@ -630,10 +514,9 @@ export const getDisplayName = (type: unknown): string | null => {
 	return unwrappedType.displayName || unwrappedType.name || null;
 };
 
-/**
- * Returns `true` if the DevTools backend is injected.
- */
-export const isUsingRDT = () => "reactDevtoolsAgent" in getRDTHook();
+export const isUsingRDT = () => {
+	return "reactDevtoolsAgent" in getRDTHook();
+};
 
 /**
  * Returns the build type of the React renderer.
@@ -645,79 +528,6 @@ export const detectReactBuildType = (renderer: ReactRenderer) => {
 		}
 		return "production";
 	});
-};
-
-const checkDCE = (fn: unknown) => {
-	safeTry(() => {
-		const code = Function.prototype.toString.call(fn);
-		if (code.indexOf("^_^") > -1) {
-			setTimeout(() => {
-				throw new Error(
-					"React is running in production mode, but dead code " +
-						"elimination has not been applied. Read how to correctly " +
-						"configure React for production: " +
-						"https://reactjs.org/link/perf-use-production-build",
-				);
-			});
-		}
-	});
-};
-
-const NO_OP = () => {
-	/**/
-};
-
-/**
- * Installs the React DevTools global hook.
- */
-export const installRDTHook = (onActive?: () => unknown) => {
-	const renderers = new Map<number, ReactRenderer>();
-	let i = 0;
-	const rdtHook: ReactDevToolsGlobalHook = {
-		checkDCE,
-		supportsFiber: true,
-		supportsFlight: true,
-		hasUnsupportedRendererAttached: false,
-		renderers,
-		onCommitFiberRoot: NO_OP,
-		onCommitFiberUnmount: NO_OP,
-		onPostCommitFiberRoot: NO_OP,
-		inject(renderer) {
-			const nextID = ++i;
-			renderers.set(nextID, renderer);
-			if (!rdtHook._instrumentationIsActive) {
-				rdtHook._instrumentationIsActive = true;
-				onActive?.();
-			}
-			return nextID;
-		},
-		_instrumentationSource: BIPPY_INSTRUMENTATION_STRING,
-		_instrumentationIsActive: false,
-	};
-	safeTry(() => {
-		Object.defineProperty(globalThis, "__REACT_DEVTOOLS_GLOBAL_HOOK__", {
-			value: rdtHook,
-		});
-	});
-	return rdtHook;
-};
-
-/**
- * Returns the current React DevTools global hook.
- */
-export const getRDTHook = (onActive?: () => unknown) => {
-	let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-	if (rdtHook) onActive?.();
-
-	if (
-		!Object.prototype.hasOwnProperty.call(
-			globalThis,
-			"__REACT_DEVTOOLS_GLOBAL_HOOK__",
-		)
-	) {
-		rdtHook = installRDTHook(onActive);
-	}
-	return rdtHook;
 };
 
 /**
@@ -1098,14 +908,21 @@ export const instrument = (options: InstrumentationOptions) => {
 
 export const secure = (
 	options: InstrumentationOptions,
-	bypassOptions: {
+	secureOptions: {
 		minReactMajorVersion?: number;
 		dangerouslyRunInProduction?: boolean;
+		onInstallError?: () => unknown;
+		installCheckTimeout?: number;
 	} = {},
 ): InstrumentationOptions => {
 	const onActive = options.onActive;
+	const isRDTHookInstalled = hasRDTHook();
+	const isRDT = isUsingRDT();
+	let timeout: number | undefined;
+	let isProduction = false;
 
 	options.onActive = () => {
+		clearTimeout(timeout);
 		let isSecure = true;
 		safeTry(() => {
 			onActive?.();
@@ -1113,15 +930,15 @@ export const secure = (
 
 			for (const renderer of rdtHook.renderers.values()) {
 				const [majorVersion] = renderer.version.split(".");
-				if (Number(majorVersion) < (bypassOptions.minReactMajorVersion ?? 17)) {
+				if (Number(majorVersion) < (secureOptions.minReactMajorVersion ?? 17)) {
 					isSecure = false;
 				}
 				const buildType = detectReactBuildType(renderer);
-				if (
-					buildType !== "development" &&
-					!bypassOptions.dangerouslyRunInProduction
-				) {
-					isSecure = false;
+				if (buildType !== "development") {
+					isProduction = true;
+					if (!secureOptions.dangerouslyRunInProduction) {
+						isSecure = false;
+					}
 				}
 			}
 		});
@@ -1155,6 +972,15 @@ export const secure = (
 			};
 		}
 	};
+
+	if (!isRDTHookInstalled && !isRDT) {
+		timeout = setTimeout(() => {
+			if (!isProduction) {
+				secureOptions.onInstallError?.();
+			}
+			stop();
+		}, secureOptions.installCheckTimeout ?? 3000) as unknown as number;
+	}
 
 	return options;
 };

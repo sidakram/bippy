@@ -5,6 +5,7 @@ import {
 	getNearestHostFibers,
 	instrument,
 	isCompositeFiber,
+	secure,
 } from "../index.js";
 import type { Fiber, FiberMetadata, PendingOutline } from "./types.js";
 // @ts-expect-error OK
@@ -36,10 +37,30 @@ export const pushOutline = (fiber: Fiber) => {
 };
 
 const mergeRects = (rects: DOMRect[]) => {
-	const minX = Math.min(...rects.map((rect) => rect.x));
-	const minY = Math.min(...rects.map((rect) => rect.y));
-	const maxX = Math.max(...rects.map((rect) => rect.x + rect.width));
-	const maxY = Math.max(...rects.map((rect) => rect.y + rect.height));
+	const firstRect = rects[0];
+	if (rects.length === 1) return firstRect;
+
+	let minX: number | undefined;
+	let minY: number | undefined;
+	let maxX: number | undefined;
+	let maxY: number | undefined;
+
+	for (let i = 0, len = rects.length; i < len; i++) {
+		const rect = rects[i];
+		minX = minX == null ? rect.x : Math.min(minX, rect.x);
+		minY = minY == null ? rect.y : Math.min(minY, rect.y);
+		maxX =
+			maxX == null ? rect.x + rect.width : Math.max(maxX, rect.x + rect.width);
+		maxY =
+			maxY == null
+				? rect.y + rect.height
+				: Math.max(maxY, rect.y + rect.height);
+	}
+
+	if (minX == null || minY == null || maxX == null || maxY == null) {
+		return rects[0];
+	}
+
 	return new DOMRect(minX, minY, maxX - minX, maxY - minY);
 };
 
@@ -95,8 +116,7 @@ export const flushOutlines = async () => {
 		fiberMap.delete(fiber);
 		fiberMapKeys.delete(fiber);
 		if (!rects.length) continue;
-		const { x, y, width, height } =
-			rects.length === 1 ? rects[0] : mergeRects(rects);
+		const { x, y, width, height } = mergeRects(rects);
 
 		outlines.push({
 			name: outline.name,
@@ -141,7 +161,7 @@ export const flushOutlines = async () => {
 
 export const getCanvasEl = () => {
 	const host = document.createElement("div");
-	host.setAttribute("data-bippy-scan", "true");
+	host.setAttribute("data-react-scan", "true");
 	const shadowRoot = host.attachShadow({ mode: "open" });
 
 	shadowRoot.innerHTML = canvasHtmlStr;
@@ -220,6 +240,32 @@ export const getCanvasEl = () => {
 		}
 	}, 16 * 2);
 
+	shadowRoot.appendChild(canvasEl);
+	return host;
+};
+
+export const hasStopped = () => {
+	return globalThis.__REACT_SCAN_STOP__;
+};
+
+export const stop = () => {
+	globalThis.__REACT_SCAN_STOP__ = true;
+	cleanup();
+};
+
+let hasCleanedUp = false;
+export const cleanup = () => {
+	if (hasCleanedUp) return;
+	hasCleanedUp = true;
+	const host = document.querySelector("[data-react-scan]");
+	if (host) {
+		host.remove();
+	}
+};
+
+const init = () => {
+	if (hasStopped()) return;
+
 	const visit = createFiberVisitor({
 		onRender(fiber) {
 			pushOutline(fiber);
@@ -227,19 +273,41 @@ export const getCanvasEl = () => {
 		onError() {},
 	});
 
-	instrument({
-		onCommitFiberRoot(rendererID, root) {
-			visit(rendererID, root);
-		},
-	});
-
-	shadowRoot.appendChild(canvasEl);
-	return host;
+	instrument(
+		secure(
+			{
+				onActive() {
+					if (hasStopped()) return;
+					const host = getCanvasEl();
+					if (host) {
+						document.documentElement.appendChild(host);
+					}
+				},
+				onCommitFiberRoot(rendererID, root) {
+					if (hasStopped()) return cleanup();
+					visit(rendererID, root);
+				},
+			},
+			{
+				dangerouslyRunInProduction: true,
+				onInstallError() {
+					console.warn(
+						"React Scan did not install correctly.\n\n{link to install doc}",
+					);
+				},
+			},
+		),
+	);
 };
 
 if (typeof window !== "undefined") {
-	const host = getCanvasEl();
-	if (host) {
-		document.body.insertBefore(host, document.body.firstChild);
-	}
+	init();
+
+	globalThis.ReactScan = {
+		hasStopped,
+		stop,
+		cleanup,
+		init,
+		flushOutlines,
+	};
 }

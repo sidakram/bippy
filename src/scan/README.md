@@ -19,3 +19,7 @@
 - [ ] backwards compatibility (for worker, offscreen canvas)
 - [ ] feature compat with existing version (core, instrumentation, highlighting)
 - [ ] fills are not correct, validate we're not oversending stuff
+- [ ] blocklist on websites
+- [ ] refactor main website
+- [ ] some sort of easy way to integrate with devtools
+- [ ] playwright version

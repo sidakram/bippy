@@ -11,16 +11,16 @@
 [![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 [![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
-hack into react internals. used internally by [`react-scan`](https://github.com/aidenybai/react-scan).
+hack into react internals.
 
-bippy _attempts\*_ to solve two problems:
+bippy attempts to solve two problems:
 
 1. it's not possible to write instrumentation for react without the end user changing code
 2. doing anything useful with fibers requires you to know react source code very well
 
 bippy allows you to access fiber information from outside of react and provides friendly low-level utils for interacting with fibers.
 
-<sub><sup>\*disclaimer: "attempt" used loosely, i highly recommend not relying on this in production</sub></sup>
+<sub><sup>bippy is maintained by me, for projects like [`react-scan`](https://github.com/aidenybai/react-scan) and whatever projects i want to use it for. check out [`its-fine`](https://github.com/pmndrs/its-fine) for a using fibers within react (using hooks), or [react devtools](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headfull interface.</sub></sup>
 
 ## how it works
 
@@ -76,7 +76,7 @@ while all of the information is there, it's not super easy to work with, and cha
 
 however, fibers aren't directly accessible by the user. so, we have to hack our way around to accessing it.
 
-luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/reactFiberDevToolsHook.js#L48) in the window object: `window.__react_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
+luckily, react [reads from a property](https://github.com/facebook/react/blob/6a4b46cd70d2672bc4be59dcb5b8dede22ed0cef/packages/react-reconciler/src/reactFiberDevToolsHook.js#L48) in the window object: `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` and runs handlers on it when certain events happen. this property must exist before react's bundle is executed. this is intended for react devtools, but we can use it to our advantage.
 
 here's what it roughly looks like:
 
@@ -97,16 +97,16 @@ interface __REACT_DEVTOOLS_GLOBAL_HOOK__ {
   onPostCommitFiberRoot: (rendererID: RendererID, root: FiberRoot) => void;
 
   // called when a specific fiber unmounts
-  onCommitFiberUnmount: (rendererID: RendererID, Fiber: Fiber) => void;
+  onCommitFiberUnmount: (rendererID: RendererID, fiber: Fiber) => void;
 }
 ```
 
-bippy works by monkey-patching `window.__react_DEVTOOLS_GLOBAL_HOOK__` with our own custom handlers. bippy simplifies this by providing utility functions like:
+bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with our own custom handlers. bippy simplifies this by providing utility functions like:
 
-- `instrument` to safely patch `window.__react_DEVTOOLS_GLOBAL_HOOK__`
+- `instrument` to safely patch `window.__REACT_DEVTOOLS_GLOBAL_HOOK__`
   - _(instead of directly mutating `onCommitFiberRoot`, ...)_
 - `secure` to wrap your handlers in a try/catch and determine if handlers are safe to run
-  - _(instead of rawdogging `window.__react_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
+  - _(instead of rawdogging `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
 - `createFiberVisitor` to traverse the fiber tree and determine which fibers have actually rendered
   - _(instead of `child`, `sibling`, and `return` pointers)_
 - `traverseFiber` to traverse the fiber tree, regardless of whether it has rendered
@@ -303,7 +303,7 @@ below is a (useful) subset of the api. for the full api, read the [source code](
 
 ### instrument
 
-patches `window.__react_DEVTOOLS_GLOBAL_HOOK__` with your handlers. must be imported before react, and must be initialized to properly run any other methods.
+patches `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with your handlers. must be imported before react, and must be initialized to properly run any other methods.
 
 > use with the `secure` function to prevent uncaught errors from crashing your app.
 
@@ -559,8 +559,8 @@ console.log(isValidFiber(fiber));
 - commit: the process of applying changes to the host tree (e.g. DOM mutations)
 - render: the process of building the fiber tree by executing component function/classes
 - host tree: the tree of UI elements that react mutates (e.g. DOM elements)
-- reconciler (or "renderer"): custom bindings for react, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc to mutate the host tree
-- `rendererID`: the id of the reconciler, starting at 1 (can be from multiple reconciler instances, e.g. `react-dom`, `react-native`, `react-three-fiber`, etc.)
+- reconciler (or "renderer"): custom bindings for react, e.g. react-dom, react-native, react-three-fiber, etc to mutate the host tree
+- `rendererID`: the id of the reconciler, starting at 1 (can be from multiple reconciler instances)
 - `root`: a special `FiberRoot` type that contains the container fiber (the one you pass to `ReactDOM.createRoot`) in the `current` property
 - `onCommitFiberRoot`: called when react is ready to commit a fiber root
 - `onPostCommitFiberRoot`: called when react has committed a fiber root and effects have run

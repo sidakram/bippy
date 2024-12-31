@@ -2,14 +2,13 @@ import {
 	createFiberVisitor,
 	didFiberCommit,
 	type Fiber,
-	type FiberEffect,
+	type Effect,
 	type FiberRoot,
 	getDisplayName,
 	getFiberStack,
 	getMutatedHostFibers,
 	getNearestHostFiber,
 	getNearestHostFibers,
-	getRDTHook,
 	getTimings,
 	getType,
 	instrument,
@@ -26,6 +25,7 @@ import {
 	didFiberRender,
 	type ContextDependency,
 	safeTry,
+	getRDTHook,
 } from "./index.js";
 import { describe, expect, it, vi } from "vitest";
 import { render, waitFor } from "@testing-library/react";
@@ -843,7 +843,7 @@ describe("traverseEffects", () => {
 			},
 		});
 		render(<BasicComponentWithEffect />);
-		const effects: Array<FiberEffect> = [];
+		const effects: Array<Effect> = [];
 		const selector = vi.fn((effect) => {
 			effects.push(effect);
 		});

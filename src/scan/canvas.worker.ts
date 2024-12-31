@@ -6,7 +6,8 @@ let dpr = 1;
 
 const activeOutlines: Map<string, ActiveOutline> = new Map();
 
-const color = { r: 115, g: 97, b: 230 };
+const primaryColor = "115,97,230";
+const secondaryColor = "255,255,255";
 
 let animationFrameId: number | null = null;
 
@@ -130,30 +131,30 @@ function draw() {
 			targetHeight,
 			frame,
 		} = outline;
-		if (targetX !== undefined) {
-			outline.x = lerp(x, targetX);
-			if (targetX === outline.x) {
-				outline.targetX = undefined;
-			}
-		}
-		if (targetY !== undefined) {
-			outline.y = lerp(y, targetY);
-			if (targetY === y) {
-				outline.targetY = undefined;
-			}
-		}
-		if (targetWidth !== undefined) {
-			outline.width = lerp(width, targetWidth);
-			if (targetWidth === width) {
-				outline.targetWidth = undefined;
-			}
-		}
-		if (targetHeight !== undefined) {
-			outline.height = lerp(height, targetHeight);
-			if (targetHeight === height) {
-				outline.targetHeight = undefined;
-			}
-		}
+		// if (targetX !== undefined) {
+		// 	outline.x = lerp(x, targetX);
+		// 	if (targetX === outline.x) {
+		// 		outline.targetX = undefined;
+		// 	}
+		// }
+		// if (targetY !== undefined) {
+		// 	outline.y = lerp(y, targetY);
+		// 	if (targetY === y) {
+		// 		outline.targetY = undefined;
+		// 	}
+		// }
+		// if (targetWidth !== undefined) {
+		// 	outline.width = lerp(width, targetWidth);
+		// 	if (targetWidth === width) {
+		// 		outline.targetWidth = undefined;
+		// 	}
+		// }
+		// if (targetHeight !== undefined) {
+		// 	outline.height = lerp(height, targetHeight);
+		// 	if (targetHeight === height) {
+		// 		outline.targetHeight = undefined;
+		// 	}
+		// }
 
 		const labelKey = `${targetX ?? x},${targetY ?? y}`;
 		const rectKey = `${labelKey},${targetWidth ?? width},${targetHeight ?? height}`;
@@ -181,16 +182,15 @@ function draw() {
 		rectMap.set(rectKey, rect);
 	}
 
-	for (const rect of rectMap.values()) {
+	for (const rect of Array.from(rectMap.values()).reverse()) {
 		const { x, y, width, height, alpha } = rect;
-		const rgb = `${color.r},${color.g},${color.b}`;
-		ctx.strokeStyle = `rgba(${rgb},${alpha})`;
+		ctx.strokeStyle = `rgba(${primaryColor},${alpha})`;
 		ctx.lineWidth = 1;
 
 		ctx.beginPath();
 		ctx.rect(x, y, width, height);
 		ctx.stroke();
-		ctx.fillStyle = `rgba(${rgb},${alpha * 0.1})`;
+		ctx.fillStyle = `rgba(${primaryColor},${alpha * 0.1})`;
 		ctx.fill();
 	}
 
@@ -217,7 +217,7 @@ function draw() {
 			labelY = 0;
 		}
 
-		ctx.fillStyle = `rgba(${color.r},${color.g},${color.b},${alpha})`;
+		ctx.fillStyle = `rgba(${primaryColor},${alpha})`;
 		ctx.fillRect(x, labelY, textWidth + 4, textHeight + 4);
 
 		ctx.fillStyle = `rgba(255,255,255,${alpha})`;

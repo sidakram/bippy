@@ -54,3 +54,14 @@ export interface FiberMetadata {
 	count: number;
 	elements: Element[];
 }
+
+declare global {
+	var __REACT_SCAN_STOP__: boolean;
+	var ReactScan: {
+		hasStopped: () => boolean;
+		stop: () => void;
+		cleanup: () => void;
+		init: () => void;
+		flushOutlines: () => void;
+	};
+}
