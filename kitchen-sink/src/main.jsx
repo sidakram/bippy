@@ -1,6 +1,27 @@
 import { useEffect, useState } from "react";
-import { getRDTHook, getDisplayName, traverseFiber } from "bippy";
+import {
+	getRDTHook,
+	getDisplayName,
+	traverseFiber,
+	instrument,
+	createFiberVisitor,
+	isCompositeFiber,
+} from "bippy";
 import { Inspector } from "react-inspector";
+
+const visit = createFiberVisitor({
+	onRender(fiber) {
+		if (isCompositeFiber(fiber)) {
+			console.log(fiber);
+		}
+	},
+});
+
+instrument({
+	onCommitFiberRoot(_rendererID, root) {
+		visit(root);
+	},
+});
 
 const getFiberFromElement = (element) => {
 	const { renderers } = getRDTHook();
@@ -158,11 +179,9 @@ function ListItem({ children }) {
 	return <li className="pl-[1ch]">{children}</li>;
 }
 
-console.log(Main);
-
 export default function Main() {
-	"use scan";
 	const [imgSize, setImgSize] = useState(30);
+
 	return (
 		<>
 			<HoverOverlay />

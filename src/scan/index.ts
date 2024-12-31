@@ -216,6 +216,7 @@ export const getCanvasEl = () => {
 					deltaY,
 				});
 				isScrollScheduled = false;
+				console.log(fiberMapKeys.size);
 			}, 16 * 2);
 		}
 	});

@@ -5,3 +5,7 @@ body {
 	font-family: "Geist Mono", Menlo, Consolas, Monaco, Liberation Mono, Lucida
 		Console, monospace;
 }
+
+.cm-line {
+	line-height: 1.5;
+}
