@@ -34,7 +34,7 @@ instrument({
   <tbody>
     <tr>
       <td>
-        <a href="https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev">(open live demo)</a>
+        <a href="https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev">open live demo ↗</a>
       </td>
     </tr>
   </tbody>
