@@ -1,5 +1,6 @@
 import {
 	createFiberVisitor,
+	didFiberCommit,
 	getDisplayName,
 	getFiberId,
 	getNearestHostFibers,
@@ -10,8 +11,8 @@ import {
 import type { Fiber, FiberMetadata, PendingOutline } from "./types.js";
 // @ts-expect-error OK
 import Worker from "./canvas.worker.js";
+import { OUTLINE_VIEW_SIZE } from "./const.js";
 
-const canvasHtmlStr = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 let worker: Worker;
 
 const fiberMap = new WeakMap<Fiber, FiberMetadata>();
@@ -24,11 +25,15 @@ export const pushOutline = (fiber: Fiber) => {
 	if (!name) return;
 	const fiberMetadata = fiberMap.get(fiber);
 	const nearestFibers = getNearestHostFibers(fiber);
+
+	const didCommit = didFiberCommit(fiber);
+
 	if (!fiberMetadata) {
 		fiberMap.set(fiber, {
 			name,
 			count: 1,
 			elements: nearestFibers.map((fiber) => fiber.stateNode),
+			didCommit: didCommit ? 1 : 0,
 		});
 		fiberMapKeys.add(fiber);
 	} else {
@@ -123,10 +128,11 @@ export const flushOutlines = async () => {
 			data: [
 				getFiberId(fiber),
 				outline.count,
-				Math.floor(x),
-				Math.floor(y),
-				Math.floor(width),
-				Math.floor(height),
+				x,
+				y,
+				width,
+				height,
+				outline.didCommit,
 			],
 		});
 	}
@@ -134,37 +140,42 @@ export const flushOutlines = async () => {
 	const SupportedArrayBuffer =
 		typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
 
-	const data = new SupportedArrayBuffer(outlines.length * 6 * 4);
+	const data = new SupportedArrayBuffer(
+		outlines.length * OUTLINE_VIEW_SIZE * 4,
+	);
 	const sharedView = new Float32Array(data);
 
 	const names = new Array(outlines.length);
 
 	for (let i = 0; i < outlines.length; i++) {
 		const { data, name } = outlines[i];
-		const [id, count, x, y, width, height] = data;
-		const adjustedIndex = i * 6;
+		const [id, count, x, y, width, height, didCommit] = data;
+		const adjustedIndex = i * OUTLINE_VIEW_SIZE;
 		sharedView[adjustedIndex] = id;
 		sharedView[adjustedIndex + 1] = count;
 		sharedView[adjustedIndex + 2] = x;
 		sharedView[adjustedIndex + 3] = y;
 		sharedView[adjustedIndex + 4] = width;
 		sharedView[adjustedIndex + 5] = height;
+		sharedView[adjustedIndex + 6] = didCommit;
 		names[i] = name;
 	}
 
 	worker.postMessage({
-		type: "draw",
+		type: "draw-outlines",
 		data,
 		names,
 	});
 };
+
+const CANVAS_HTML_STR = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 
 export const getCanvasEl = () => {
 	const host = document.createElement("div");
 	host.setAttribute("data-react-scan", "true");
 	const shadowRoot = host.attachShadow({ mode: "open" });
 
-	shadowRoot.innerHTML = canvasHtmlStr;
+	shadowRoot.innerHTML = CANVAS_HTML_STR;
 	const canvasEl = shadowRoot.firstChild as HTMLCanvasElement;
 	if (!canvasEl) return null;
 
@@ -216,7 +227,6 @@ export const getCanvasEl = () => {
 					deltaY,
 				});
 				isScrollScheduled = false;
-				console.log(fiberMapKeys.size);
 			}, 16 * 2);
 		}
 	});
@@ -265,6 +275,7 @@ export const cleanup = () => {
 };
 
 const init = () => {
+	cleanup();
 	if (hasStopped()) return;
 
 	const visit = createFiberVisitor({
@@ -303,12 +314,4 @@ const init = () => {
 
 if (typeof window !== "undefined") {
 	init();
-
-	globalThis.ReactScan = {
-		hasStopped,
-		stop,
-		cleanup,
-		init,
-		flushOutlines,
-	};
 }

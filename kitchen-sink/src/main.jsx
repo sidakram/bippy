@@ -12,7 +12,7 @@ import { Inspector } from "react-inspector";
 const visit = createFiberVisitor({
 	onRender(fiber) {
 		if (isCompositeFiber(fiber)) {
-			console.log(fiber);
+			console.log(getDisplayName(fiber), fiber);
 		}
 	},
 });
@@ -180,9 +180,6 @@ function ListItem({ children }) {
 }
 
 export default function Main() {
-	useState(3);
-	useState("state");
-	useState(false);
 	const [imgSize, setImgSize] = useState(30);
 
 	return (

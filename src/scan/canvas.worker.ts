@@ -1,3 +1,4 @@
+import { OUTLINE_VIEW_SIZE } from "./const.js";
 import type { ActiveOutline } from "./types.js";
 
 let canvas: OffscreenCanvas | null = null;
@@ -7,7 +8,7 @@ let dpr = 1;
 const activeOutlines: Map<string, ActiveOutline> = new Map();
 
 const primaryColor = "115,97,230";
-const secondaryColor = "255,255,255";
+const secondaryColor = "128,128,128";
 
 let animationFrameId: number | null = null;
 
@@ -17,34 +18,6 @@ const MONO_FONT =
 const INTERPOLATION_SPEED = 0.2;
 const lerp = (start: number, end: number) => {
 	return Math.floor(start + (end - start) * INTERPOLATION_SPEED);
-};
-
-const getOverlapArea = (
-	outline1: ActiveOutline,
-	outline2: ActiveOutline,
-): number => {
-	if (
-		outline1.x + outline1.width <= outline2.x ||
-		outline2.x + outline2.width <= outline1.x
-	) {
-		return 0;
-	}
-
-	if (
-		outline1.y + outline1.height <= outline2.y ||
-		outline2.y + outline2.height <= outline1.y
-	) {
-		return 0;
-	}
-
-	const xOverlap =
-		Math.min(outline1.x + outline1.width, outline2.x + outline2.width) -
-		Math.max(outline1.x, outline2.x);
-	const yOverlap =
-		Math.min(outline1.y + outline1.height, outline2.y + outline2.height) -
-		Math.max(outline1.y, outline2.y);
-
-	return xOverlap * yOverlap;
 };
 
 const MAX_PARTS_LENGTH = 4;
@@ -93,21 +66,12 @@ const getLabelText = (outlines: ActiveOutline[]): string => {
 
 const TOTAL_FRAMES = 45;
 
-const isRectWithin = (rect1: ActiveOutline, rect2: ActiveOutline): boolean => {
-	return (
-		rect1.x + rect1.width <= rect2.x + rect2.width &&
-		rect2.x + rect2.width <= rect1.x + rect1.width &&
-		rect1.y + rect1.height <= rect2.y + rect2.height &&
-		rect2.y + rect2.height <= rect1.y + rect1.height
-	);
-};
-
 function draw() {
 	if (!ctx || !canvas) return;
 
 	ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-	const labelMap = new Map<string, ActiveOutline[]>();
+	const groupedOutlinesMap = new Map<string, ActiveOutline[]>();
 	const rectMap = new Map<
 		string,
 		{
@@ -131,44 +95,35 @@ function draw() {
 			targetHeight,
 			frame,
 		} = outline;
-		// if (targetX !== undefined) {
-		// 	outline.x = lerp(x, targetX);
-		// 	if (targetX === outline.x) {
-		// 		outline.targetX = undefined;
-		// 	}
-		// }
-		// if (targetY !== undefined) {
-		// 	outline.y = lerp(y, targetY);
-		// 	if (targetY === y) {
-		// 		outline.targetY = undefined;
-		// 	}
-		// }
-		// if (targetWidth !== undefined) {
-		// 	outline.width = lerp(width, targetWidth);
-		// 	if (targetWidth === width) {
-		// 		outline.targetWidth = undefined;
-		// 	}
-		// }
-		// if (targetHeight !== undefined) {
-		// 	outline.height = lerp(height, targetHeight);
-		// 	if (targetHeight === height) {
-		// 		outline.targetHeight = undefined;
-		// 	}
-		// }
+		if (targetX !== x) {
+			outline.x = lerp(x, targetX);
+		}
+		if (targetY !== y) {
+			outline.y = lerp(y, targetY);
+		}
+
+		// not sure if lerping these is necessary
+		if (targetWidth !== width) {
+			outline.width = lerp(width, targetWidth);
+		}
+		if (targetHeight !== height) {
+			outline.height = lerp(height, targetHeight);
+		}
 
 		const labelKey = `${targetX ?? x},${targetY ?? y}`;
 		const rectKey = `${labelKey},${targetWidth ?? width},${targetHeight ?? height}`;
 
-		const outlines = labelMap.get(labelKey);
+		const outlines = groupedOutlinesMap.get(labelKey);
 		if (outlines) {
 			outlines.push(outline);
 		} else {
-			labelMap.set(labelKey, [outline]);
+			groupedOutlinesMap.set(labelKey, [outline]);
 		}
 
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		outline.frame++;
 
+		console.log(outline.didCommit);
 		const rect = rectMap.get(rectKey) || {
 			x,
 			y,
@@ -182,7 +137,7 @@ function draw() {
 		rectMap.set(rectKey, rect);
 	}
 
-	for (const rect of Array.from(rectMap.values()).reverse()) {
+	for (const rect of rectMap.values()) {
 		const { x, y, width, height, alpha } = rect;
 		ctx.strokeStyle = `rgba(${primaryColor},${alpha})`;
 		ctx.lineWidth = 1;
@@ -199,29 +154,43 @@ function draw() {
 	// TODO: move out the text measuring to a separate for loop, check overlaps, and then re-draw the merged text
 	// check why there's so many rect overlaps (fills?)
 
-	for (const outlines of labelMap.values()) {
+	const labelMap = new Map<
+		string,
+		{
+			text: string;
+			width: number;
+			height: number;
+			alpha: number;
+			x: number;
+			y: number;
+			outlines: ActiveOutline[];
+		}
+	>();
+
+	ctx.textRendering = "optimizeSpeed";
+
+	for (const outlines of groupedOutlinesMap.values()) {
 		const first = outlines[0];
 		const { x, y, frame } = first;
 		const alpha = 1 - frame / TOTAL_FRAMES;
 		const text = getLabelText(outlines);
+		const { width } = ctx.measureText(text);
+		const height = 11;
+		labelMap.set(`${x},${y},${width},${text}`, {
+			text,
+			width,
+			height,
+			alpha,
+			x,
+			y,
+			outlines,
+		});
 
-		ctx.textRendering = "optimizeSpeed";
-
-		const textMetrics = ctx.measureText(text);
-		const textWidth = textMetrics.width;
-		const textHeight = 11;
-
-		let labelY: number = y - textHeight - 4;
+		let labelY: number = y - height - 4;
 
 		if (labelY < 0) {
 			labelY = 0;
 		}
-
-		ctx.fillStyle = `rgba(${primaryColor},${alpha})`;
-		ctx.fillRect(x, labelY, textWidth + 4, textHeight + 4);
-
-		ctx.fillStyle = `rgba(255,255,255,${alpha})`;
-		ctx.fillText(text, x + 2, labelY + textHeight);
 
 		if (frame > TOTAL_FRAMES) {
 			for (const outline of outlines) {
@@ -229,6 +198,59 @@ function draw() {
 			}
 		}
 	}
+
+	// // merge labels that are overlapping
+	// const sortedLabels = Array.from(labelMap.entries()).sort(
+	// 	([_, a], [__, b]) => {
+	// 		// Sort by total area of outlines
+	// 		const areaA = a.outlines.reduce((sum, o) => sum + o.width * o.height, 0);
+	// 		const areaB = b.outlines.reduce((sum, o) => sum + o.width * o.height, 0);
+	// 		return areaB - areaA; // Bigger areas first
+	// 	},
+	// );
+
+	// for (const [labelKey, label] of sortedLabels) {
+	// 	if (!labelMap.has(labelKey)) continue; // Skip if already merged
+
+	// 	for (const [otherKey, otherLabel] of labelMap.entries()) {
+	// 		if (labelKey === otherKey) continue;
+
+	// 		const { x, y, width, height } = label;
+	// 		const {
+	// 			x: otherX,
+	// 			y: otherY,
+	// 			width: otherWidth,
+	// 			height: otherHeight,
+	// 		} = otherLabel;
+
+	// 		if (
+	// 			x + width > otherX &&
+	// 			otherX + otherWidth > x &&
+	// 			y + height > otherY &&
+	// 			otherY + otherHeight > y
+	// 		) {
+	// 			label.text = getLabelText([...label.outlines, ...otherLabel.outlines]);
+	// 			label.width = ctx.measureText(label.text).width;
+	// 			labelMap.delete(otherKey);
+	// 		}
+	// 	}
+	// }
+
+	// for (const label of labelMap.values()) {
+	// 	const { x, y, alpha, width, height, text } = label;
+
+	// 	let labelY: number = y - height - 4;
+
+	// 	if (labelY < 0) {
+	// 		labelY = 0;
+	// 	}
+
+	// 	ctx.fillStyle = `rgba(${primaryColor},${alpha})`;
+	// 	ctx.fillRect(x, labelY, width + 4, height + 4);
+
+	// 	ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+	// 	ctx.fillText(text, x + 2, labelY + height);
+	// }
 
 	if (activeOutlines.size) {
 		animationFrameId = requestAnimationFrame(draw);
@@ -267,20 +289,30 @@ self.onmessage = (event) => {
 		return;
 	}
 
-	if (type === "draw") {
+	if (type === "draw-outlines") {
 		const { data, names } = event.data;
 
 		const floatView = new Float32Array(data);
-		for (let i = 0; i < floatView.length; i += 6) {
+		for (let i = 0; i < floatView.length; i += OUTLINE_VIEW_SIZE) {
+			const x = floatView[i + 2];
+			const y = floatView[i + 3];
+			const width = floatView[i + 4];
+			const height = floatView[i + 5];
+			const didCommit = floatView[i + 6] as 0 | 1;
 			const outline = {
 				id: floatView[i],
-				name: names[i / 6],
+				name: names[i / OUTLINE_VIEW_SIZE],
 				count: floatView[i + 1],
-				x: floatView[i + 2],
-				y: floatView[i + 3],
-				width: floatView[i + 4],
-				height: floatView[i + 5],
+				x,
+				y,
+				width,
+				height,
 				frame: 0,
+				targetX: x,
+				targetY: y,
+				targetWidth: width,
+				targetHeight: height,
+				didCommit,
 			};
 			const key = String(outline.id);
 
@@ -288,10 +320,11 @@ self.onmessage = (event) => {
 			if (existingOutline) {
 				existingOutline.count++;
 				existingOutline.frame = 0;
-				existingOutline.targetX = outline.x;
-				existingOutline.targetY = outline.y;
-				existingOutline.targetWidth = outline.width;
-				existingOutline.targetHeight = outline.height;
+				existingOutline.targetX = x;
+				existingOutline.targetY = y;
+				existingOutline.targetWidth = width;
+				existingOutline.targetHeight = height;
+				existingOutline.didCommit = didCommit;
 			} else {
 				activeOutlines.set(key, outline);
 			}
@@ -307,8 +340,12 @@ self.onmessage = (event) => {
 	if (type === "scroll") {
 		const { deltaX, deltaY } = event.data;
 		for (const outline of activeOutlines.values()) {
-			outline.targetX = outline.x - deltaX;
-			outline.targetY = outline.y - deltaY;
+			const newX = outline.x - deltaX;
+			const newY = outline.y - deltaY;
+			outline.targetX = newX;
+			outline.targetY = newY;
+			// outline.x = newX;
+			// outline.y = newY;
 		}
 	}
 };

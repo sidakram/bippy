@@ -1,4 +1,5 @@
 {
+	"type": "module",
 	"scripts": {
 		"preview": "vite preview",
 		"build": "vite build",

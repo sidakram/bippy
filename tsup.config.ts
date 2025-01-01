@@ -38,7 +38,6 @@ const DEFAULT_OPTIONS: Options = {
 		VERSION: JSON.parse(fs.readFileSync("package.json", "utf8")).version,
 	},
 	esbuildPlugins: [inlineWorkerPlugin()],
-	globalName: "Bippy",
 	external: ["react", "react-dom", "react-reconciler"],
 };
 
@@ -52,6 +51,14 @@ export default defineConfig([
 		...DEFAULT_OPTIONS,
 		format: ["iife"],
 		minify: process.env.NODE_ENV === "production" ? "terser" : false,
-		entry: ["./src/index.ts", "./src/core.ts", "./src/scan/index.ts"],
+		globalName: "Bippy",
+		entry: ["./src/index.ts", "./src/core.ts"],
+	},
+	{
+		...DEFAULT_OPTIONS,
+		format: ["iife"],
+		minify: process.env.NODE_ENV === "production" ? "terser" : false,
+		globalName: "ReactScan",
+		entry: ["./src/scan/index.ts"],
 	},
 ]);

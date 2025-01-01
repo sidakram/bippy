@@ -8,7 +8,6 @@ import type {
 	Fiber,
 	FiberRoot,
 	MemoizedState,
-	ReactDevToolsGlobalHook,
 	ReactRenderer,
 } from "./types.js";
 import {

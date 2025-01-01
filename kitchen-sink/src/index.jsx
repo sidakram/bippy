@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./main.css";
 
-const PROJECT = "playground";
+const PROJECT = "mini-react-scan";
 
 const render = async () => {
 	const Component = (
