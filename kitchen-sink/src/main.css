@@ -17,3 +17,7 @@ body {
 	--sh-keyword: #de583b;
 	--sh-comment: #a19595;
 }
+
+.font-sans {
+	font-family: "Geist", sans-serif;
+}

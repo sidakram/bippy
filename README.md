@@ -9,13 +9,13 @@
 [![version](https://img.shields.io/npm/v/bippy?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 [![downloads](https://img.shields.io/npm/dt/bippy.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/bippy)
 
-**hack into react internals.**
+bippy is a toolkit to **hack into react internals**
 
-bippy is a toolkit for using react fibers
+by default, there is no official way to use react internals outside of react components. bippy bypasses this by "pretending" to be react devtools, giving you access to the fiber tree and other internals.
 
-- drop-in, no react code modification needed
-- helpful utils that work across react 17-19
-- accessible api – does not require prior react source code knowledge
+- works outside of react – no react code modification needed
+- utility functions that work across modern react (v17-19)
+- no prior react source code knowledge required
 
 ```jsx
 import { instrument, traverseFiber } from 'bippy';
@@ -34,7 +34,7 @@ instrument({
   <tbody>
     <tr>
       <td>
-        <a href="https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev">open live demo ↗</a>
+        <a href="https://bippy.dev">open live demo ↗</a>
       </td>
     </tr>
   </tbody>
