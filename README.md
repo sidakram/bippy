@@ -13,20 +13,22 @@
 
 **hack into react internals.**
 
-bippy is a toolkit for traversing react fibers, renders, props, state, contexts, and effects.
+bippy is a toolkit for using react fibers, renders, props, state, contexts, and effects:
+
+- drop-in, no need to change existing React code
+- helpful utils that work across React 17-19
+- makes it easy to use internals - no need to read react internals source code
 
 ```jsx
 import { instrument, secure, traverseFiber } from 'bippy';
 
-instrument(
-  secure({
-    onCommitFiberRoot(rendererID, root) {
-      traverseFiber(root.current, (fiber) => {
-        console.log('React Fiber:', fiber);
-      });
-    },
-  })
-);
+instrument({
+  onCommitFiberRoot(rendererID, root) {
+    traverseFiber(root.current, (fiber) => {
+      console.log('React Fiber:', fiber);
+    });
+  },
+});
 ```
 
 > this project is maintained by me, specifically for [react-scan](https://github.com/aidenybai/react-scan). if you're looking for more robust solutions, [its-fine](https://github.com/pmndrs/its-fine) allows you to get fibers within react (using hooks), or use [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headful interface.
