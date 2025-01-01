@@ -30,8 +30,15 @@ instrument({
 });
 ```
 
-| --- |
-| [(open live demo)](https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev) |
+<table>
+  <tbody>
+    <tr>
+      <td>
+        <a href="https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev">(open live demo)</a>
+      </td>
+    </tr>
+  </tbody>
+</table>
 
 we use this project internally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed with proper safeguards to ensure it's only used in development or error-guarded in production.
 
