@@ -11,7 +11,8 @@
 		"bippy": "^0.0.14",
 		"react": "^19.0.0",
 		"react-dom": "^19.0.0",
-		"react-inspector": "^6.0.2"
+		"react-inspector": "^6.0.2",
+		"sugar-high": "^0.7.5"
 	},
 	"devDependencies": {
 		"@tailwindcss/vite": "4.0.0-beta.8",

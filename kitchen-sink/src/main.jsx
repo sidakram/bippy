@@ -209,7 +209,7 @@ export default function Main() {
 						<Text as="span">{__VERSION__}</Text>
 					</Link>
 				</div>
-				<div className="flex items-center gap-[1ch]">
+				<div className="flex items-center gap-[1ch] mt-[1ch]">
 					<Text className="text-muted-foreground">
 						hack into react internals
 					</Text>
@@ -219,31 +219,29 @@ export default function Main() {
 
 				<div className="flex flex-col gap-[1ch] my-[1ch]">
 					<Text className="text-muted-foreground">
-						bippy attempts to solve two problems:
+						bippy is a toolkit for using react fibers, renders, props, state,
+						contexts, and effects:
 					</Text>
 				</div>
 
 				<List>
 					<ListItem>
 						<Text className="text-muted-foreground">
-							it's not possible to write instrumentation for react without the
-							end user changing code
+							drop-in, no need to change existing react code
 						</Text>
 					</ListItem>
 					<ListItem>
 						<Text className="text-muted-foreground">
-							doing anything useful with fibers requires you to know react
-							source code very well
+							helpful utils that work across react 17-19
+						</Text>
+					</ListItem>
+					<ListItem>
+						<Text className="text-muted-foreground">
+							accessible api – does not require prior react source code
+							knowledge
 						</Text>
 					</ListItem>
 				</List>
-
-				<div className="flex flex-col gap-[1ch] my-[1ch]">
-					<Text className="text-muted-foreground">
-						bippy allows you to access fiber information from outside of react
-						and provides friendly low-level utils for interacting with fibers.
-					</Text>
-				</div>
 
 				<div className="flex flex-col gap-[1ch] my-[1ch]">
 					<Text className="text-muted-foreground">
