@@ -16,7 +16,7 @@
 bippy is a toolkit for using react fibers, renders, props, state, contexts, and effects:
 
 - drop-in, no need to change existing React code
-- helpful utils that work across React 17-19
+- helpful utils that work across react 17-19
 - makes it easy to use internals - no need to read react internals source code
 
 ```jsx
@@ -25,6 +25,7 @@ import { instrument, secure, traverseFiber } from 'bippy';
 instrument({
   onCommitFiberRoot(rendererID, root) {
     traverseFiber(root.current, (fiber) => {
+      // will print every fiber in the current React tree
       console.log('React Fiber:', fiber);
     });
   },
