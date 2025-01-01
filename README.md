@@ -11,7 +11,7 @@
 
 bippy is a toolkit to **hack into react internals**
 
-by default, there is no official way to use react internals outside of react components. bippy bypasses this by "pretending" to be react devtools, giving you access to the fiber tree and other internals.
+by default, you cannot access react internals. bippy bypasses this by "pretending" to be react devtools, giving you access to the fiber tree and other internals.
 
 - works outside of react – no react code modification needed
 - utility functions that work across modern react (v17-19)
