@@ -2,8 +2,6 @@
 > ⚠️⚠️⚠️ **this project may break production apps and cause unexpected behavior** ⚠️⚠️⚠️
 >
 > this project uses react internals, which can change at any time. it is not recommended to depend on internals unless you really, _really_ have to. by proceeding, you acknowledge the risk of breaking your own code or apps that use your code.
->
-> we use this project interally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed in development and production. we use this package "safely" by ensuring that it is only used in development, and when it is deployed to production, it is removed from the bundle or properly error guarded. if you're planning to use this project outside of tinkering, please read over react-scan's source code to see how we safeguard usage.
 
 # <img src="https://github.com/aidenybai/bippy/blob/main/.github/assets/bippy.png?raw=true" width="60" align="center" /> bippy
 
@@ -20,10 +18,10 @@ bippy is a toolkit for using react fibers
 - accessible api – does not require prior react source code knowledge
 
 ```jsx
-import { instrument, secure, traverseFiber } from 'bippy';
+import { instrument, traverseFiber } from 'bippy';
 
 instrument({
-  onCommitFiberRoot(rendererID, root) {
+  onCommitFiberRoot(_, root) {
     traverseFiber(root.current, (fiber) => {
       // will print every fiber in the current React tree
       console.log('fiber:', fiber);
@@ -32,11 +30,15 @@ instrument({
 });
 ```
 
-> this project is maintained by me, specifically for [react-scan](https://github.com/aidenybai/react-scan).
->
-> if you're looking for more robust solutions, [its-fine](https://github.com/pmndrs/its-fine) allows you to get fibers within react (using hooks), or use [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headful interface.
+[(open live demo)](https://stackblitz.com/edit/vitejs-vite-msumuot7?file=src%2Fmain.jsx&terminal=dev)
 
-## how it works
+we use this project internally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed with proper safeguards to ensure it's only used in development or error-guarded in production.
+
+while i maintain this specifically for react-scan, those seeking more robust solutions might consider [its-fine](https://github.com/pmndrs/its-fine) for accessing fibers within react using hooks, or [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) for a headful interface.
+
+if you plan to use this project beyond experimentation, please review [react-scan's source code](https://github.com/aidenybai/react-scan) to understand our safeguarding practices.
+
+## how it works & motivation
 
 bippy allows you to **access** and **use** react fibers **outside** of react components.
 
