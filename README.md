@@ -13,7 +13,7 @@
 
 **hack into react internals.**
 
-bippy is a toolkit for using react fibers, renders, props, state, contexts, and effects:
+bippy is a toolkit for using react fibers
 
 - drop-in, no react code modification needed
 - helpful utils that work across react 17-19
@@ -311,9 +311,25 @@ instrument(
 );
 ```
 
-## api reference
+## how to use
 
-below is a (useful) subset of the api. for the full api, read the [source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts).
+you can either install via a npm (recommended) or a script tag.
+
+this package should be imported before a React app runs. this will add a special object to the global which is used by React for providing its internals to the tool for analysis (React Devtools does the same). as soon as React library is loaded and attached to the tool, bippy starts collecting data about what is going on in React's internals.
+
+```shell
+npm install bippy
+```
+
+or, use via script tag. must be added before any other scripts run:
+
+```html
+<script src="https://unpkg.com/bippy"></script>
+```
+
+> this will cause bippy to be accessible under a `window.Bippy` global.
+
+next, you can use the api to get data about the fiber tree. below is a (useful) subset of the api. for the full api, read the [source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts).
 
 ### instrument
 
