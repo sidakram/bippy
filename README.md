@@ -26,13 +26,15 @@ instrument({
   onCommitFiberRoot(rendererID, root) {
     traverseFiber(root.current, (fiber) => {
       // will print every fiber in the current React tree
-      console.log('React Fiber:', fiber);
+      console.log('fiber:', fiber);
     });
   },
 });
 ```
 
-> this project is maintained by me, specifically for [react-scan](https://github.com/aidenybai/react-scan). if you're looking for more robust solutions, [its-fine](https://github.com/pmndrs/its-fine) allows you to get fibers within react (using hooks), or use [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headful interface.
+> this project is maintained by me, specifically for [react-scan](https://github.com/aidenybai/react-scan).
+>
+> if you're looking for more robust solutions, [its-fine](https://github.com/pmndrs/its-fine) allows you to get fibers within react (using hooks), or use [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) if you are ok with a headful interface.
 
 ## how it works
 
