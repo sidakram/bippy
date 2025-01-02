@@ -348,8 +348,7 @@ console.log(getType(fiberForMemoizedComponent) === RealComponent);
 
 ### getNearestHostFiber / getNearestHostFibers
 
-getNearestHostFiber(fiber) → returns the closest host Fiber above or below a given Fiber.
-getNearestHostFibers(fiber) → returns all host Fibers associated with the provided Fiber and its subtree.
+getNearestHostFiber returns the closest host fiber above or below a given fiber. getNearestHostFibers(fiber) returns all host fibers associated with the provided fiber and its subtree.
 
 ```jsx
 import { getNearestHostFiber, getNearestHostFibers } from 'bippy';
@@ -383,8 +382,7 @@ if (fiber.actualDuration !== undefined) {
 
 ### getFiberStack
 
-Returns an array representing the stack of Fibers from the current Fiber up to the root.
-Example:
+returns an array representing the stack of fibers from the current fiber up to the root.
 
 ```typescript
 [fiber, fiber.return, fiber.return.return, ...]
@@ -392,7 +390,7 @@ Example:
 
 ### getMutatedHostFibers
 
-Returns an array of all host Fibers that have committed and rendered in the provided Fiber’s subtree.
+returns an array of all host fibers that have committed and rendered in the provided fiber's subtree.
 
 ```typescript
 import { getMutatedHostFibers } from 'bippy';
@@ -402,7 +400,7 @@ console.log(getMutatedHostFibers(fiber));
 
 ### isValidFiber
 
-Returns `true` if the given object is a valid React Fiber (i.e., has a tag, stateNode, return, child, sibling, etc.).
+returns `true` if the given object is a valid React Fiber (i.e., has a tag, stateNode, return, child, sibling, etc.).
 
 ```typescript
 import { isValidFiber } from 'bippy';
