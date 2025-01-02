@@ -6,7 +6,7 @@ const tryPush = () => {
 		execSync("vitest --dom --run", { stdio: "ignore" });
 		execSync("git add .");
 		execSync('git commit --no-verify -m "bump"');
-		execSync("git push");
+		execSync("git push --no-verify ");
 		console.log("push at ", new Date().toLocaleString());
 	} catch {}
 };

@@ -8,6 +8,7 @@ import {
 	didFiberCommit,
 	didFiberRender,
 	getDisplayName,
+	getFiberFromHostInstance,
 	getFiberStack,
 	getMutatedHostFibers,
 	getNearestHostFiber,
@@ -28,7 +29,7 @@ import {
 	traverseState,
 } from "./index.js";
 import React, { isValidElement } from "react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 const BasicComponent = () => {
 	return <div>Hello</div>;
@@ -394,7 +395,7 @@ describe("createFiberVisitor", () => {
 					<div className={text} data-count={count} data-updates={updates}>
 						{Array(generateRandomNumber(1, 5))
 							.fill(0)
-							.map((_, index) => {
+							.map((_) => {
 								const elementKey = `${displayName}-${generateRandomDisplayName(
 									5,
 								)}`;
@@ -448,6 +449,15 @@ describe("isValidElement", () => {
 
 	it("should return false for a non-element", () => {
 		expect(isValidElement({})).toBe(false);
+	});
+});
+
+describe("getFiberFromHostInstance", () => {
+	it("should return the fiber from the host instance", () => {
+		render(<div>HostInstance</div>);
+		const fiber = getFiberFromHostInstance(screen.getByText("HostInstance"));
+		expect(fiber).not.toBeNull();
+		expect(fiber?.type).toBe("div");
 	});
 });
 

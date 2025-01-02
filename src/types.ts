@@ -122,6 +122,7 @@ export type Fiber<T = any> = Omit<
 export interface ReactRenderer {
 	version: string;
 	bundleType: 0 /* PROD */ | 1 /* DEV */;
+	findFiberByHostInstance?: (hostInstance: unknown) => Fiber | null;
 }
 
 export interface ContextDependency<T> {

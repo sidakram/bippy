@@ -16,6 +16,7 @@ import type {
 	ReactRenderer,
 } from "./types.js";
 
+// https://github.com/facebook/react/blob/main/packages/react-reconciler/src/ReactWorkTags.js
 export const FunctionComponentTag = 0;
 export const ClassComponentTag = 1;
 export const HostRootTag = 3;
@@ -915,6 +916,34 @@ export const instrument = (options: InstrumentationOptions) => {
 			};
 		}
 	});
+};
+
+export const getFiberFromHostInstance = <T>(hostInstance: T) => {
+	const rdtHook = getRDTHook();
+	for (const renderer of rdtHook.renderers.values()) {
+		try {
+			const fiber = renderer.findFiberByHostInstance?.(hostInstance);
+			if (fiber) return fiber;
+		} catch {}
+	}
+
+	if (typeof hostInstance === "object" && hostInstance != null) {
+		if ("_reactRootContainer" in hostInstance) {
+			// biome-ignore lint/suspicious/noExplicitAny: OK
+			return (hostInstance._reactRootContainer as any)?._internalRoot?.current
+				?.child;
+		}
+
+		for (const key in hostInstance) {
+			if (
+				key.startsWith("__reactInternalInstance$") ||
+				key.startsWith("__reactFiber")
+			) {
+				return hostInstance[key];
+			}
+		}
+	}
+	return null;
 };
 
 export const secure = (
