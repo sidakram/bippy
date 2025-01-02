@@ -1031,7 +1031,7 @@ export const secure = (
 				secureOptions.onInstallError?.();
 			}
 			stop();
-		}, secureOptions.installCheckTimeout ?? 3000) as unknown as number;
+		}, secureOptions.installCheckTimeout ?? 100) as unknown as number;
 	}
 
 	return options;
