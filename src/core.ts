@@ -16,24 +16,22 @@ import type {
 	ReactRenderer,
 } from "./types.js";
 
-export const ClassComponentTag = 1;
 export const FunctionComponentTag = 0;
+export const ClassComponentTag = 1;
+export const HostRootTag = 3;
+export const HostComponentTag = 5;
+export const HostTextTag = 6;
+export const FragmentTag = 7;
 export const ContextConsumerTag = 9;
+export const ForwardRefTag = 11;
 export const SuspenseComponentTag = 13;
 export const OffscreenComponentTag = 22;
-export const ForwardRefTag = 11;
 export const MemoComponentTag = 14;
 export const SimpleMemoComponentTag = 15;
-export const HostComponentTag = 5;
 export const HostHoistableTag = 26;
 export const HostSingletonTag = 27;
-
-export const DehydratedSuspenseComponent = 18;
-export const HostText = 6;
-export const Fragment = 7;
-export const LegacyHiddenComponent = 23;
-export const OffscreenComponent = 22;
-export const HostRoot = 3;
+export const DehydratedSuspenseComponentTag = 18;
+export const LegacyHiddenComponentTag = 23;
 
 export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
@@ -348,7 +346,7 @@ export const getFiberStack = (fiber: Fiber) => {
  */
 export const shouldFilterFiber = (fiber: Fiber) => {
 	switch (fiber.tag) {
-		case DehydratedSuspenseComponent:
+		case DehydratedSuspenseComponentTag:
 			// TODO: ideally we would show dehydrated Suspense immediately.
 			// However, it has some special behavior (like disconnecting
 			// an alternate and turning into real Suspense) which breaks DevTools.
@@ -356,13 +354,13 @@ export const shouldFilterFiber = (fiber: Fiber) => {
 			// https://github.com/bvaughn/react-devtools-experimental/issues/197
 			return true;
 
-		case HostText:
-		case Fragment:
-		case LegacyHiddenComponent:
-		case OffscreenComponent:
+		case HostTextTag:
+		case FragmentTag:
+		case LegacyHiddenComponentTag:
+		case OffscreenComponentTag:
 			return true;
 
-		case HostRoot:
+		case HostRootTag:
 			// It is never valid to filter the root element.
 			return false;
 
@@ -737,7 +735,7 @@ export const updateFiberRecursively = (
 };
 
 export const unmountFiber = (onRender: RenderHandler, fiber: Fiber) => {
-	const isRoot = fiber.tag === HostRoot;
+	const isRoot = fiber.tag === HostRootTag;
 
 	if (isRoot || !shouldFilterFiber(fiber)) {
 		onRender(fiber, "unmount");
