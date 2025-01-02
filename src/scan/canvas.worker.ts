@@ -1,6 +1,6 @@
 import { OUTLINE_VIEW_SIZE } from "./const.js";
 import type { ActiveOutline } from "./types.js";
-import { drawCanvas } from "./canvas.utils.js";
+import { drawCanvas } from "./canvas.js";
 
 let canvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;

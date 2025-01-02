@@ -13,6 +13,7 @@ import type {
 	FiberMetadata,
 	PendingOutline,
 	ActiveOutline,
+	OutlineData,
 } from "./types.js";
 // @ts-expect-error OK
 import Worker from "./canvas.worker.js";
@@ -23,8 +24,7 @@ import {
 	updateScroll,
 	initCanvas,
 	resizeCanvas,
-	type OutlineData,
-} from "./canvas.utils.js";
+} from "./canvas.js";
 
 let worker: Worker | null = null;
 let canvas: HTMLCanvasElement | null = null;

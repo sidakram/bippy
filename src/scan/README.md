@@ -1,3 +1,15 @@
+## todo
+
+- split out the canvas modules so they make somewhat sense
+- create a "RPC" layer for worker non worker communication
+- clean up the worker / default check
+
+## notes
+
+- feature compat with existing version (core, instrumentation, highlighting)
+- refactor main website
+- playwright version
+
 # react scan v1 architecture
 
 - `bippy` / `@react-scan/web-vitals`
@@ -13,13 +25,3 @@
     - `@react-scan/native`:
       - native highlighting overlay
       - native toolbar
-
-## todo
-
-- [ ] backwards compatibility (for worker, offscreen canvas)
-- [ ] feature compat with existing version (core, instrumentation, highlighting)
-- [ ] fills are not correct, validate we're not oversending stuff
-- [ ] blocklist on websites
-- [ ] refactor main website
-- [ ] some sort of easy way to integrate with devtools
-- [ ] playwright version
