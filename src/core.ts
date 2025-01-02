@@ -165,10 +165,8 @@ export const traverseContexts = (
 			nextContext = nextContext?.next;
 			prevContext = prevContext?.next;
 		}
-		return false;
-	} catch {
-		return false;
-	}
+	} catch {}
+	return false;
 };
 
 /**

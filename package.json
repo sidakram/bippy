@@ -68,7 +68,8 @@
 		"check": "pnpm biome check --write src/*.ts",
 		"publint": "publint",
 		"test": "vitest --dom",
-		"coverage": "vitest run --coverage --dom"
+		"coverage": "vitest run --coverage --dom",
+		"auto-push": "bun scripts/auto-push.js"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
