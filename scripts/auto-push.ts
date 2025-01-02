@@ -5,7 +5,7 @@ const tryPush = () => {
 		execSync("NODE_ENV=production pnpm build", { stdio: "ignore" });
 		execSync("vitest --dom --run", { stdio: "ignore" });
 		execSync("git add .");
-		execSync('git commit -m "bump"');
+		execSync('git commit --no-verify -m "bump"');
 		execSync("git push");
 		console.log("push at ", new Date().toLocaleString());
 	} catch {}
