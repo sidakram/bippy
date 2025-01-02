@@ -2,8 +2,8 @@ import { execSync } from "node:child_process";
 
 const tryPush = () => {
 	try {
-		execSync("NODE_ENV=production pnpm build", { stdio: "inherit" });
-		execSync("vitest --dom --run", { stdio: "inherit" });
+		execSync("NODE_ENV=production pnpm build", { stdio: "ignore" });
+		execSync("vitest --dom --run", { stdio: "ignore" });
 		execSync("git add .");
 		execSync('git commit -m "bump"');
 		execSync("git push");
