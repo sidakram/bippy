@@ -1,5 +1,3 @@
-import { render } from "@testing-library/react";
-import React, { isValidElement } from "react";
 import { describe, expect, it, vi } from "vitest";
 import {
 	type ContextDependency,
@@ -29,6 +27,8 @@ import {
 	traverseProps,
 	traverseState,
 } from "./index.js";
+import React, { isValidElement } from "react";
+import { render } from "@testing-library/react";
 
 const BasicComponent = () => {
 	return <div>Hello</div>;
@@ -110,7 +110,9 @@ describe("instrument", () => {
 	it("should not fail if __REACT_DEVTOOLS_GLOBAL_HOOK__ exists already", () => {
 		render(<BasicComponent />);
 		const onCommitFiberRoot = vi.fn();
-		instrument(secure({ onCommitFiberRoot }));
+		instrument(
+			secure({ onCommitFiberRoot }, { dangerouslyRunInProduction: true }),
+		);
 		render(<BasicComponent />);
 		expect(onCommitFiberRoot).toHaveBeenCalled();
 	});

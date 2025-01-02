@@ -191,10 +191,8 @@ export const traverseState = (
 			nextState = nextState?.next;
 			prevState = prevState?.next;
 		}
-		return false;
-	} catch {
-		return false;
-	}
+	} catch {}
+	return false;
 };
 
 /**
@@ -225,10 +223,8 @@ export const traverseEffects = (
 			nextState = nextState?.next;
 			prevState = prevState?.next;
 		}
-		return false;
-	} catch {
-		return false;
-	}
+	} catch {}
+	return false;
 };
 
 /**
@@ -258,10 +254,8 @@ export const traverseProps = (
 
 			if (selector(propName, nextValue, prevValue) === true) return true;
 		}
-		return false;
-	} catch {
-		return false;
-	}
+	} catch {}
+	return false;
 };
 
 /**
@@ -541,10 +535,8 @@ export const detectReactBuildType = (renderer: ReactRenderer) => {
 		if (typeof renderer.version === "string" && renderer.bundleType > 0) {
 			return "development";
 		}
-		return "production";
-	} catch {
-		return null;
-	}
+	} catch {}
+	return "production";
 };
 
 /**
@@ -961,7 +953,7 @@ export const secure = (
 				}
 			}
 		} catch {
-			// no-op
+			secureOptions.onInstallError?.();
 		}
 
 		if (!isSecure) {
@@ -972,37 +964,35 @@ export const secure = (
 			return;
 		}
 
-		const onCommitFiberRoot = options.onCommitFiberRoot;
-		if (onCommitFiberRoot) {
-			options.onCommitFiberRoot = (rendererID, root, priority) => {
-				try {
-					onCommitFiberRoot(rendererID, root, priority);
-				} catch {
-					// no-op
-				}
-			};
-		}
+		try {
+			const onCommitFiberRoot = options.onCommitFiberRoot;
+			if (onCommitFiberRoot) {
+				options.onCommitFiberRoot = (rendererID, root, priority) => {
+					try {
+						onCommitFiberRoot(rendererID, root, priority);
+					} catch {}
+				};
+			}
 
-		const onCommitFiberUnmount = options.onCommitFiberUnmount;
-		if (onCommitFiberUnmount) {
-			options.onCommitFiberUnmount = (rendererID, root) => {
-				try {
-					onCommitFiberUnmount(rendererID, root);
-				} catch {
-					// no-op
-				}
-			};
-		}
+			const onCommitFiberUnmount = options.onCommitFiberUnmount;
+			if (onCommitFiberUnmount) {
+				options.onCommitFiberUnmount = (rendererID, root) => {
+					try {
+						onCommitFiberUnmount(rendererID, root);
+					} catch {}
+				};
+			}
 
-		const onPostCommitFiberRoot = options.onPostCommitFiberRoot;
-		if (onPostCommitFiberRoot) {
-			options.onPostCommitFiberRoot = (rendererID, root) => {
-				try {
-					onPostCommitFiberRoot(rendererID, root);
-				} catch {
-					// no-op
-				}
-			};
+			const onPostCommitFiberRoot = options.onPostCommitFiberRoot;
+			if (onPostCommitFiberRoot) {
+				options.onPostCommitFiberRoot = (rendererID, root) => {
+					try {
+						onPostCommitFiberRoot(rendererID, root);
+					} catch {}
+				};
+			}
+		} catch {
+			secureOptions.onInstallError?.();
 		}
 	};
 

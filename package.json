@@ -69,7 +69,7 @@
 		"publint": "publint",
 		"test": "vitest --dom",
 		"coverage": "vitest run --coverage --dom",
-		"auto-push": "bun scripts/auto-push.js"
+		"auto-push": "bun scripts/auto-push.ts"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
