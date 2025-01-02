@@ -37,7 +37,7 @@ const BasicComponent = () => {
 BasicComponent.displayName = "BasicComponent";
 
 const BasicComponentWithEffect = () => {
-	const [shouldUnmount, setShouldUnmount] = React.useState(true);
+	const [_shouldUnmount, _setShouldUnmount] = React.useState(true);
 	React.useEffect(() => {}, []);
 	return <div>Hello</div>;
 };
