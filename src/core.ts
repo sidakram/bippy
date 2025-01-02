@@ -27,12 +27,14 @@ export const SimpleMemoComponentTag = 15;
 export const HostComponentTag = 5;
 export const HostHoistableTag = 26;
 export const HostSingletonTag = 27;
+
 export const DehydratedSuspenseComponent = 18;
 export const HostText = 6;
 export const Fragment = 7;
 export const LegacyHiddenComponent = 23;
 export const OffscreenComponent = 22;
 export const HostRoot = 3;
+
 export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
 export const TRANSITIONAL_ELEMENT_TYPE_SYMBOL_STRING =
