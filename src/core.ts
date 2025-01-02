@@ -25,13 +25,13 @@ export const FragmentTag = 7;
 export const ContextConsumerTag = 9;
 export const ForwardRefTag = 11;
 export const SuspenseComponentTag = 13;
-export const OffscreenComponentTag = 22;
 export const MemoComponentTag = 14;
 export const SimpleMemoComponentTag = 15;
+export const DehydratedSuspenseComponentTag = 18;
+export const OffscreenComponentTag = 22;
+export const LegacyHiddenComponentTag = 23;
 export const HostHoistableTag = 26;
 export const HostSingletonTag = 27;
-export const DehydratedSuspenseComponentTag = 18;
-export const LegacyHiddenComponentTag = 23;
 
 export const CONCURRENT_MODE_NUMBER = 0xeacf;
 export const ELEMENT_TYPE_SYMBOL_STRING = "Symbol(react.element)";
