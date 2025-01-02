@@ -34,17 +34,11 @@ instrument({
   <tbody>
     <tr>
       <td>
-        <a href="https://bippy.dev">open live demo ↗</a>
+        <a href="https://bippy.dev"><b>open live demo ↗</b></a>
       </td>
     </tr>
   </tbody>
 </table>
-
-we use this project internally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed with proper safeguards to ensure it's only used in development or error-guarded in production.
-
-while i maintain this specifically for react-scan, those seeking more robust solutions might consider [its-fine](https://github.com/pmndrs/its-fine) for accessing fibers within react using hooks, or [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) for a headful interface.
-
-if you plan to use this project beyond experimentation, please review [react-scan's source code](https://github.com/aidenybai/react-scan) to understand our safeguarding practices.
 
 ## how it works & motivation
 
@@ -604,6 +598,31 @@ instrument(
 - `onPostCommitFiberRoot`: called when react has committed a fiber root and effects have run
 - `onCommitFiberUnmount`: called when a fiber unmounts
 
+## development
+
+we use a pnpm monorepo, get started by running:
+
+```shell
+pnpm install
+# create dev builds
+pnpm run dev
+# run unit tests
+pnpm run test
+```
+
+you can ad-hoc test by running `pnpm run dev` in the `/kitchen-sink` directory.
+
+```shell
+cd kitchen-sink
+pnpm run dev
+```
+
 ## misc
+
+we use this project internally in [react-scan](https://github.com/aidenybai/react-scan), which is deployed with proper safeguards to ensure it's only used in development or error-guarded in production.
+
+while i maintain this specifically for react-scan, those seeking more robust solutions might consider [its-fine](https://github.com/pmndrs/its-fine) for accessing fibers within react using hooks, or [react-devtools-inline](https://www.npmjs.com/package/react-devtools-inline) for a headful interface.
+
+if you plan to use this project beyond experimentation, please review [react-scan's source code](https://github.com/aidenybai/react-scan) to understand our safeguarding practices.
 
 the original bippy character is owned and created by [@dairyfreerice](https://www.instagram.com/dairyfreerice). this project is not related to the bippy brand, i just think the character is cute.

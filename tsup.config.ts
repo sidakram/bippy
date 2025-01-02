@@ -11,13 +11,6 @@ const banner = `/**
  * LICENSE file in the root directory of this source tree.
  */`;
 
-/**
- * @see https://gist.github.com/manzt/689e4937f5ae998c56af72efc9217ef0
- *
- * @param {Pick<import('esbuild').BuildOptions, 'minify' | 'format' | 'plugins'>}
- * @return {import('esbuild').Plugin}
- */
-
 const DEFAULT_OPTIONS: Options = {
 	entry: [],
 	banner: {
@@ -57,6 +50,7 @@ export default defineConfig([
 	{
 		...DEFAULT_OPTIONS,
 		format: ["iife"],
+		outDir: "./dist/scan",
 		minify: process.env.NODE_ENV === "production" ? "terser" : false,
 		globalName: "ReactScan",
 		entry: ["./src/scan/index.ts"],

@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "./main.css";
 
-const PROJECT = "main";
+const PROJECT = "mini-react-scan";
 
 export const root = ReactDOM.createRoot(document.getElementById("root"));
 const render = async () => {
