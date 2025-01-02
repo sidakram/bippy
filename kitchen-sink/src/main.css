@@ -31,5 +31,5 @@ pre code {
 	content: counter(sh-line-number);
 	margin-right: 24px;
 	text-align: right;
-	color: #9b9b9b;
+	color: #9b9b9b71;
 }
