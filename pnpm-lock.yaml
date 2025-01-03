@@ -78,8 +78,8 @@ importers:
         specifier: ^2.0.21
         version: 2.0.21
       bippy:
-        specifier: ^0.0.14
-        version: 0.0.14
+        specifier: ^0.1.1
+        version: 0.1.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1111,8 +1111,8 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  bippy@0.0.14:
-    resolution: {integrity: sha512-flYbctf6HUYYkaXci8669fU25b9gIrBFbXWt//2M5PSJeGVziwKGKZYs+3FaJnXIx0TQ1qKYLB1nBQf2PWbkLA==}
+  bippy@0.1.1:
+    resolution: {integrity: sha512-dIEIXqR42KJcvScTCza97mVgL3TXYhyHNDCGzqo7RgKYse8wJamLJMkGQ/tH+nOvPHiv9p12w+ukYkBzPV1dVA==}
 
   brace-expansion@2.0.1:
     resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
@@ -2928,7 +2928,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  bippy@0.0.14: {}
+  bippy@0.1.1: {}
 
   brace-expansion@2.0.1:
     dependencies:

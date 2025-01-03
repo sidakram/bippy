@@ -62,7 +62,7 @@ instrument({
 				}
 			}
 		});
-	},
+	 },
 });
 
 const getFiberFromElement = (element) => {
