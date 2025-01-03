@@ -1,5 +1,6 @@
 import type { ActiveOutline, OutlineData } from "./types.js";
 
+export const OUTLINE_ARRAY_SIZE = 7;
 export const MONO_FONT =
 	"Menlo,Consolas,Monaco,Liberation Mono,Lucida Console,monospace";
 
@@ -114,29 +115,17 @@ export const updateScroll = (
 	}
 };
 
-export const initCanvas = (canvas: HTMLCanvasElement, dpr: number) => {
-	const ctx = canvas.getContext("2d", { alpha: true });
+export const initCanvas = (
+	canvas: HTMLCanvasElement | OffscreenCanvas,
+	dpr: number,
+) => {
+	const ctx = canvas.getContext("2d", { alpha: true }) as
+		| CanvasRenderingContext2D
+		| OffscreenCanvasRenderingContext2D;
 	if (ctx) {
 		ctx.scale(dpr, dpr);
 	}
 	return ctx;
-};
-
-export const resizeCanvas = (
-	canvas: HTMLCanvasElement,
-	ctx: CanvasRenderingContext2D,
-	dpr: number,
-) => {
-	const { innerWidth, innerHeight } = window;
-	canvas.style.width = `${innerWidth}px`;
-	canvas.style.height = `${innerHeight}px`;
-	const width = innerWidth * dpr;
-	const height = innerHeight * dpr;
-	canvas.width = width;
-	canvas.height = height;
-	ctx.resetTransform();
-	ctx.scale(dpr, dpr);
-	return { width, height };
 };
 
 export const drawCanvas = (

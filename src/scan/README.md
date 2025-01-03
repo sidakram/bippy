@@ -1,8 +1,7 @@
 ## todo
 
-- split out the canvas modules so they make somewhat sense
-- create a "RPC" layer for worker non worker communication
-- clean up the worker / default check
+- think of ways to highlight what the actual problems are
+- fix resizing
 
 ## notes
 

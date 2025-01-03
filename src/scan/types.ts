@@ -2,11 +2,6 @@ import type { Fiber as ReactFiber } from "../index.js";
 
 export type Fiber = ReactFiber<Element>;
 
-export interface PendingOutline {
-	name: string;
-	data: InlineOutlineData;
-}
-
 export interface OutlineData {
 	id: number;
 	name: string;
@@ -16,7 +11,7 @@ export interface OutlineData {
 	width: number;
 	height: number;
 	didCommit: 0 | 1;
-};
+}
 
 export type InlineOutlineData = [
 	/**
@@ -65,7 +60,7 @@ export interface ActiveOutline {
 	didCommit: 1 | 0;
 }
 
-export interface FiberMetadata {
+export interface BlueprintOutline {
 	name: string;
 	count: number;
 	elements: Element[];

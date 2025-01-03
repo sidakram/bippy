@@ -951,7 +951,7 @@ export const secure = (
 	secureOptions: {
 		minReactMajorVersion?: number;
 		dangerouslyRunInProduction?: boolean;
-		onInstallError?: () => unknown;
+		onInstallError?: (error?: unknown) => unknown;
 		installCheckTimeout?: number;
 	} = {},
 ): InstrumentationOptions => {
@@ -981,8 +981,8 @@ export const secure = (
 					}
 				}
 			}
-		} catch {
-			secureOptions.onInstallError?.();
+		} catch (err) {
+			secureOptions.onInstallError?.(err);
 		}
 
 		if (!isSecure) {
@@ -1020,8 +1020,8 @@ export const secure = (
 					} catch {}
 				};
 			}
-		} catch {
-			secureOptions.onInstallError?.();
+		} catch (err) {
+			secureOptions.onInstallError?.(err);
 		}
 	};
 

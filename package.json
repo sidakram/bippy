@@ -54,15 +54,10 @@
 	"main": "dist/index.js",
 	"module": "dist/index.js",
 	"types": "dist/index.d.ts",
-	"files": [
-		"dist",
-		"bin",
-		"package.json",
-		"README.md",
-		"LICENSE"
-	],
+	"files": ["dist", "bin", "package.json", "README.md", "LICENSE"],
 	"scripts": {
 		"build": "NODE_ENV=production tsup",
+		"build:copy": "pnpm run build && pbcopy dist/scan/index.global.js",
 		"dev": "NODE_ENV=development tsup --watch",
 		"lint": "pnpm biome lint --write src/*.ts",
 		"format": "pnpm biome format --write src/*.ts",

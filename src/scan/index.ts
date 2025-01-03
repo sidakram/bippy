@@ -10,52 +10,49 @@ import {
 } from "../index.js";
 import type {
 	Fiber,
-	FiberMetadata,
-	PendingOutline,
+	BlueprintOutline,
 	ActiveOutline,
 	OutlineData,
 } from "./types.js";
 // @ts-expect-error OK
-import Worker from "./canvas.worker.js";
-import { OUTLINE_VIEW_SIZE } from "./const.js";
+import OffscreenCanvasWorker from "./offscreen-canvas.worker.js";
 import {
 	drawCanvas,
 	updateOutlines,
 	updateScroll,
 	initCanvas,
-	resizeCanvas,
+	OUTLINE_ARRAY_SIZE,
 } from "./canvas.js";
 
-let worker: Worker | null = null;
+let worker: OffscreenCanvasWorker | null = null;
 let canvas: HTMLCanvasElement | null = null;
 let ctx: CanvasRenderingContext2D | null = null;
 let dpr = 1;
 let animationFrameId: number | null = null;
 const activeOutlines = new Map<string, ActiveOutline>();
 
-const fiberMap = new WeakMap<Fiber, FiberMetadata>();
-const fiberMapKeys = new Set<Fiber>();
+const blueprintMap = new WeakMap<Fiber, BlueprintOutline>();
+const blueprintMapKeys = new Set<Fiber>();
 
-export const pushOutline = (fiber: Fiber) => {
+export const outlineFiber = (fiber: Fiber) => {
 	if (!isCompositeFiber(fiber)) return;
 	const name =
 		typeof fiber.type === "string" ? fiber.type : getDisplayName(fiber);
 	if (!name) return;
-	const fiberMetadata = fiberMap.get(fiber);
+	const blueprint = blueprintMap.get(fiber);
 	const nearestFibers = getNearestHostFibers(fiber);
-
 	const didCommit = didFiberCommit(fiber);
 
-	if (!fiberMetadata) {
-		fiberMap.set(fiber, {
+	if (!blueprint) {
+		blueprintMap.set(fiber, {
 			name,
 			count: 1,
 			elements: nearestFibers.map((fiber) => fiber.stateNode),
 			didCommit: didCommit ? 1 : 0,
 		});
-		fiberMapKeys.add(fiber);
+		blueprintMapKeys.add(fiber);
 	} else {
-		fiberMetadata.count++;
+		blueprint.count++;
 	}
 };
 
@@ -87,7 +84,7 @@ const mergeRects = (rects: DOMRect[]) => {
 	return new DOMRect(minX, minY, maxX - minX, maxY - minY);
 };
 
-export const getRect = (
+export const getRectMap = (
 	elements: Element[],
 ): Promise<Map<Element, DOMRect>> => {
 	return new Promise((resolve) => {
@@ -112,91 +109,89 @@ export const getRect = (
 	});
 };
 
+const SupportedArrayBuffer =
+	typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
+
 export const flushOutlines = async () => {
-	const outlines: PendingOutline[] = [];
 	const elements: Element[] = [];
 
-	for (const fiber of fiberMapKeys) {
-		const outline = fiberMap.get(fiber);
-		if (!outline) continue;
-		for (let i = 0; i < outline.elements.length; i++) {
-			elements.push(outline.elements[i]);
+	for (const fiber of blueprintMapKeys) {
+		const blueprint = blueprintMap.get(fiber);
+		if (!blueprint) continue;
+		for (let i = 0; i < blueprint.elements.length; i++) {
+			elements.push(blueprint.elements[i]);
 		}
 	}
 
-	const rectsMap = await getRect(elements);
+	const rectsMap = await getRectMap(elements);
 
-	for (const fiber of fiberMapKeys) {
-		const outline = fiberMap.get(fiber);
-		if (!outline) continue;
+	const blueprints: BlueprintOutline[] = [];
+	const blueprintRects: DOMRect[] = [];
+	const blueprintIds: number[] = [];
+
+	for (const fiber of blueprintMapKeys) {
+		const blueprint = blueprintMap.get(fiber);
+		if (!blueprint) continue;
 		const rects: DOMRect[] = [];
-		for (let i = 0; i < outline.elements.length; i++) {
-			const element = outline.elements[i];
+		for (let i = 0; i < blueprint.elements.length; i++) {
+			const element = blueprint.elements[i];
 			const rect = rectsMap.get(element);
 			if (!rect) continue;
 			rects.push(rect);
 		}
-		fiberMap.delete(fiber);
-		fiberMapKeys.delete(fiber);
+		blueprintMap.delete(fiber);
+		blueprintMapKeys.delete(fiber);
 		if (!rects.length) continue;
-		const { x, y, width, height } = mergeRects(rects);
+		blueprints.push(blueprint);
+		blueprintRects.push(mergeRects(rects));
+		blueprintIds.push(getFiberId(fiber));
+	}
 
-		outlines.push({
-			name: outline.name,
-			data: [
-				getFiberId(fiber),
-				outline.count,
+	const arrayBuffer = new SupportedArrayBuffer(
+		blueprints.length * OUTLINE_ARRAY_SIZE * 4,
+	);
+	const sharedView = new Float32Array(arrayBuffer);
+	const blueprintNames = new Array(blueprints.length);
+	let outlineData: OutlineData[] | undefined;
+
+	for (let i = 0, len = blueprints.length; i < len; i++) {
+		const blueprint = blueprints[i];
+		const id = blueprintIds[i];
+		const { x, y, width, height } = blueprintRects[i];
+		const { count, name, didCommit } = blueprint;
+
+		if (worker) {
+			const scaledIndex = i * OUTLINE_ARRAY_SIZE;
+			sharedView[scaledIndex] = id;
+			sharedView[scaledIndex + 1] = count;
+			sharedView[scaledIndex + 2] = x;
+			sharedView[scaledIndex + 3] = y;
+			sharedView[scaledIndex + 4] = width;
+			sharedView[scaledIndex + 5] = height;
+			sharedView[scaledIndex + 6] = didCommit;
+			blueprintNames[i] = name;
+		} else {
+			outlineData ||= new Array(blueprints.length);
+			outlineData[i] = {
+				id,
+				name,
+				count,
 				x,
 				y,
 				width,
 				height,
-				outline.didCommit,
-			],
-		});
-	}
-
-	const SupportedArrayBuffer =
-		typeof SharedArrayBuffer !== "undefined" ? SharedArrayBuffer : ArrayBuffer;
-
-	const data = new SupportedArrayBuffer(
-		outlines.length * OUTLINE_VIEW_SIZE * 4,
-	);
-	const sharedView = new Float32Array(data);
-
-	const names = new Array(outlines.length);
-	const outlineData: OutlineData[] = [];
-
-	for (let i = 0; i < outlines.length; i++) {
-		const { data, name } = outlines[i];
-		const [id, count, x, y, width, height, didCommit] = data;
-		const adjustedIndex = i * OUTLINE_VIEW_SIZE;
-		sharedView[adjustedIndex] = id;
-		sharedView[adjustedIndex + 1] = count;
-		sharedView[adjustedIndex + 2] = x;
-		sharedView[adjustedIndex + 3] = y;
-		sharedView[adjustedIndex + 4] = width;
-		sharedView[adjustedIndex + 5] = height;
-		sharedView[adjustedIndex + 6] = didCommit;
-		names[i] = name;
-		outlineData.push({
-			id,
-			name,
-			count,
-			x,
-			y,
-			width,
-			height,
-			didCommit: didCommit as 0 | 1,
-		});
+				didCommit: didCommit as 0 | 1,
+			};
+		}
 	}
 
 	if (worker) {
 		worker.postMessage({
 			type: "draw-outlines",
-			data,
-			names,
+			data: arrayBuffer,
+			names: blueprintNames,
 		});
-	} else if (canvas && ctx) {
+	} else if (canvas && ctx && outlineData) {
 		updateOutlines(activeOutlines, outlineData);
 		if (!animationFrameId) {
 			animationFrameId = requestAnimationFrame(draw);
@@ -216,32 +211,14 @@ const draw = () => {
 	}
 };
 
-const CANVAS_HTML_STR = `<canvas style="position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
+const CANVAS_HTML_STR = `<canvas style="position:fixed;top:0;left:0;pointer-events:none;z-index:2147483646" aria-hidden="true"></canvas>`;
 
-const initWorker = (canvasEl: HTMLCanvasElement, dpr: number) => {
-	try {
-		worker = Worker();
-		const offscreenCanvas = canvasEl.transferControlToOffscreen();
+const IS_OFFSCREEN_CANVAS_WORKER_SUPPORTED =
+	typeof OffscreenCanvas !== "undefined" &&
+	typeof OffscreenCanvasWorker !== "undefined";
 
-		worker.postMessage(
-			{
-				type: "init",
-				canvas: offscreenCanvas,
-				width: canvasEl.width,
-				height: canvasEl.height,
-				dpr,
-			},
-			[offscreenCanvas],
-		);
-
-		return true;
-	} catch (e) {
-		console.warn(
-			"React Scan: Web Worker or OffscreenCanvas not available, falling back to normal canvas",
-			e,
-		);
-		return false;
-	}
+const getDpr = () => {
+	return Math.min(window.devicePixelRatio || 1, 2);
 };
 
 export const getCanvasEl = () => {
@@ -253,7 +230,7 @@ export const getCanvasEl = () => {
 	const canvasEl = shadowRoot.firstChild as HTMLCanvasElement;
 	if (!canvasEl) return null;
 
-	dpr = Math.min(window.devicePixelRatio || 1, 2);
+	dpr = getDpr();
 	canvas = canvasEl;
 
 	const { innerWidth, innerHeight } = window;
@@ -264,11 +241,26 @@ export const getCanvasEl = () => {
 	canvasEl.width = width;
 	canvasEl.height = height;
 
-	const workerInitialized = initWorker(canvasEl, dpr);
-	if (!workerInitialized) {
-		ctx = initCanvas(canvasEl, dpr);
-		if (!ctx) return null;
-		resizeCanvas(canvasEl, ctx, dpr);
+	if (IS_OFFSCREEN_CANVAS_WORKER_SUPPORTED) {
+		try {
+			worker = OffscreenCanvasWorker();
+			const offscreenCanvas = canvasEl.transferControlToOffscreen();
+
+			worker.postMessage(
+				{
+					type: "init",
+					canvas: offscreenCanvas,
+					width: canvasEl.width,
+					height: canvasEl.height,
+					dpr,
+				},
+				[offscreenCanvas],
+			);
+		} catch {}
+	}
+
+	if (!worker) {
+		ctx = initCanvas(canvasEl, dpr) as CanvasRenderingContext2D;
 	}
 
 	let isResizeScheduled = false;
@@ -276,9 +268,12 @@ export const getCanvasEl = () => {
 		if (!isResizeScheduled) {
 			isResizeScheduled = true;
 			setTimeout(() => {
-				if (!ctx) return;
+				const width = window.innerWidth;
+				const height = window.innerHeight;
+				dpr = getDpr();
+				canvasEl.style.width = `${width}px`;
+				canvasEl.style.height = `${height}px`;
 				if (worker) {
-					const { width, height } = resizeCanvas(canvasEl, ctx, dpr);
 					worker.postMessage({
 						type: "resize",
 						width,
@@ -286,7 +281,12 @@ export const getCanvasEl = () => {
 						dpr,
 					});
 				} else {
-					resizeCanvas(canvasEl, ctx, dpr);
+					canvasEl.width = width * dpr;
+					canvasEl.height = height * dpr;
+					if (ctx) {
+						ctx.resetTransform();
+						ctx.scale(dpr, dpr);
+					}
 					draw();
 				}
 				isResizeScheduled = false;
@@ -297,6 +297,7 @@ export const getCanvasEl = () => {
 	let prevScrollX = window.scrollX;
 	let prevScrollY = window.scrollY;
 	let isScrollScheduled = false;
+
 	window.addEventListener("scroll", () => {
 		if (!isScrollScheduled) {
 			isScrollScheduled = true;
@@ -312,8 +313,10 @@ export const getCanvasEl = () => {
 						deltaX,
 						deltaY,
 					});
-				} else if (ctx) {
-					updateScroll(activeOutlines, deltaX, deltaY);
+				} else {
+					requestAnimationFrame(() => {
+						updateScroll(activeOutlines, deltaX, deltaY);
+					});
 				}
 				isScrollScheduled = false;
 			}, 16 * 2);
@@ -321,7 +324,7 @@ export const getCanvasEl = () => {
 	});
 
 	setInterval(() => {
-		if (fiberMapKeys.size) {
+		if (blueprintMapKeys.size) {
 			flushOutlines();
 		}
 	}, 16 * 2);
@@ -355,7 +358,7 @@ const init = () => {
 
 	const visit = createFiberVisitor({
 		onRender(fiber) {
-			pushOutline(fiber);
+			outlineFiber(fiber);
 		},
 		onError() {},
 	});
@@ -377,9 +380,10 @@ const init = () => {
 			},
 			{
 				dangerouslyRunInProduction: true,
-				onInstallError() {
+				onInstallError(error) {
 					console.warn(
 						"React Scan did not install correctly.\n\n{link to install doc}",
+						error,
 					);
 				},
 			},

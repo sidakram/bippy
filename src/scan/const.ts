@@ -1,1 +1,0 @@
-export const OUTLINE_VIEW_SIZE = 7;

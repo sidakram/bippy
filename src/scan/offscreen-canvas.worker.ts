@@ -1,6 +1,5 @@
-import { OUTLINE_VIEW_SIZE } from "./const.js";
 import type { ActiveOutline } from "./types.js";
-import { drawCanvas } from "./canvas.js";
+import { drawCanvas, initCanvas, OUTLINE_ARRAY_SIZE } from "./canvas.js";
 
 let canvas: OffscreenCanvas | null = null;
 let ctx: OffscreenCanvasRenderingContext2D | null = null;
@@ -8,6 +7,18 @@ let dpr = 1;
 
 const activeOutlines: Map<string, ActiveOutline> = new Map();
 let animationFrameId: number | null = null;
+
+const draw = () => {
+	if (!ctx || !canvas) return;
+
+	const shouldContinue = drawCanvas(ctx, canvas, dpr, activeOutlines);
+
+	if (shouldContinue) {
+		animationFrameId = requestAnimationFrame(draw);
+	} else {
+		animationFrameId = null;
+	}
+};
 
 self.onmessage = (event) => {
 	const { type } = event.data;
@@ -19,19 +30,16 @@ self.onmessage = (event) => {
 		if (canvas) {
 			canvas.width = event.data.width;
 			canvas.height = event.data.height;
-			ctx = canvas.getContext("2d", { alpha: true });
-
-			if (ctx) {
-				ctx.scale(dpr, dpr);
-			}
+			ctx = initCanvas(canvas, dpr) as OffscreenCanvasRenderingContext2D;
 		}
 	}
 
 	if (!canvas || !ctx) return;
 
 	if (type === "resize") {
-		canvas.width = event.data.width;
-		canvas.height = event.data.height;
+		dpr = event.data.dpr;
+		canvas.width = event.data.width * dpr;
+		canvas.height = event.data.height * dpr;
 		ctx.resetTransform();
 		ctx.scale(dpr, dpr);
 		draw();
@@ -42,17 +50,18 @@ self.onmessage = (event) => {
 	if (type === "draw-outlines") {
 		const { data, names } = event.data;
 
-		const floatView = new Float32Array(data);
-		for (let i = 0; i < floatView.length; i += OUTLINE_VIEW_SIZE) {
-			const x = floatView[i + 2];
-			const y = floatView[i + 3];
-			const width = floatView[i + 4];
-			const height = floatView[i + 5];
-			const didCommit = floatView[i + 6] as 0 | 1;
+		const sharedView = new Float32Array(data);
+		for (let i = 0; i < sharedView.length; i += OUTLINE_ARRAY_SIZE) {
+			const x = sharedView[i + 2];
+			const y = sharedView[i + 3];
+			const width = sharedView[i + 4];
+			const height = sharedView[i + 5];
+
+			const didCommit = sharedView[i + 6] as 0 | 1;
 			const outline = {
-				id: floatView[i],
-				name: names[i / OUTLINE_VIEW_SIZE],
-				count: floatView[i + 1],
+				id: sharedView[i],
+				name: names[i / OUTLINE_ARRAY_SIZE],
+				count: sharedView[i + 1],
 				x,
 				y,
 				width,
@@ -97,15 +106,3 @@ self.onmessage = (event) => {
 		}
 	}
 };
-
-function draw() {
-	if (!ctx || !canvas) return;
-
-	const shouldContinue = drawCanvas(ctx, canvas, dpr, activeOutlines);
-
-	if (shouldContinue) {
-		animationFrameId = requestAnimationFrame(draw);
-	} else {
-		animationFrameId = null;
-	}
-}
