@@ -268,6 +268,7 @@ export default function Main() {
 				</div>
 				<pre className="bg-black p-[1.5ch] sm:p-[2ch] rounded-lg">
 					<code
+						className="whitespace-pre-wrap"
 						// biome-ignore lint/security/noDangerouslySetInnerHtml: OK
 						dangerouslySetInnerHTML={{
 							__html:
