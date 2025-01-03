@@ -951,7 +951,7 @@ export const secure = (
 	secureOptions: {
 		minReactMajorVersion?: number;
 		dangerouslyRunInProduction?: boolean;
-		onInstallError?: (error?: unknown) => unknown;
+		onError?: (error?: unknown) => unknown;
 		installCheckTimeout?: number;
 	} = {},
 ): InstrumentationOptions => {
@@ -982,7 +982,7 @@ export const secure = (
 				}
 			}
 		} catch (err) {
-			secureOptions.onInstallError?.(err);
+			secureOptions.onError?.(err);
 		}
 
 		if (!isSecure) {
@@ -999,7 +999,9 @@ export const secure = (
 				options.onCommitFiberRoot = (rendererID, root, priority) => {
 					try {
 						onCommitFiberRoot(rendererID, root, priority);
-					} catch {}
+					} catch (err) {
+						secureOptions.onError?.(err);
+					}
 				};
 			}
 
@@ -1008,7 +1010,9 @@ export const secure = (
 				options.onCommitFiberUnmount = (rendererID, root) => {
 					try {
 						onCommitFiberUnmount(rendererID, root);
-					} catch {}
+					} catch (err) {
+						secureOptions.onError?.(err);
+					}
 				};
 			}
 
@@ -1017,18 +1021,20 @@ export const secure = (
 				options.onPostCommitFiberRoot = (rendererID, root) => {
 					try {
 						onPostCommitFiberRoot(rendererID, root);
-					} catch {}
+					} catch (err) {
+						secureOptions.onError?.(err);
+					}
 				};
 			}
 		} catch (err) {
-			secureOptions.onInstallError?.(err);
+			secureOptions.onError?.(err);
 		}
 	};
 
 	if (!isRDTHookInstalled && !isRDT) {
 		timeout = setTimeout(() => {
 			if (!isProduction) {
-				secureOptions.onInstallError?.();
+				secureOptions.onError?.();
 			}
 			stop();
 		}, secureOptions.installCheckTimeout ?? 100) as unknown as number;

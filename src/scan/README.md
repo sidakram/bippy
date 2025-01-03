@@ -1,13 +1,14 @@
 ## todo
 
 - think of ways to highlight what the actual problems are
-- fix resizing
+- service worker
 
 ## notes
 
 - feature compat with existing version (core, instrumentation, highlighting)
 - refactor main website
 - playwright version
+
 
 # react scan v1 architecture
 

@@ -1,9 +1,79 @@
 import { useEffect, useState } from "react";
-import { getRDTHook, getDisplayName, traverseFiber } from "bippy";
+import {
+	getRDTHook,
+	getDisplayName,
+	traverseFiber,
+	isCompositeFiber,
+	instrument,
+	secure,
+	getNearestHostFiber,
+	traverseProps,
+	isHostFiber,
+} from "bippy";
 import { Inspector } from "react-inspector";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { highlight } from "sugar-high";
+
+instrument(
+	secure(
+		{
+			onCommitFiberRoot(_, root) {
+				traverseFiber(root.current, (fiber) => {
+					if (isCompositeFiber(fiber)) {
+						const hostFiber = getNearestHostFiber(fiber);
+						const displayName = getDisplayName(fiber) || "unknown";
+						if (!hostFiber) return;
+						const hostInstance = hostFiber.stateNode;
+						if (!hostInstance) return;
+						hostInstance.setAttribute("react-component-name", displayName);
+						const props = {};
+						traverseProps(fiber, (propName, nextValue) => {
+							if (
+								typeof nextValue === "number" ||
+								typeof nextValue === "string" ||
+								typeof nextValue === "boolean" ||
+								typeof nextValue === "undefined"
+							) {
+								props[propName] = nextValue;
+							} else {
+								props[propName] = typeof nextValue;
+							}
+						});
+						if (Object.keys(props).length > 0) {
+							hostInstance.setAttribute(
+								"react-component-props",
+								JSON.stringify(props),
+							);
+						}
+					}
+					if (isHostFiber(fiber)) {
+						const listeners = {}
+						traverseProps(fiber, (propName, value) => {
+							if (propName.startsWith("on") && typeof value === "function") {
+								listeners[propName] = value.toString()
+							}
+						});
+						if (Object.keys(listeners).length > 0) {
+							const hostInstance = fiber.stateNode;
+							if (!hostInstance) return;
+							hostInstance.setAttribute(
+								"react-event-listeners",
+								JSON.stringify(listeners),
+							);
+						}
+					}
+				});
+			},
+		},
+		{
+			dangerouslyRunInProduction: true,
+			onError: (error) => {
+				console.log(error);
+			},
+		},
+	),
+);
 
 const getFiberFromElement = (element) => {
 	const { renderers } = getRDTHook();

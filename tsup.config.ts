@@ -43,9 +43,10 @@ export default defineConfig([
 	{
 		...DEFAULT_OPTIONS,
 		format: ["iife"],
+		outDir: "./dist",
 		minify: process.env.NODE_ENV === "production" ? "terser" : false,
 		globalName: "Bippy",
-		entry: ["./src/index.ts", "./src/core.ts"],
+		entry: ["./src/index.ts"],
 	},
 	{
 		...DEFAULT_OPTIONS,

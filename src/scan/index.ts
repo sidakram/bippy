@@ -355,9 +355,9 @@ export const cleanup = () => {
 const init = () => {
 	cleanup();
 	if (hasStopped()) return;
-
 	const visit = createFiberVisitor({
 		onRender(fiber) {
+			if (document.hidden) return;
 			outlineFiber(fiber);
 		},
 		onError() {},
@@ -380,7 +380,7 @@ const init = () => {
 			},
 			{
 				dangerouslyRunInProduction: true,
-				onInstallError(error) {
+				onError(error) {
 					console.warn(
 						"React Scan did not install correctly.\n\n{link to install doc}",
 						error,
