@@ -15,65 +15,55 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { highlight } from "sugar-high";
 
-instrument(
-	secure(
-		{
-			onCommitFiberRoot(_, root) {
-				traverseFiber(root.current, (fiber) => {
-					if (isCompositeFiber(fiber)) {
-						const hostFiber = getNearestHostFiber(fiber);
-						const displayName = getDisplayName(fiber) || "unknown";
-						if (!hostFiber) return;
-						const hostInstance = hostFiber.stateNode;
-						if (!hostInstance) return;
-						hostInstance.setAttribute("react-component-name", displayName);
-						const props = {};
-						traverseProps(fiber, (propName, nextValue) => {
-							if (
-								typeof nextValue === "number" ||
-								typeof nextValue === "string" ||
-								typeof nextValue === "boolean" ||
-								typeof nextValue === "undefined"
-							) {
-								props[propName] = nextValue;
-							} else {
-								props[propName] = typeof nextValue;
-							}
-						});
-						if (Object.keys(props).length > 0) {
-							hostInstance.setAttribute(
-								"react-component-props",
-								JSON.stringify(props),
-							);
-						}
-					}
-					if (isHostFiber(fiber)) {
-						const listeners = {}
-						traverseProps(fiber, (propName, value) => {
-							if (propName.startsWith("on") && typeof value === "function") {
-								listeners[propName] = value.toString()
-							}
-						});
-						if (Object.keys(listeners).length > 0) {
-							const hostInstance = fiber.stateNode;
-							if (!hostInstance) return;
-							hostInstance.setAttribute(
-								"react-event-listeners",
-								JSON.stringify(listeners),
-							);
-						}
+instrument({
+	onCommitFiberRoot(_, root) {
+		traverseFiber(root.current, (fiber) => {
+			if (isCompositeFiber(fiber)) {
+				const hostFiber = getNearestHostFiber(fiber);
+				const displayName = getDisplayName(fiber) || "unknown";
+				if (!hostFiber) return;
+				const hostInstance = hostFiber.stateNode;
+				if (!hostInstance) return;
+				hostInstance.setAttribute("react-component-name", displayName);
+				const props = {};
+				traverseProps(fiber, (propName, nextValue) => {
+					if (
+						typeof nextValue === "number" ||
+						typeof nextValue === "string" ||
+						typeof nextValue === "boolean" ||
+						typeof nextValue === "undefined"
+					) {
+						props[propName] = nextValue;
+					} else {
+						props[propName] = typeof nextValue;
 					}
 				});
-			},
-		},
-		{
-			dangerouslyRunInProduction: true,
-			onError: (error) => {
-				console.log(error);
-			},
-		},
-	),
-);
+				if (Object.keys(props).length > 0) {
+					hostInstance.setAttribute(
+						"react-component-props",
+						JSON.stringify(props),
+					);
+				}
+			}
+			if (isHostFiber(fiber)) {
+				const listeners = {};
+				traverseProps(fiber, (propName, value) => {
+					if (propName.startsWith("on") && typeof value === "function") {
+						listeners[propName] = value.toString();
+					}
+				});
+				if (Object.keys(listeners).length > 0) {
+					const hostInstance = fiber.stateNode;
+					if (!hostInstance) return;
+					hostInstance.setAttribute(
+						"react-event-listeners",
+						JSON.stringify(listeners),
+					);
+				}
+			}
+		});
+	},
+});
 
 const getFiberFromElement = (element) => {
 	const { renderers } = getRDTHook();
