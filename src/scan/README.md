@@ -2,13 +2,13 @@
 
 - think of ways to highlight what the actual problems are
 - service worker
+- port over select tool
 
 ## notes
 
 - feature compat with existing version (core, instrumentation, highlighting)
 - refactor main website
 - playwright version
-
 
 # react scan v1 architecture
 
