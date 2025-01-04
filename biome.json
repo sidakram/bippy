@@ -46,7 +46,11 @@
 	},
 	"javascript": {
 		"formatter": {
-			"quoteStyle": "double"
+			"quoteStyle": "single",
+			"indentStyle": "space",
+			"indentWidth": 2,
+			"lineWidth": 80,
+			"lineEnding": "lf"
 		}
 	}
 }

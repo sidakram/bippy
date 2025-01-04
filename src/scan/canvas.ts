@@ -9,6 +9,7 @@ export const lerp = (start: number, end: number) => {
 	return Math.floor(start + (end - start) * INTERPOLATION_SPEED);
 };
 
+
 export const MAX_PARTS_LENGTH = 4;
 export const MAX_LABEL_LENGTH = 40;
 export const TOTAL_FRAMES = 45;
