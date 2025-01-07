@@ -941,7 +941,7 @@ export const getFiberFromHostInstance = <T>(
         key.startsWith('__reactInternalInstance$') ||
         key.startsWith('__reactFiber')
       ) {
-        return hostInstance[key];
+        return hostInstance[key] as Fiber | undefined;
       }
     }
   }

@@ -61,4 +61,12 @@ export default defineConfig([
     globalName: 'ReactScan',
     entry: ['./src/scan/index.ts'],
   },
+  {
+    ...DEFAULT_OPTIONS,
+    format: ['iife'],
+    outDir: './dist/extract',
+    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
+    globalName: 'SameExtract',
+    entry: ['./src/extract/index.ts'],
+  },
 ]);

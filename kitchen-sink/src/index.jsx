@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './main.css';
-import 'bippy/dist/extract/index';
 
 const PROJECT = 'main';
 
