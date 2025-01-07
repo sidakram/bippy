@@ -783,70 +783,67 @@ const rootInstanceMap = new WeakMap<
 >();
 
 /**
- * Creates a fiber visitor function.
+ * Creates a fiber visitor function. Must pass a fiber root and a render handler.
  * @example
- * const visitor = createFiberVisitor({
- *   onRender(fiber, phase) {
- *     console.log(phase)
- *   },
- * });
+ * traverseRenderedFibers(root, (fiber, phase) => {
+ *   console.log(phase)
+ * })
+ */
+export const traverseRenderedFibers = (
+  root: FiberRoot,
+  onRender: RenderHandler,
+) => {
+  const fiber = 'current' in root ? root.current : root;
+
+  let rootInstance = rootInstanceMap.get(root);
+
+  if (!rootInstance) {
+    rootInstance = { prevFiber: null, id: commitId++ };
+    rootInstanceMap.set(root, rootInstance);
+  }
+
+  const { prevFiber } = rootInstance;
+  // if fiberRoot don't have current instance, means it's been unmounted
+  if (!fiber) {
+    unmountFiber(onRender, fiber);
+  } else if (prevFiber !== null) {
+    const wasMounted =
+      prevFiber &&
+      prevFiber.memoizedState != null &&
+      prevFiber.memoizedState.element != null &&
+      // A dehydrated root is not considered mounted
+      prevFiber.memoizedState.isDehydrated !== true;
+    const isMounted =
+      fiber.memoizedState != null &&
+      fiber.memoizedState.element != null &&
+      // A dehydrated root is not considered mounted
+      fiber.memoizedState.isDehydrated !== true;
+
+    if (!wasMounted && isMounted) {
+      mountFiberRecursively(onRender, fiber, false);
+    } else if (wasMounted && isMounted) {
+      updateFiberRecursively(onRender, fiber, fiber.alternate, null);
+    } else if (wasMounted && !isMounted) {
+      unmountFiber(onRender, fiber);
+    }
+  } else {
+    mountFiberRecursively(onRender, fiber, true);
+  }
+
+  rootInstance.prevFiber = fiber;
+};
+
+/**
+ * @deprecated use `traverseRenderedFibers` instead
  */
 export const createFiberVisitor = ({
-  onRender: onRenderWithoutState,
-  onError,
+  onRender,
 }: {
   onRender: RenderHandler;
   onError: (error: unknown) => unknown;
 }) => {
-  return <S>(_rendererID: number, root: FiberRoot | Fiber, state?: S) => {
-    const rootFiber = 'current' in root ? root.current : root;
-    const onRender = (fiber: Fiber, phase: RenderPhase) =>
-      onRenderWithoutState<S>(fiber, phase, state);
-
-    let rootInstance = rootInstanceMap.get(root);
-
-    if (!rootInstance) {
-      rootInstance = { prevFiber: null, id: commitId++ };
-      rootInstanceMap.set(root, rootInstance);
-    }
-
-    const { prevFiber } = rootInstance;
-    try {
-      // if fiberRoot don't have current instance, means it's been unmounted
-      if (!rootFiber) {
-        unmountFiber(onRender, root);
-      } else if (prevFiber !== null) {
-        const wasMounted =
-          prevFiber &&
-          prevFiber.memoizedState != null &&
-          prevFiber.memoizedState.element != null &&
-          // A dehydrated root is not considered mounted
-          prevFiber.memoizedState.isDehydrated !== true;
-        const isMounted =
-          rootFiber.memoizedState != null &&
-          rootFiber.memoizedState.element != null &&
-          // A dehydrated root is not considered mounted
-          rootFiber.memoizedState.isDehydrated !== true;
-
-        if (!wasMounted && isMounted) {
-          mountFiberRecursively(onRender, rootFiber, false);
-        } else if (wasMounted && isMounted) {
-          updateFiberRecursively(
-            onRender,
-            rootFiber,
-            rootFiber.alternate,
-            null,
-          );
-        } else if (wasMounted && !isMounted) {
-          unmountFiber(onRender, rootFiber);
-        }
-      } else {
-        mountFiberRecursively(onRender, rootFiber, true);
-      }
-    } catch (error) {
-      onError(error);
-    }
-    rootInstance.prevFiber = rootFiber;
+  return <S>(_rendererID: number, root: FiberRoot | Fiber, _state?: S) => {
+    traverseRenderedFibers(root, onRender);
   };
 };
 
@@ -1043,4 +1040,22 @@ export const secure = (
   }
 
   return options;
+};
+
+/**
+ * a wrapper around the {@link instrument} function that sets the `onCommitFiberRoot` hook.
+ *
+ * @example
+ * onCommitFiberRoot((root) => {
+ *   console.log(root.current);
+ * });
+ */
+export const onCommitFiberRoot = (handler: (root: FiberRoot) => void) => {
+  instrument(
+    secure({
+      onCommitFiberRoot: (_, root) => {
+        handler(root);
+      },
+    }),
+  );
 };

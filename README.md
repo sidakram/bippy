@@ -18,15 +18,13 @@ by default, you cannot access react internals. bippy bypasses this by "pretendin
 - no prior react source code knowledge required
 
 ```jsx
-import { instrument, traverseFiber } from 'bippy';
+import { onCommitFiberRoot, traverseFiber } from 'bippy';
 
-instrument({
-  onCommitFiberRoot(_, root) {
-    traverseFiber(root.current, (fiber) => {
-      // will print every fiber in the current React tree
-      console.log('fiber:', fiber);
-    });
-  },
+onCommitFiberRoot((root) => {
+  traverseFiber(root.current, (fiber) => {
+    // prints every fiber in the current React tree
+    console.log('fiber:', fiber);
+  });
 });
 ```
 
@@ -87,7 +85,7 @@ additionally, `memoizedProps`, `memoizedState`, and `dependencies` are the fiber
 
 while all of the information is there, it's not super easy to work with, and changes frequently across different versions of react. bippy simplifies this by providing utility functions like:
 
-- `createFiberVisitor` to detect renders and `traverseFiber` to traverse the overall fiber tree
+- `traverseRenderedFibers` to detect renders and `traverseFiber` to traverse the overall fiber tree
   - _(instead of `child`, `sibling`, and `return` pointers)_
 - `traverseProps`, `traverseState`, and `traverseContexts` to traverse the fiber's props, state, and contexts
   - _(instead of `memoizedProps`, `memoizedState`, and `dependencies`)_
@@ -125,7 +123,7 @@ bippy works by monkey-patching `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with our 
   - _(instead of directly mutating `onCommitFiberRoot`, ...)_
 - `secure` to wrap your handlers in a try/catch and determine if handlers are safe to run
   - _(instead of rawdogging `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` handlers, which may crash your app)_
-- `createFiberVisitor` to traverse the fiber tree and determine which fibers have actually rendered
+- `traverseRenderedFibers` to traverse the fiber tree and determine which fibers have actually rendered
   - _(instead of `child`, `sibling`, and `return` pointers)_
 - `traverseFiber` to traverse the fiber tree, regardless of whether it has rendered
   - _(instead of `child`, `sibling`, and `return` pointers)_
@@ -142,7 +140,7 @@ this package should be imported before a React app runs. this will add a special
 npm install bippy
 ```
 
-or, use via script tag. must be added before any other scripts run:
+or, use via script tag:
 
 ```html
 <script src="https://unpkg.com/bippy"></script>
@@ -152,7 +150,22 @@ or, use via script tag. must be added before any other scripts run:
 
 next, you can use the api to get data about the fiber tree. below is a (useful) subset of the api. for the full api, read the [source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts).
 
+
+### onCommitFiberRoot
+
+a utility function that wraps the `instrument` function and sets the `onCommitFiberRoot` hook.
+
+```typescript
+import { onCommitFiberRoot } from 'bippy';
+
+onCommitFiberRoot((root) => {
+  console.log('root ready to commit', root);
+});
+```
+
 ### instrument
+
+> the underlying implementation for the `onCommitFiberRoot()` function. this is optional, unless you want to plug into more less common, advanced functionality.
 
 patches `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` with your handlers. must be imported before react, and must be initialized to properly run any other methods.
 
@@ -177,24 +190,31 @@ instrument(
 );
 ```
 
-### createFiberVisitor
+### getRDTHook
 
-not every fiber in the fiber tree renders. `createFiberVisitor` allows you to traverse the fiber tree and determine which fibers have actually rendered.
+returns the `window.__REACT_DEVTOOLS_GLOBAL_HOOK__` object. great for advanced use cases, such as accessing or modifying the `renderers` property.
 
 ```typescript
-import { instrument, secure, createFiberVisitor } from 'bippy'; // must be imported BEFORE react
-import * as React from 'react';
+import { getRDTHook } from 'bippy';
 
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    console.log('fiber rendered', fiber);
-  },
-});
+const hook = getRDTHook();
+console.log(hook);
+```
+
+### traverseRenderedFibers
+
+not every fiber in the fiber tree renders. `traverseRenderedFibers` allows you to traverse the fiber tree and determine which fibers have actually rendered.
+
+```typescript
+import { instrument, secure, traverseRenderedFibers } from 'bippy'; // must be imported BEFORE react
+import * as React from 'react';
 
 instrument(
   secure({
     onCommitFiberRoot(rendererID, root) {
-      visit(rendererID, root);
+      traverseRenderedFibers(root, (fiber) => {
+        console.log('fiber rendered', fiber);
+      });
     },
   })
 );
@@ -274,6 +294,7 @@ traverseContexts(fiber, (next, prev) => {
   console.log(next, prev);
 });
 ```
+
 
 ### setFiberId / getFiberId
 
@@ -415,7 +436,7 @@ import {
   instrument,
   isHostFiber,
   getNearestHostFiber,
-  createFiberVisitor,
+  traverseRenderedFibers,
 } from 'bippy'; // must be imported BEFORE react
 
 const highlightFiber = (fiber) => {
@@ -435,29 +456,6 @@ const highlightFiber = (fiber) => {
     document.documentElement.removeChild(highlight);
   }, 100);
 };
-
-/**
- * `createFiberVisitor` traverses the fiber tree and determines which
- * fibers have actually rendered.
- *
- * A fiber tree contains many fibers that may have not rendered. this
- * can be because it bailed out (e.g. `useMemo`) or because it wasn't
- * actually rendered (if <Child> re-rendered, then <Parent> didn't
- * actually render, but exists in the fiber tree).
- */
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    /**
-     * `getNearestHostFiber` is a utility function that finds the
-     * nearest host fiber to a given fiber.
-     *
-     * a host fiber for `react-dom` is a fiber that has a DOM element
-     * as its `stateNode`.
-     */
-    const hostFiber = getNearestHostFiber(fiber);
-    highlightFiber(hostFiber);
-  },
-});
 
 /**
  * `instrument` is a function that installs the react DevTools global
@@ -480,7 +478,26 @@ instrument(
      * the host tree (e.g. via DOM mutations).
      */
     onCommitFiberRoot(rendererID, root) {
-      visit(rendererID, root);
+      /**
+       * `traverseRenderedFibers` traverses the fiber tree and determines which
+       * fibers have actually rendered.
+       *
+       * A fiber tree contains many fibers that may have not rendered. this
+       * can be because it bailed out (e.g. `useMemo`) or because it wasn't
+       * actually rendered (if <Child> re-rendered, then <Parent> didn't
+       * actually render, but exists in the fiber tree).
+       */
+      traverseRenderedFibers(root, (fiber) => {
+        /**
+         * `getNearestHostFiber` is a utility function that finds the
+         * nearest host fiber to a given fiber.
+         *
+         * a host fiber for `react-dom` is a fiber that has a DOM element
+         * as its `stateNode`.
+         */
+        const hostFiber = getNearestHostFiber(fiber);
+        highlightFiber(hostFiber);
+      });
     },
   })
 );
@@ -494,7 +511,7 @@ here's a mini toy version of [`why-did-you-render`](https://github.com/welldone-
 import {
   instrument,
   isHostFiber,
-  createFiberVisitor,
+  traverseRenderedFibers,
   isCompositeFiber,
   getDisplayName,
   traverseProps,
@@ -502,84 +519,80 @@ import {
   traverseState,
 } from 'bippy'; // must be imported BEFORE react
 
-const visit = createFiberVisitor({
-  onRender(fiber) {
-    /**
-     * `isCompositeFiber` is a utility function that checks if a fiber is a composite fiber.
-     * a composite fiber is a fiber that represents a function or class component.
-     */
-    if (!isCompositeFiber(fiber)) return;
-
-    /**
-     * `getDisplayName` is a utility function that gets the display name of a fiber.
-     */
-    const displayName = getDisplayName(fiber);
-    if (!displayName) return;
-
-    const changes = [];
-
-    /**
-     * `traverseProps` is a utility function that traverses the props of a fiber.
-     */
-    traverseProps(fiber, (propName, next, prev) => {
-      if (next !== prev) {
-        changes.push({
-          name: `prop ${propName}`,
-          prev,
-          next,
-        });
-      }
-    });
-
-    let contextId = 0;
-    /**
-     * `traverseContexts` is a utility function that traverses the contexts of a fiber.
-     * Contexts don't have a "name" like props, so we use an id to identify them.
-     */
-    traverseContexts(fiber, (next, prev) => {
-      if (next !== prev) {
-        changes.push({
-          name: `context ${contextId}`,
-          prev,
-          next,
-          contextId,
-        });
-      }
-      contextId++;
-    });
-
-    let stateId = 0;
-    /**
-     * `traverseState` is a utility function that traverses the state of a fiber.
-     *
-     * State don't have a "name" like props, so we use an id to identify them.
-     */
-    traverseState(fiber, (value, prevValue) => {
-      if (next !== prev) {
-        changes.push({
-          name: `state ${stateId}`,
-          prev,
-          next,
-        });
-      }
-      stateId++;
-    });
-
-    console.group(
-      `%c${displayName}`,
-      'background: hsla(0,0%,70%,.3); border-radius:3px; padding: 0 2px;'
-    );
-    for (const { name, prev, next } of changes) {
-      console.log(`${name}:`, prev, '!==', next);
-    }
-    console.groupEnd();
-  },
-});
-
 instrument(
   secure({
     onCommitFiberRoot(rendererID, root) {
-      visit(rendererID, root);
+      traverseRenderedFibers(root, (fiber) => {
+        /**
+         * `isCompositeFiber` is a utility function that checks if a fiber is a composite fiber.
+         * a composite fiber is a fiber that represents a function or class component.
+         */
+        if (!isCompositeFiber(fiber)) return;
+
+        /**
+         * `getDisplayName` is a utility function that gets the display name of a fiber.
+         */
+        const displayName = getDisplayName(fiber);
+        if (!displayName) return;
+
+        const changes = [];
+
+        /**
+         * `traverseProps` is a utility function that traverses the props of a fiber.
+         */
+        traverseProps(fiber, (propName, next, prev) => {
+          if (next !== prev) {
+            changes.push({
+              name: `prop ${propName}`,
+              prev,
+              next,
+            });
+          }
+        });
+
+        let contextId = 0;
+        /**
+         * `traverseContexts` is a utility function that traverses the contexts of a fiber.
+         * Contexts don't have a "name" like props, so we use an id to identify them.
+         */
+        traverseContexts(fiber, (next, prev) => {
+          if (next !== prev) {
+            changes.push({
+              name: `context ${contextId}`,
+              prev,
+              next,
+              contextId,
+            });
+          }
+          contextId++;
+        });
+
+        let stateId = 0;
+        /**
+         * `traverseState` is a utility function that traverses the state of a fiber.
+         *
+         * State don't have a "name" like props, so we use an id to identify them.
+         */
+        traverseState(fiber, (value, prevValue) => {
+          if (next !== prev) {
+            changes.push({
+              name: `state ${stateId}`,
+              prev,
+              next,
+            });
+          }
+          stateId++;
+        });
+
+        console.group(
+          `%c${displayName}`,
+          'background: hsla(0,0%,70%,.3); border-radius:3px; padding: 0 2px;'
+        );
+        for (const { name, prev, next } of changes) {
+          console.log(`${name}:`, prev, '!==', next);
+        }
+        console.groupEnd();
+      });
     },
   })
 );

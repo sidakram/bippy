@@ -17,6 +17,7 @@ import { highlight } from 'sugar-high';
 if (process.env.NODE_ENV === 'development') {
   import('bippy/dist/extract/index');
 }
+
 instrument({
   onCommitFiberRoot(_, root) {
     traverseFiber(root.current, (fiber) => {
@@ -334,15 +335,13 @@ export default function Main() {
             // biome-ignore lint/security/noDangerouslySetInnerHtml: OK
             dangerouslySetInnerHTML={{
               __html:
-                highlight(`import { instrument, traverseFiber } from 'bippy';
+                highlight(`import { onCommitFiberRoot, traverseFiber } from 'bippy';
 
-instrument({
-  onCommitFiberRoot(_, root) {
+onCommitFiberRoot((root) => {
     traverseFiber(root.current, (fiber) => {
       console.log('fiber:', fiber);
     });
-  },
-});`),
+})`),
             }}
           />
         </pre>
