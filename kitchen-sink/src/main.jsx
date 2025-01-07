@@ -338,9 +338,9 @@ export default function Main() {
                 highlight(`import { onCommitFiberRoot, traverseFiber } from 'bippy';
 
 onCommitFiberRoot((root) => {
-    traverseFiber(root.current, (fiber) => {
-      console.log('fiber:', fiber);
-    });
+  traverseFiber(root.current, (fiber) => {
+    console.log('fiber:', fiber);
+  });
 })`),
             }}
           />
