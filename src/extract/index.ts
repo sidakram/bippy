@@ -74,6 +74,40 @@ const lerp = (start: number, end: number) => {
   return Math.floor(start + (end - start) * 0.2);
 };
 
+const defaultStylesCache = new Map<string, Record<string, string>>();
+const computedStylesCache = new WeakMap<Element, Record<string, string>>();
+
+const getDefaultStyles = (tagName: string): Record<string, string> => {
+  const cached = defaultStylesCache.get(tagName);
+  if (cached) return cached;
+
+  const defaultElement = document.createElement(tagName);
+  document.body.appendChild(defaultElement);
+  const defaultStyle = window.getComputedStyle(defaultElement);
+  const styles: Record<string, string> = {};
+  Array.from({ length: defaultStyle.length }).forEach((_, i) => {
+    const prop = defaultStyle[i];
+    styles[prop] = defaultStyle.getPropertyValue(prop);
+  });
+  document.body.removeChild(defaultElement);
+  defaultStylesCache.set(tagName, styles);
+  return styles;
+};
+
+const getComputedStyles = (element: Element): Record<string, string> => {
+  const cached = computedStylesCache.get(element);
+  if (cached) return cached;
+
+  const computedStyle = window.getComputedStyle(element);
+  const styles: Record<string, string> = {};
+  for (let i = 0; i < computedStyle.length; i++) {
+    const prop = computedStyle[i];
+    styles[prop] = computedStyle.getPropertyValue(prop);
+  }
+  computedStylesCache.set(element, styles);
+  return styles;
+};
+
 export const init = () => {
   let hasInitedIds = false;
   let prevX: number | undefined;
@@ -370,20 +404,24 @@ const createElementNode = async (
   const rectMap = await getRectMap([element]);
   const rect = rectMap.get(element) || element.getBoundingClientRect();
 
-  const computedStyle = window.getComputedStyle(element);
+  const computedStyles = getComputedStyles(element);
+  const defaultStyles = getDefaultStyles(element.tagName);
+
   const styles: Record<string, unknown> = {};
-  Array.from({ length: computedStyle.length }).forEach((_, i) => {
-    const prop = computedStyle[i];
-    styles[prop] = computedStyle.getPropertyValue(prop);
-  });
+  for (const [prop, value] of Object.entries(computedStyles)) {
+    const defaultValue = defaultStyles[prop];
+    if (value !== defaultValue) {
+      styles[prop] = value;
+    }
+  }
 
   return {
     type: ReactSpecNodeType.Element,
     children: [],
-    x: rect.x,
-    y: rect.y,
-    width: rect.width,
-    height: rect.height,
+    x: Math.floor(rect.x),
+    y: Math.floor(rect.y),
+    width: Math.floor(rect.width),
+    height: Math.floor(rect.height),
     eventHandlers: {},
     classes: Array.from(element.classList),
     styles,
