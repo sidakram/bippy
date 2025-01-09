@@ -13,6 +13,7 @@ import {
   getFiberStack,
   getDisplayName,
   getNearestHostFiber,
+  traverseRenderedFibers,
 } from '../index.js';
 
 export interface ReactSpecTree {
@@ -21,8 +22,9 @@ export interface ReactSpecTree {
 
 export enum ReactSpecNodeType {
   Component = 'component',
-  Element = 'element',
   A11y = 'a11y',
+  Interactive = 'interactive',
+  Element = 'element',
 }
 
 export interface BaseReactSpecNode {
@@ -31,17 +33,20 @@ export interface BaseReactSpecNode {
 }
 
 export interface ReactElementSpecNode extends BaseReactSpecNode {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  eventHandlers: Record<string, string>;
-  classes: string[];
-  styles: Record<string, unknown>;
+  type:
+    | ReactSpecNodeType.Element
+    | ReactSpecNodeType.Interactive
+    | ReactSpecNodeType.A11y;
   element: Element | null;
 }
 
-export interface ReactA11ySpecNode extends ReactElementSpecNode {
+export interface ReactInteractiveSpecNode extends ReactElementSpecNode {
+  eventHandlers: Record<string, string>;
+  element: Element | null;
+  type: ReactSpecNodeType.Interactive | ReactSpecNodeType.A11y;
+}
+
+export interface ReactA11ySpecNode extends ReactInteractiveSpecNode {
   type: ReactSpecNodeType.A11y;
   role: string | null;
   ariaLabel: string | null;
@@ -54,9 +59,10 @@ export interface ReactComponentSpecNode extends BaseReactSpecNode {
 }
 
 export type ReactSpecNode =
-  | ReactElementSpecNode
+  | ReactInteractiveSpecNode
   | ReactA11ySpecNode
-  | ReactComponentSpecNode;
+  | ReactComponentSpecNode
+  | ReactElementSpecNode;
 
 declare global {
   var __RST__: boolean;
@@ -74,40 +80,6 @@ const lerp = (start: number, end: number) => {
   return Math.floor(start + (end - start) * 0.2);
 };
 
-const defaultStylesCache = new Map<string, Record<string, string>>();
-const computedStylesCache = new WeakMap<Element, Record<string, string>>();
-
-const getDefaultStyles = (tagName: string): Record<string, string> => {
-  const cached = defaultStylesCache.get(tagName);
-  if (cached) return cached;
-
-  const defaultElement = document.createElement(tagName);
-  document.body.appendChild(defaultElement);
-  const defaultStyle = window.getComputedStyle(defaultElement);
-  const styles: Record<string, string> = {};
-  Array.from({ length: defaultStyle.length }).forEach((_, i) => {
-    const prop = defaultStyle[i];
-    styles[prop] = defaultStyle.getPropertyValue(prop);
-  });
-  document.body.removeChild(defaultElement);
-  defaultStylesCache.set(tagName, styles);
-  return styles;
-};
-
-const getComputedStyles = (element: Element): Record<string, string> => {
-  const cached = computedStylesCache.get(element);
-  if (cached) return cached;
-
-  const computedStyle = window.getComputedStyle(element);
-  const styles: Record<string, string> = {};
-  for (let i = 0; i < computedStyle.length; i++) {
-    const prop = computedStyle[i];
-    styles[prop] = computedStyle.getPropertyValue(prop);
-  }
-  computedStylesCache.set(element, styles);
-  return styles;
-};
-
 export const init = () => {
   let hasInitedIds = false;
   let prevX: number | undefined;
@@ -118,27 +90,20 @@ export const init = () => {
     getFiberId(fiber);
   };
 
-  const visit = createFiberVisitor({
-    onRender: handleFiber,
-    onError(error) {
-      console.error(error);
-    },
-  });
-
   instrument(
     secure(
       {
         onActive() {
           globalThis.__RST__ = true;
         },
-        onCommitFiberRoot(rendererID, root) {
+        onCommitFiberRoot(_, root) {
           fiberRoots.add(root);
           if (!hasInitedIds) {
             traverseFiber(root, handleFiber);
             hasInitedIds = true;
             return;
           }
-          visit(rendererID, root);
+          traverseRenderedFibers(root, handleFiber);
         },
       },
       {
@@ -285,18 +250,16 @@ export const init = () => {
         if (count > 2) break;
       }
       text = orderedDisplayNames.join(' > ');
-      const rst = await createRSTWithFiber(
-        nearestCompositeFiber || fiber,
-        target,
-      );
+      const rst = createRSTWithFiber(nearestCompositeFiber || fiber, target);
       // console.log(printRST(rst));
       console.log(rst);
     } else {
       focusedFiber = null;
-      text = target.tagName.toLowerCase();
-      const rst = await createRSTWithElement(target);
-      // console.log(printRST(rst));
-      console.log(rst);
+      // text = target.tagName.toLowerCase();
+      // const rst = await createRSTWithElement(target);
+      // // console.log(printRST(rst));
+      // console.log(rst);
+      // TODO: implement version with only a11y tree
     }
 
     startAnimation();
@@ -383,176 +346,100 @@ export const init = () => {
 
 init();
 
-const createRSTWithFiber = async (
+export const createRSTWithFiber = (
   fiber: Fiber,
   element: Element,
-): Promise<ReactSpecTree> => {
-  const root = await createRSTNode(fiber, element);
-  return { root };
+): ReactSpecTree => {
+  const nodes: ReactSpecNode[] = [];
+  traverseNode(fiber, element, nodes);
+  return { root: nodes[0] };
 };
 
-const createRSTWithElement = async (
-  element: Element,
-): Promise<ReactSpecTree> => {
-  const root = await createRSTNodeFromElement(element);
-  return { root };
-};
-
-const createElementNode = async (
-  element: Element,
-): Promise<ReactElementSpecNode> => {
-  const rectMap = await getRectMap([element]);
-  const rect = rectMap.get(element) || element.getBoundingClientRect();
-
-  const computedStyles = getComputedStyles(element);
-  const defaultStyles = getDefaultStyles(element.tagName);
-
-  const styles: Record<string, unknown> = {};
-  for (const [prop, value] of Object.entries(computedStyles)) {
-    const defaultValue = defaultStyles[prop];
-    if (value !== defaultValue) {
-      styles[prop] = value;
-    }
-  }
-
-  return {
-    type: ReactSpecNodeType.Element,
-    children: [],
-    x: Math.floor(rect.x),
-    y: Math.floor(rect.y),
-    width: Math.floor(rect.width),
-    height: Math.floor(rect.height),
-    eventHandlers: {},
-    classes: Array.from(element.classList),
-    styles,
-    element,
-  };
-};
-
-const createA11yNode = (
-  base: ReactElementSpecNode,
-  role: string | null,
-  ariaLabel: string | null,
-): ReactA11ySpecNode => {
-  return {
-    ...base,
-    type: ReactSpecNodeType.A11y,
-    role,
-    ariaLabel,
-  };
-};
-
-const createRSTNodeFromElement = async (
-  element: Element,
-): Promise<ReactSpecNode> => {
-  const base = await createElementNode(element);
-
-  for (const attr of Array.from(element.attributes)) {
-    if (attr.name.startsWith('on')) {
-      base.eventHandlers[attr.name] = attr.value;
-    }
-  }
-
-  base.children = await Promise.all(
-    Array.from(element.children).map(createRSTNodeFromElement),
-  );
-
-  const role = element.getAttribute('role');
-  const ariaLabel = element.getAttribute('aria-label');
-
-  if (role || ariaLabel) {
-    return createA11yNode(base, role, ariaLabel);
-  }
-
-  return base;
-};
-
-const createRSTNode = async (
+const traverseNode = (
   fiber: Fiber,
-  element: Element,
-): Promise<ReactSpecNode> => {
+  element: Element | null,
+  nodes: ReactSpecNode[],
+) => {
   if (isCompositeFiber(fiber)) {
-    const props: Record<string, unknown> = {};
-    traverseProps(fiber, (propName, nextValue) => {
-      props[propName] = nextValue;
-    });
-
-    const children: ReactSpecNode[] = [];
-    const childPromises: Promise<void>[] = [];
-
-    traverseFiber(fiber.child, (childFiber) => {
-      if (isHostFiber(childFiber) && childFiber.stateNode) {
-        childPromises.push(
-          createRSTNode(childFiber, childFiber.stateNode).then((node) => {
-            children.push(node);
-          }),
-        );
-      } else if (isCompositeFiber(childFiber)) {
-        const hostFiber = getNearestHostFiber(childFiber);
-        if (hostFiber?.stateNode) {
-          childPromises.push(
-            createRSTNode(childFiber, hostFiber.stateNode).then((node) => {
-              children.push(node);
-            }),
-          );
-        }
-      }
-    });
-
-    await Promise.all(childPromises);
-
-    return {
+    const node: ReactComponentSpecNode = {
       type: ReactSpecNodeType.Component,
-      children,
-      props,
-      name: getDisplayName(fiber.type),
+      name: getDisplayName(fiber),
+      props: {},
+      children: [],
     };
-  }
 
-  if (isHostFiber(fiber)) {
-    const base = await createElementNode(element);
-
-    traverseProps(fiber, (propName, value) => {
-      if (propName.startsWith('on') && typeof value === 'function') {
-        base.eventHandlers[propName] = value.toString();
+    if (fiber.memoizedProps) {
+      const props = fiber.memoizedProps as Record<string, unknown>;
+      for (const [key, value] of Object.entries(props)) {
+        node.props[key] = value;
       }
-    });
+    }
 
-    base.children = [];
-    const childPromises: Promise<void>[] = [];
-
-    traverseFiber(fiber.child, (childFiber) => {
-      if (isHostFiber(childFiber) && childFiber.stateNode) {
-        childPromises.push(
-          createRSTNode(childFiber, childFiber.stateNode).then((node) => {
-            base.children.push(node);
-          }),
-        );
-      } else if (isCompositeFiber(childFiber)) {
-        const hostFiber = getNearestHostFiber(childFiber);
-        if (hostFiber?.stateNode) {
-          childPromises.push(
-            createRSTNode(childFiber, hostFiber.stateNode).then((node) => {
-              base.children.push(node);
-            }),
-          );
-        }
-      }
-    });
-
-    await Promise.all(childPromises);
-
+    nodes.push(node);
+    traverseChildren(fiber, node.children);
+  } else if (isHostFiber(fiber) && element) {
     const role = element.getAttribute('role');
     const ariaLabel = element.getAttribute('aria-label');
+    const hasA11y = role || ariaLabel;
 
-    if (role || ariaLabel) {
-      return createA11yNode(base, role, ariaLabel);
+    const isInteractive =
+      element instanceof HTMLButtonElement ||
+      element instanceof HTMLAnchorElement ||
+      element instanceof HTMLInputElement ||
+      element.hasAttribute('onclick') ||
+      element.hasAttribute('onkeydown') ||
+      element.hasAttribute('onkeyup') ||
+      element.hasAttribute('onmousedown') ||
+      element.hasAttribute('onmouseup');
+
+    if (hasA11y) {
+      const node: ReactA11ySpecNode = {
+        type: ReactSpecNodeType.A11y,
+        role,
+        ariaLabel,
+        element,
+        eventHandlers: {},
+        children: [],
+      };
+      nodes.push(node);
+      traverseChildren(fiber, node.children);
+    } else if (isInteractive) {
+      const node: ReactInteractiveSpecNode = {
+        type: ReactSpecNodeType.Interactive,
+        element,
+        eventHandlers: {},
+        children: [],
+      };
+      nodes.push(node);
+      traverseChildren(fiber, node.children);
+    } else {
+      const node: ReactElementSpecNode = {
+        type: ReactSpecNodeType.Element,
+        element,
+        children: [],
+      };
+      nodes.push(node);
+      traverseChildren(fiber, node.children);
     }
-
-    return base;
+  } else {
+    // For other fiber types, just traverse children
+    traverseChildren(fiber, nodes);
   }
+};
 
-  throw new Error('Unknown fiber type');
+const traverseChildren = (fiber: Fiber, nodes: ReactSpecNode[]) => {
+  let child = fiber.child;
+  while (child) {
+    if (isHostFiber(child)) {
+      traverseNode(child, child.stateNode as Element, nodes);
+    } else if (isCompositeFiber(child)) {
+      traverseNode(child, null, nodes);
+    } else {
+      // For other fiber types (e.g. text), traverse their children
+      traverseNode(child, null, nodes);
+    }
+    child = child.sibling;
+  }
 };
 
 export const getRectMap = (
@@ -578,121 +465,4 @@ export const getRectMap = (
       observer.observe(element);
     }
   });
-};
-
-const stringifyWithCircularCheck = (
-  value: unknown,
-  seen = new WeakSet(),
-): string => {
-  if (value === null || value === undefined) {
-    return String(value);
-  }
-
-  if (typeof value === 'function') {
-    return (
-      value.toString().slice(0, 50) +
-      (value.toString().length > 50 ? '...' : '')
-    );
-  }
-
-  if (typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-
-  if (seen.has(value)) {
-    return '[Circular]';
-  }
-
-  seen.add(value);
-
-  if (Array.isArray(value)) {
-    const items = value.map((item) => stringifyWithCircularCheck(item, seen));
-    return `[${items.join(', ')}]`;
-  }
-
-  try {
-    const pairs = Object.entries(value).map(
-      ([key, val]) => `${key}: ${stringifyWithCircularCheck(val, seen)}`,
-    );
-    return `{${pairs.join(', ')}}`;
-  } catch {
-    return '[Object]';
-  }
-};
-
-export const printRST = (tree: ReactSpecTree, indent = 0): string => {
-  const printNode = (node: ReactSpecNode, indent: number): string => {
-    const spaces = '  '.repeat(indent);
-
-    if (
-      node.type === ReactSpecNodeType.Component &&
-      'props' in node &&
-      'name' in node
-    ) {
-      const props = Object.entries(node.props)
-        .map(([key, value]) => `${key}={${stringifyWithCircularCheck(value)}}`)
-        .join(' ');
-      return `${spaces}<${node.name || 'Unknown'}${props ? ` ${props}` : ''}>\n${node.children
-        .map((child) => printNode(child, indent + 1))
-        .join('\n')}\n${spaces}</${node.name || 'Unknown'}>`;
-    }
-
-    const attrs: string[] = [];
-    if ('classes' in node && node.classes.length > 0) {
-      attrs.push(`class="${node.classes.join(' ')}"`);
-    }
-
-    if ('eventHandlers' in node) {
-      const eventHandlerAttrs = Object.entries(node.eventHandlers)
-        .map(
-          ([event, handler]) =>
-            `${event}={${handler.slice(0, 50)}${handler.length > 50 ? '...' : ''}}`,
-        )
-        .join(' ');
-      if (eventHandlerAttrs) {
-        attrs.push(eventHandlerAttrs);
-      }
-    }
-
-    if ('styles' in node) {
-      const styleStr = stringifyWithCircularCheck(node.styles);
-      if (styleStr !== '{}') {
-        attrs.push(`style={${styleStr}}`);
-      }
-    }
-
-    if (
-      node.type === ReactSpecNodeType.A11y &&
-      'role' in node &&
-      'ariaLabel' in node
-    ) {
-      if (node.role) attrs.push(`role="${node.role}"`);
-      if (node.ariaLabel) attrs.push(`aria-label="${node.ariaLabel}"`);
-    }
-
-    if ('x' in node && 'y' in node && 'width' in node && 'height' in node) {
-      const dimensions = `x=${Math.round(node.x)} y=${Math.round(node.y)} w=${Math.round(node.width)} h=${Math.round(node.height)}`;
-      attrs.push(dimensions);
-    }
-
-    const tagName =
-      'element' in node
-        ? node.element?.tagName.toLowerCase() || 'unknown'
-        : 'unknown';
-    const attrsStr = attrs.length > 0 ? ` ${attrs.join(' ')}` : '';
-
-    if (node.children.length === 0) {
-      return `${spaces}<${tagName}${attrsStr} />`;
-    }
-
-    return `${spaces}<${tagName}${attrsStr}>\n${node.children
-      .map((child) => printNode(child, indent + 1))
-      .join('\n')}\n${spaces}</${tagName}>`;
-  };
-
-  if (!('type' in tree.root)) {
-    throw new Error('Invalid RST: root node must have a type');
-  }
-
-  return printNode(tree.root as ReactSpecNode, indent);
 };
