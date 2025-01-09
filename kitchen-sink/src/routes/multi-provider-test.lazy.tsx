@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import React from 'react'
 import {
   instrument,
@@ -48,6 +48,6 @@ export default function MultiProviderTest() {
   )
 }
 
-export const Route = createFileRoute('/multi-provider-test')({
+export const Route = createLazyFileRoute('/multi-provider-test')({
   component: MultiProviderTest,
 })

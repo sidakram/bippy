@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import React, { type ReactNode } from 'react'
 import {
   instrument,
@@ -51,6 +51,6 @@ export default function ChildrenRenderTest() {
   )
 }
 
-export const Route = createFileRoute('/children-render-test')({
+export const Route = createLazyFileRoute('/children-render-test')({
   component: ChildrenRenderTest,
 })

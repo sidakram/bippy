@@ -1,8 +1,8 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
 
 export default function SlowComponent() {
-  const largeArray = Array.from({ length: 10 }, (_, i) => i)
+  const largeArray = Array.from({ length: 1000 }, (_, i) => i)
   const [count, setCount] = useState<number>(0)
 
   useEffect(() => {
@@ -37,6 +37,6 @@ export const Box = ({ value }: BoxProps): JSX.Element => {
   )
 }
 
-export const Route = createFileRoute('/big-grid-test')({
+export const Route = createLazyFileRoute('/big-grid-test')({
   component: SlowComponent,
 })

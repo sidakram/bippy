@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createLazyFileRoute } from '@tanstack/react-router'
 import React, { useState, createContext, type ReactNode } from 'react'
 
 interface TooltipContextType {
@@ -170,6 +170,6 @@ export const Input = ({ onChange, onEnter, value }: InputProps) => {
 
 export default App
 
-export const Route = createFileRoute('/mini-react-scan')({
+export const Route = createLazyFileRoute('/mini-react-scan')({
   component: App,
 })

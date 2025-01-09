@@ -13,16 +13,15 @@ import { createFileRoute } from '@tanstack/react-router'
 // Import Routes
 
 import { Route as rootRoute } from './routes/__root'
-import { Route as MultiProviderTestImport } from './routes/multi-provider-test'
-import { Route as MiniReactScanImport } from './routes/mini-react-scan'
-import { Route as ChildrenRenderTestImport } from './routes/children-render-test'
-import { Route as ButtonTestImport } from './routes/button-test'
-import { Route as BigGridTestImport } from './routes/big-grid-test'
 import { Route as IndexImport } from './routes/index'
 
 // Create Virtual Routes
 
 const OwnerTreeLazyImport = createFileRoute('/owner-tree')()
+const MultiProviderTestLazyImport = createFileRoute('/multi-provider-test')()
+const MiniReactScanLazyImport = createFileRoute('/mini-react-scan')()
+const ChildrenRenderTestLazyImport = createFileRoute('/children-render-test')()
+const BigGridTestLazyImport = createFileRoute('/big-grid-test')()
 
 // Create/Update Routes
 
@@ -32,35 +31,35 @@ const OwnerTreeLazyRoute = OwnerTreeLazyImport.update({
   getParentRoute: () => rootRoute,
 } as any).lazy(() => import('./routes/owner-tree.lazy').then((d) => d.Route))
 
-const MultiProviderTestRoute = MultiProviderTestImport.update({
+const MultiProviderTestLazyRoute = MultiProviderTestLazyImport.update({
   id: '/multi-provider-test',
   path: '/multi-provider-test',
   getParentRoute: () => rootRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/multi-provider-test.lazy').then((d) => d.Route),
+)
 
-const MiniReactScanRoute = MiniReactScanImport.update({
+const MiniReactScanLazyRoute = MiniReactScanLazyImport.update({
   id: '/mini-react-scan',
   path: '/mini-react-scan',
   getParentRoute: () => rootRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/mini-react-scan.lazy').then((d) => d.Route),
+)
 
-const ChildrenRenderTestRoute = ChildrenRenderTestImport.update({
+const ChildrenRenderTestLazyRoute = ChildrenRenderTestLazyImport.update({
   id: '/children-render-test',
   path: '/children-render-test',
   getParentRoute: () => rootRoute,
-} as any)
+} as any).lazy(() =>
+  import('./routes/children-render-test.lazy').then((d) => d.Route),
+)
 
-const ButtonTestRoute = ButtonTestImport.update({
-  id: '/button-test',
-  path: '/button-test',
-  getParentRoute: () => rootRoute,
-} as any)
-
-const BigGridTestRoute = BigGridTestImport.update({
+const BigGridTestLazyRoute = BigGridTestLazyImport.update({
   id: '/big-grid-test',
   path: '/big-grid-test',
   getParentRoute: () => rootRoute,
-} as any)
+} as any).lazy(() => import('./routes/big-grid-test.lazy').then((d) => d.Route))
 
 const IndexRoute = IndexImport.update({
   id: '/',
@@ -83,35 +82,28 @@ declare module '@tanstack/react-router' {
       id: '/big-grid-test'
       path: '/big-grid-test'
       fullPath: '/big-grid-test'
-      preLoaderRoute: typeof BigGridTestImport
-      parentRoute: typeof rootRoute
-    }
-    '/button-test': {
-      id: '/button-test'
-      path: '/button-test'
-      fullPath: '/button-test'
-      preLoaderRoute: typeof ButtonTestImport
+      preLoaderRoute: typeof BigGridTestLazyImport
       parentRoute: typeof rootRoute
     }
     '/children-render-test': {
       id: '/children-render-test'
       path: '/children-render-test'
       fullPath: '/children-render-test'
-      preLoaderRoute: typeof ChildrenRenderTestImport
+      preLoaderRoute: typeof ChildrenRenderTestLazyImport
       parentRoute: typeof rootRoute
     }
     '/mini-react-scan': {
       id: '/mini-react-scan'
       path: '/mini-react-scan'
       fullPath: '/mini-react-scan'
-      preLoaderRoute: typeof MiniReactScanImport
+      preLoaderRoute: typeof MiniReactScanLazyImport
       parentRoute: typeof rootRoute
     }
     '/multi-provider-test': {
       id: '/multi-provider-test'
       path: '/multi-provider-test'
       fullPath: '/multi-provider-test'
-      preLoaderRoute: typeof MultiProviderTestImport
+      preLoaderRoute: typeof MultiProviderTestLazyImport
       parentRoute: typeof rootRoute
     }
     '/owner-tree': {
@@ -128,32 +120,29 @@ declare module '@tanstack/react-router' {
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/big-grid-test': typeof BigGridTestRoute
-  '/button-test': typeof ButtonTestRoute
-  '/children-render-test': typeof ChildrenRenderTestRoute
-  '/mini-react-scan': typeof MiniReactScanRoute
-  '/multi-provider-test': typeof MultiProviderTestRoute
+  '/big-grid-test': typeof BigGridTestLazyRoute
+  '/children-render-test': typeof ChildrenRenderTestLazyRoute
+  '/mini-react-scan': typeof MiniReactScanLazyRoute
+  '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
 }
 
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/big-grid-test': typeof BigGridTestRoute
-  '/button-test': typeof ButtonTestRoute
-  '/children-render-test': typeof ChildrenRenderTestRoute
-  '/mini-react-scan': typeof MiniReactScanRoute
-  '/multi-provider-test': typeof MultiProviderTestRoute
+  '/big-grid-test': typeof BigGridTestLazyRoute
+  '/children-render-test': typeof ChildrenRenderTestLazyRoute
+  '/mini-react-scan': typeof MiniReactScanLazyRoute
+  '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
 }
 
 export interface FileRoutesById {
   __root__: typeof rootRoute
   '/': typeof IndexRoute
-  '/big-grid-test': typeof BigGridTestRoute
-  '/button-test': typeof ButtonTestRoute
-  '/children-render-test': typeof ChildrenRenderTestRoute
-  '/mini-react-scan': typeof MiniReactScanRoute
-  '/multi-provider-test': typeof MultiProviderTestRoute
+  '/big-grid-test': typeof BigGridTestLazyRoute
+  '/children-render-test': typeof ChildrenRenderTestLazyRoute
+  '/mini-react-scan': typeof MiniReactScanLazyRoute
+  '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
 }
 
@@ -162,7 +151,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/big-grid-test'
-    | '/button-test'
     | '/children-render-test'
     | '/mini-react-scan'
     | '/multi-provider-test'
@@ -171,7 +159,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/big-grid-test'
-    | '/button-test'
     | '/children-render-test'
     | '/mini-react-scan'
     | '/multi-provider-test'
@@ -180,7 +167,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/big-grid-test'
-    | '/button-test'
     | '/children-render-test'
     | '/mini-react-scan'
     | '/multi-provider-test'
@@ -190,21 +176,19 @@ export interface FileRouteTypes {
 
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  BigGridTestRoute: typeof BigGridTestRoute
-  ButtonTestRoute: typeof ButtonTestRoute
-  ChildrenRenderTestRoute: typeof ChildrenRenderTestRoute
-  MiniReactScanRoute: typeof MiniReactScanRoute
-  MultiProviderTestRoute: typeof MultiProviderTestRoute
+  BigGridTestLazyRoute: typeof BigGridTestLazyRoute
+  ChildrenRenderTestLazyRoute: typeof ChildrenRenderTestLazyRoute
+  MiniReactScanLazyRoute: typeof MiniReactScanLazyRoute
+  MultiProviderTestLazyRoute: typeof MultiProviderTestLazyRoute
   OwnerTreeLazyRoute: typeof OwnerTreeLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  BigGridTestRoute: BigGridTestRoute,
-  ButtonTestRoute: ButtonTestRoute,
-  ChildrenRenderTestRoute: ChildrenRenderTestRoute,
-  MiniReactScanRoute: MiniReactScanRoute,
-  MultiProviderTestRoute: MultiProviderTestRoute,
+  BigGridTestLazyRoute: BigGridTestLazyRoute,
+  ChildrenRenderTestLazyRoute: ChildrenRenderTestLazyRoute,
+  MiniReactScanLazyRoute: MiniReactScanLazyRoute,
+  MultiProviderTestLazyRoute: MultiProviderTestLazyRoute,
   OwnerTreeLazyRoute: OwnerTreeLazyRoute,
 }
 
@@ -220,7 +204,6 @@ export const routeTree = rootRoute
       "children": [
         "/",
         "/big-grid-test",
-        "/button-test",
         "/children-render-test",
         "/mini-react-scan",
         "/multi-provider-test",
@@ -231,19 +214,16 @@ export const routeTree = rootRoute
       "filePath": "index.tsx"
     },
     "/big-grid-test": {
-      "filePath": "big-grid-test.tsx"
-    },
-    "/button-test": {
-      "filePath": "button-test.tsx"
+      "filePath": "big-grid-test.lazy.tsx"
     },
     "/children-render-test": {
-      "filePath": "children-render-test.tsx"
+      "filePath": "children-render-test.lazy.tsx"
     },
     "/mini-react-scan": {
-      "filePath": "mini-react-scan.tsx"
+      "filePath": "mini-react-scan.lazy.tsx"
     },
     "/multi-provider-test": {
-      "filePath": "multi-provider-test.tsx"
+      "filePath": "multi-provider-test.lazy.tsx"
     },
     "/owner-tree": {
       "filePath": "owner-tree.lazy.tsx"
