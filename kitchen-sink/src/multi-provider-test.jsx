@@ -3,7 +3,6 @@ import {
 	instrument,
 	createFiberVisitor,
 	getDisplayName,
-	isCompositeFiber,
 } from "bippy";
 
 const visit = createFiberVisitor({

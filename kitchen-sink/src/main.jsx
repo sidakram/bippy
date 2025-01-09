@@ -14,10 +14,6 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
 
-if (process.env.NODE_ENV === 'development') {
-  import('bippy/dist/extract/index');
-}
-
 instrument({
   onCommitFiberRoot(_, root) {
     traverseFiber(root.current, (fiber) => {

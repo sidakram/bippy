@@ -1,4 +1,3 @@
-import * as ReactScanV1 from "bippy/dist/scan/index";
 import React, { useState, useEffect } from "react";
 
 export default function Counter() {

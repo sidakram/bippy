@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import 'bippy/dist/extract/index';
 
 export default function SlowComponent() {
   const largeArray = Array.from({ length: 10 }, (_, i) => i);

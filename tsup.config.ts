@@ -38,12 +38,7 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: [
-      './src/index.ts',
-      './src/core.ts',
-      './src/scan/index.ts',
-      './src/extract/index.ts',
-    ],
+    entry: ['./src/index.ts', './src/core.ts'],
   },
   {
     ...DEFAULT_OPTIONS,
@@ -52,21 +47,5 @@ export default defineConfig([
     minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
     globalName: 'Bippy',
     entry: ['./src/index.ts'],
-  },
-  {
-    ...DEFAULT_OPTIONS,
-    format: ['iife'],
-    outDir: './dist/scan',
-    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
-    globalName: 'ReactScan',
-    entry: ['./src/scan/index.ts'],
-  },
-  {
-    ...DEFAULT_OPTIONS,
-    format: ['iife'],
-    outDir: './dist/extract',
-    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
-    globalName: 'SameExtract',
-    entry: ['./src/extract/index.ts'],
   },
 ]);
