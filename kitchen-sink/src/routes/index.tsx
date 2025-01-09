@@ -1,14 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState, type ReactNode, Fragment } from 'react';
-import {
-  getDisplayName,
-  traverseFiber,
-  isCompositeFiber,
-  instrument,
-  getNearestHostFiber,
-  traverseProps,
-  isHostFiber,
-} from 'bippy';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
