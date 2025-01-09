@@ -1,4 +1,7 @@
-import { useEffect, useState } from 'react';
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState, type ReactNode } from 'react';
+import type { Fiber } from 'react-reconciler';
+import type { MouseEvent } from 'react';
 import {
   getRDTHook,
   getDisplayName,
@@ -9,10 +12,33 @@ import {
   traverseProps,
   isHostFiber,
 } from 'bippy';
-import { Inspector } from 'react-inspector';
+import { Inspector, ObjectInspector } from 'react-inspector';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
+
+interface DOMRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+type PropValue = string | number | boolean | undefined;
+
+interface Props {
+  [key: string]: PropValue;
+}
+
+interface Listeners {
+  [key: string]: string;
+}
+
+interface Renderer {
+  findFiberByHostInstance?: (instance: Element) => Fiber | null;
+}
+
+declare const __VERSION__: string;
 
 instrument({
   onCommitFiberRoot(_, root) {
@@ -21,11 +47,11 @@ instrument({
         const hostFiber = getNearestHostFiber(fiber);
         const displayName = getDisplayName(fiber) || 'unknown';
         if (!hostFiber) return;
-        const hostInstance = hostFiber.stateNode;
+        const hostInstance = hostFiber.stateNode as HTMLElement;
         if (!hostInstance) return;
         hostInstance.setAttribute('react-component-name', displayName);
-        const props = {};
-        traverseProps(fiber, (propName, nextValue) => {
+        const props: Props = {};
+        traverseProps(fiber, (propName: string, nextValue: unknown) => {
           if (
             typeof nextValue === 'number' ||
             typeof nextValue === 'string' ||
@@ -45,14 +71,14 @@ instrument({
         }
       }
       if (isHostFiber(fiber)) {
-        const listeners = {};
-        traverseProps(fiber, (propName, value) => {
+        const listeners: Listeners = {};
+        traverseProps(fiber, (propName: string, value: unknown) => {
           if (propName.startsWith('on') && typeof value === 'function') {
             listeners[propName] = value.toString();
           }
         });
         if (Object.keys(listeners).length > 0) {
-          const hostInstance = fiber.stateNode;
+          const hostInstance = fiber.stateNode as HTMLElement;
           if (!hostInstance) return;
           hostInstance.setAttribute(
             'react-event-listeners',
@@ -64,17 +90,19 @@ instrument({
   },
 });
 
-const getFiberFromElement = (element) => {
+const getFiberFromElement = (element: Element) => {
   const { renderers } = getRDTHook();
   for (const [_, renderer] of Array.from(renderers || [])) {
     try {
-      const fiber = renderer.findFiberByHostInstance(element);
+      const r = renderer as Renderer;
+      const fiber = r.findFiberByHostInstance?.(element);
       if (fiber) return fiber;
     } catch {}
   }
 
   if ('_reactRootContainer' in element) {
-    return element._reactRootContainer?._internalRoot?.current?.child;
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    return (element as any)._reactRootContainer?._internalRoot?.current?.child;
   }
 
   for (const key in element) {
@@ -82,35 +110,69 @@ const getFiberFromElement = (element) => {
       key.startsWith('__reactInternalInstance$') ||
       key.startsWith('__reactFiber')
     ) {
-      return element[key];
+      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+      return (element as any)[key];
     }
   }
   return null;
 };
 
-const throttle = (fn, wait) => {
-  let timeout;
-  return (...args) => {
+const throttle = (fn: (e: globalThis.MouseEvent) => void, wait: number) => {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  return (e: globalThis.MouseEvent) => {
     if (!timeout) {
       timeout = setTimeout(() => {
-        fn(...args);
+        fn(e);
         timeout = null;
       }, wait);
     }
   };
 };
 
-export const HoverOverlay = ({ isInspectorEnabled = true }) => {
-  const [fiber, setFiber] = useState(null);
-  const [rect, setRect] = useState(null);
+interface TextProps {
+  as?: keyof JSX.IntrinsicElements;
+  children: ReactNode;
+  className?: string;
+}
+
+interface LinkProps {
+  children: ReactNode;
+  className?: string;
+  href?: string;
+  onClick?: () => void;
+}
+
+interface ListProps {
+  children: ReactNode;
+  className?: string;
+}
+
+interface ListItemProps {
+  children: ReactNode;
+}
+
+interface SideLayoutProps {
+  children: ReactNode;
+}
+
+interface HoverOverlayProps {
+  isInspectorEnabled?: boolean;
+  children?: ReactNode;
+}
+
+export const HoverOverlay = ({ isInspectorEnabled = true }: HoverOverlayProps) => {
+  const [fiber, setFiber] = useState<Fiber | null>(null);
+  const [rect, setRect] = useState<DOMRect | null>(null);
+
   useEffect(() => {
-    const handleMouseMove = throttle((event) => {
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
       if (window.innerWidth < 800 || !isInspectorEnabled) {
         setFiber(null);
         setRect(null);
         return;
       }
-      const element = document.elementFromPoint(event.clientX, event.clientY);
+      const element = document.elementFromPoint(e.clientX, e.clientY);
+      if (!element) return;
       const fiber = getFiberFromElement(element);
       let foundInspect = false;
       traverseFiber(
@@ -123,19 +185,16 @@ export const HoverOverlay = ({ isInspectorEnabled = true }) => {
         },
         true,
       );
-      traverseFiber(fiber, (innerFiber) => {
-        if (innerFiber.type === Inspector) {
-          foundInspect = true;
-          return true;
-        }
-      });
       if (foundInspect) return;
       setFiber(fiber?.return || fiber);
       setRect(element.getBoundingClientRect());
-    }, 16);
-    document.addEventListener('mousemove', handleMouseMove);
+    };
+
+    const throttledMouseMove = throttle(handleMouseMove, 16);
+
+    document.addEventListener('mousemove', throttledMouseMove);
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mousemove', throttledMouseMove);
     };
   }, [isInspectorEnabled]);
 
@@ -146,8 +205,8 @@ export const HoverOverlay = ({ isInspectorEnabled = true }) => {
       <div
         className="border border-black fixed bg-white z-50 p-[1ch] max-w-[50ch] transition-all duration-150 overflow-auto max-h-[40ch] shadow"
         style={{
-          top: rect?.top,
-          left: rect?.left + rect?.width,
+          top: rect.top,
+          left: rect.left + rect.width,
           opacity: rect ? 1 : 0,
           transform: rect ? 'translateY(0)' : 'translateY(10px)',
           pointerEvents: rect ? 'auto' : 'none',
@@ -157,16 +216,16 @@ export const HoverOverlay = ({ isInspectorEnabled = true }) => {
           as="h3"
           className="text-sm mb-[1ch] bg-neutral-100 px-[0.5ch] rounded-sm w-fit"
         >
-          {`<${typeof fiber?.type === 'string' ? fiber?.type : getDisplayName(fiber) || 'unknown'}>`}
+          {`<${typeof fiber.type === 'string' ? fiber.type : getDisplayName(fiber) || 'unknown'}>`}
         </Text>
-        <Inspector data={fiber} expandLevel={1} />
+        <ObjectInspector data={fiber} expandLevel={1} table={false} />
       </div>
       <div
         style={{
-          left: rect?.left,
-          top: rect?.top,
-          width: rect?.width,
-          height: rect?.height,
+          left: rect.left,
+          top: rect.top,
+          width: rect.width,
+          height: rect.height,
           opacity: rect ? 1 : 0,
         }}
         className="border border-neutral-400 border-dashed fixed z-40 pointer-events-none transition-all duration-150"
@@ -175,11 +234,11 @@ export const HoverOverlay = ({ isInspectorEnabled = true }) => {
   );
 };
 
-export function cn(...inputs) {
+export function cn(...inputs: (string | undefined | boolean)[]) {
   return twMerge(clsx(inputs));
 }
 
-function SideLayout({ children }) {
+function SideLayout({ children }: SideLayoutProps) {
   return (
     <div className="relative leading-normal pl-[2ch] pt-[1lh] pr-[2ch] sm:pt-[2lh] sm:pl-[7ch] min-h-[100dvh] pb-[1lh] sm:max-w-[80ch]">
       {children}
@@ -187,19 +246,19 @@ function SideLayout({ children }) {
   );
 }
 
-function Text({ as = 'p', children, className, ...props }) {
-  const As = as;
+function Text({ as: Component = 'p', children, className, ...props }: TextProps) {
   return (
-    <As className={cn('text-lg', className)} {...props}>
+    <Component className={cn('text-lg', className)} {...props}>
       {children}
-    </As>
+    </Component>
   );
 }
 
-function Link({ children, className, href, ...props }) {
+function Link({ children, className, href, onClick, ...props }: LinkProps) {
   return (
     <a
       href={href}
+      onClick={onClick}
       className={cn('underline hover:bg-black hover:text-white', className)}
       {...props}
     >
@@ -208,7 +267,7 @@ function Link({ children, className, href, ...props }) {
   );
 }
 
-function List({ children, className }) {
+function List({ children, className }: ListProps) {
   return (
     <ul
       className={cn(
@@ -221,7 +280,7 @@ function List({ children, className }) {
   );
 }
 
-function ListItem({ children }) {
+function ListItem({ children }: ListItemProps) {
   return <li className="pl-[1ch]">{children}</li>;
 }
 
@@ -381,3 +440,7 @@ onCommitFiberRoot((root) => {
     </>
   );
 }
+
+export const Route = createFileRoute('/')({
+  component: Main,
+});

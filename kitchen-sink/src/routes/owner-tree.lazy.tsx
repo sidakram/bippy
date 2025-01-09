@@ -1,8 +1,14 @@
-// https://x.com/jjenzz/status/1859954446140334277
-import { instrument, getNearestHostFibers, createFiberVisitor } from 'bippy'; // must be imported BEFORE react
 import * as React from 'react';
+import { createLazyFileRoute } from '@tanstack/react-router';
+import type { Fiber } from 'bippy';
 
-const mergeRects = (rects) => {
+export const Route = createLazyFileRoute('/owner-tree')({
+  component: App,
+});
+
+const mergeRects = (
+  rects: { left: number; top: number; width: number; height: number }[],
+) => {
   const left = Math.min(...rects.map((r) => r.left));
   const top = Math.min(...rects.map((r) => r.top));
   const width = Math.max(...rects.map((r) => r.left + r.width)) - left;
@@ -10,7 +16,7 @@ const mergeRects = (rects) => {
   return { left, top, width, height };
 };
 
-const highlightFiber = (fibers) => {
+const highlightFiber = (fibers: Fiber[]) => {
   const rect = mergeRects(
     fibers.map((fiber) => fiber.stateNode.getBoundingClientRect()),
   );
@@ -21,7 +27,7 @@ const highlightFiber = (fibers) => {
   highlight.style.left = `${rect.left}px`;
   highlight.style.width = `${rect.width}px`;
   highlight.style.height = `${rect.height}px`;
-  highlight.style.zIndex = 999999999;
+  highlight.style.zIndex = '999999999';
   document.documentElement.appendChild(highlight);
   setTimeout(() => {
     document.documentElement.removeChild(highlight);
@@ -43,7 +49,7 @@ const highlightFiber = (fibers) => {
 
 const MyContext = React.createContext(0);
 
-const Provider = ({ children }) => {
+const Provider = ({ children }: { children: React.ReactNode }) => {
   const [count, setCount] = React.useState(0);
   return (
     <MyContext.Provider value={count}>
@@ -72,13 +78,13 @@ const Title = () => {
   return <h1>Title</h1>;
 };
 
-const App = () => (
-  <div className="p-10">
-    <Provider>
-      <Title />
-      <Count />
-    </Provider>
-  </div>
-);
-
-export default App;
+export function App() {
+  return (
+    <div className="p-10">
+      <Provider>
+        <Title />
+        <Count />
+      </Provider>
+    </div>
+  );
+}
