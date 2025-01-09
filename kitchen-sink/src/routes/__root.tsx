@@ -5,6 +5,7 @@ import {
   Outlet,
   useRouter,
 } from '@tanstack/react-router';
+import Inspector from 'bippy/dist/inspect';
 
 interface RouteInfo {
   path: string;
@@ -36,6 +37,7 @@ export const Route = createRootRoute({
     return (
       <>
         <div className="min-h-screen flex flex-col">
+          <Inspector enabled={true} />
           <div className="flex-1">
             <Outlet />
           </div>

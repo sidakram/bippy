@@ -1,6 +1,6 @@
 {
 	"name": "bippy",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"description": "hack into react internals",
 	"keywords": [
 		"react",
@@ -46,6 +46,16 @@
 				"default": "./dist/core.cjs"
 			}
 		},
+		"./inspect": {
+			"import": {
+				"types": "./dist/inspect.d.ts",
+				"default": "./dist/inspect.js"
+			},
+			"require": {
+				"types": "./dist/inspect.d.cts",
+				"default": "./dist/inspect.cjs"
+			}
+		},
 		"./dist/*": "./dist/*.js",
 		"./dist/*.js": "./dist/*.js",
 		"./dist/*.cjs": "./dist/*.cjs",
@@ -55,7 +65,13 @@
 	"module": "dist/index.js",
 	"browser": "dist/index.global.js",
 	"types": "dist/index.d.ts",
-	"files": ["dist", "bin", "package.json", "README.md", "LICENSE"],
+	"files": [
+		"dist",
+		"bin",
+		"package.json",
+		"README.md",
+		"LICENSE"
+	],
 	"scripts": {
 		"build": "NODE_ENV=production tsup",
 		"dev": "NODE_ENV=development tsup --watch",
@@ -81,6 +97,7 @@
 		"publint": "^0.2.12",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
+		"react-inspector": "^6.0.2",
 		"react-reconciler": "^0.31.0",
 		"terser": "^5.36.0",
 		"tsup": "^8.2.4",

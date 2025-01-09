@@ -1,6 +1,5 @@
 import { defineConfig, type Options } from 'tsup';
 import fs from 'node:fs';
-import inlineWorkerPlugin from 'esbuild-plugin-inline-worker';
 
 const banner = `/**
  * @license bippy
@@ -30,7 +29,6 @@ const DEFAULT_OPTIONS: Options = {
     NODE_ENV: process.env.NODE_ENV ?? 'development',
     VERSION: JSON.parse(fs.readFileSync('package.json', 'utf8')).version,
   },
-  esbuildPlugins: [inlineWorkerPlugin()],
   external: ['react', 'react-dom', 'react-reconciler'],
 };
 
@@ -38,7 +36,8 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: ['./src/index.ts', './src/core.ts'],
+    entry: ['./src/index.ts', './src/core.ts', './src/inspect.tsx'],
+    splitting: true,
   },
   {
     ...DEFAULT_OPTIONS,

@@ -1,9 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useEffect, useState, type ReactNode } from 'react';
-import type { Fiber } from 'react-reconciler';
-import type { MouseEvent } from 'react';
+import { useState, type ReactNode, Fragment } from 'react';
 import {
-  getRDTHook,
   getDisplayName,
   traverseFiber,
   isCompositeFiber,
@@ -12,17 +9,9 @@ import {
   traverseProps,
   isHostFiber,
 } from 'bippy';
-import { Inspector, ObjectInspector } from 'react-inspector';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
-
-interface DOMRect {
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-}
 
 type PropValue = string | number | boolean | undefined;
 
@@ -34,100 +23,57 @@ interface Listeners {
   [key: string]: string;
 }
 
-interface Renderer {
-  findFiberByHostInstance?: (instance: Element) => Fiber | null;
-}
-
 declare const __VERSION__: string;
 
-instrument({
-  onCommitFiberRoot(_, root) {
-    traverseFiber(root.current, (fiber) => {
-      if (isCompositeFiber(fiber)) {
-        const hostFiber = getNearestHostFiber(fiber);
-        const displayName = getDisplayName(fiber) || 'unknown';
-        if (!hostFiber) return;
-        const hostInstance = hostFiber.stateNode as HTMLElement;
-        if (!hostInstance) return;
-        hostInstance.setAttribute('react-component-name', displayName);
-        const props: Props = {};
-        traverseProps(fiber, (propName: string, nextValue: unknown) => {
-          if (
-            typeof nextValue === 'number' ||
-            typeof nextValue === 'string' ||
-            typeof nextValue === 'boolean' ||
-            typeof nextValue === 'undefined'
-          ) {
-            props[propName] = nextValue;
-          } else {
-            props[propName] = typeof nextValue;
-          }
-        });
-        if (Object.keys(props).length > 0) {
-          hostInstance.setAttribute(
-            'react-component-props',
-            JSON.stringify(props),
-          );
-        }
-      }
-      if (isHostFiber(fiber)) {
-        const listeners: Listeners = {};
-        traverseProps(fiber, (propName: string, value: unknown) => {
-          if (propName.startsWith('on') && typeof value === 'function') {
-            listeners[propName] = value.toString();
-          }
-        });
-        if (Object.keys(listeners).length > 0) {
-          const hostInstance = fiber.stateNode as HTMLElement;
-          if (!hostInstance) return;
-          hostInstance.setAttribute(
-            'react-event-listeners',
-            JSON.stringify(listeners),
-          );
-        }
-      }
-    });
-  },
-});
-
-const getFiberFromElement = (element: Element) => {
-  const { renderers } = getRDTHook();
-  for (const [_, renderer] of Array.from(renderers || [])) {
-    try {
-      const r = renderer as Renderer;
-      const fiber = r.findFiberByHostInstance?.(element);
-      if (fiber) return fiber;
-    } catch {}
-  }
-
-  if ('_reactRootContainer' in element) {
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    return (element as any)._reactRootContainer?._internalRoot?.current?.child;
-  }
-
-  for (const key in element) {
-    if (
-      key.startsWith('__reactInternalInstance$') ||
-      key.startsWith('__reactFiber')
-    ) {
-      // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-      return (element as any)[key];
-    }
-  }
-  return null;
-};
-
-const throttle = (fn: (e: globalThis.MouseEvent) => void, wait: number) => {
-  let timeout: ReturnType<typeof setTimeout> | null = null;
-  return (e: globalThis.MouseEvent) => {
-    if (!timeout) {
-      timeout = setTimeout(() => {
-        fn(e);
-        timeout = null;
-      }, wait);
-    }
-  };
-};
+// instrument({
+//   onCommitFiberRoot(_, root) {
+//     traverseFiber(root.current, (fiber) => {
+//       if (isCompositeFiber(fiber)) {
+//         const hostFiber = getNearestHostFiber(fiber);
+//         const displayName = getDisplayName(fiber) || 'unknown';
+//         if (!hostFiber) return;
+//         const hostInstance = hostFiber.stateNode as HTMLElement;
+//         if (!hostInstance) return;
+//         hostInstance.setAttribute('react-component-name', displayName);
+//         const props: Props = {};
+//         traverseProps(fiber, (propName: string, nextValue: unknown) => {
+//           if (
+//             typeof nextValue === 'number' ||
+//             typeof nextValue === 'string' ||
+//             typeof nextValue === 'boolean' ||
+//             typeof nextValue === 'undefined'
+//           ) {
+//             props[propName] = nextValue;
+//           } else {
+//             props[propName] = typeof nextValue;
+//           }
+//         });
+//         if (Object.keys(props).length > 0) {
+//           hostInstance.setAttribute(
+//             'react-component-props',
+//             JSON.stringify(props),
+//           );
+//         }
+//       }
+//       if (isHostFiber(fiber)) {
+//         const listeners: Listeners = {};
+//         traverseProps(fiber, (propName: string, value: unknown) => {
+//           if (propName.startsWith('on') && typeof value === 'function') {
+//             listeners[propName] = value.toString();
+//           }
+//         });
+//         if (Object.keys(listeners).length > 0) {
+//           const hostInstance = fiber.stateNode as HTMLElement;
+//           if (!hostInstance) return;
+//           hostInstance.setAttribute(
+//             'react-event-listeners',
+//             JSON.stringify(listeners),
+//           );
+//         }
+//       }
+//     });
+//   },
+// });
 
 interface TextProps {
   as?: keyof JSX.IntrinsicElements;
@@ -155,84 +101,33 @@ interface SideLayoutProps {
   children: ReactNode;
 }
 
-interface HoverOverlayProps {
-  isInspectorEnabled?: boolean;
-  children?: ReactNode;
+interface TabsProps<T extends string> {
+  tabs: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
 }
 
-export const HoverOverlay = ({ isInspectorEnabled = true }: HoverOverlayProps) => {
-  const [fiber, setFiber] = useState<Fiber | null>(null);
-  const [rect, setRect] = useState<DOMRect | null>(null);
-
-  useEffect(() => {
-    const handleMouseMove = (e: globalThis.MouseEvent) => {
-      if (window.innerWidth < 800 || !isInspectorEnabled) {
-        setFiber(null);
-        setRect(null);
-        return;
-      }
-      const element = document.elementFromPoint(e.clientX, e.clientY);
-      if (!element) return;
-      const fiber = getFiberFromElement(element);
-      let foundInspect = false;
-      traverseFiber(
-        fiber,
-        (innerFiber) => {
-          if (innerFiber.type === Inspector) {
-            foundInspect = true;
-            return true;
-          }
-        },
-        true,
-      );
-      if (foundInspect) return;
-      setFiber(fiber?.return || fiber);
-      setRect(element.getBoundingClientRect());
-    };
-
-    const throttledMouseMove = throttle(handleMouseMove, 16);
-
-    document.addEventListener('mousemove', throttledMouseMove);
-    return () => {
-      document.removeEventListener('mousemove', throttledMouseMove);
-    };
-  }, [isInspectorEnabled]);
-
-  if (window.innerWidth < 800 || !fiber || !rect) return null;
-
+function Tabs<T extends string>({ tabs, value, onChange }: TabsProps<T>) {
   return (
-    <>
-      <div
-        className="border border-black fixed bg-white z-50 p-[1ch] max-w-[50ch] transition-all duration-150 overflow-auto max-h-[40ch] shadow"
-        style={{
-          top: rect.top,
-          left: rect.left + rect.width,
-          opacity: rect ? 1 : 0,
-          transform: rect ? 'translateY(0)' : 'translateY(10px)',
-          pointerEvents: rect ? 'auto' : 'none',
-        }}
-      >
-        <Text
-          as="h3"
-          className="text-sm mb-[1ch] bg-neutral-100 px-[0.5ch] rounded-sm w-fit"
-        >
-          {`<${typeof fiber.type === 'string' ? fiber.type : getDisplayName(fiber) || 'unknown'}>`}
-        </Text>
-        <ObjectInspector data={fiber} expandLevel={1} table={false} />
-      </div>
-      <div
-        style={{
-          left: rect.left,
-          top: rect.top,
-          width: rect.width,
-          height: rect.height,
-          opacity: rect ? 1 : 0,
-        }}
-        className="border border-neutral-400 border-dashed fixed z-40 pointer-events-none transition-all duration-150"
-      />
-    </>
+    <div className="flex items-center gap-2">
+      {tabs.map((tab, i) => (
+        <Fragment key={tab.value}>
+          {i > 0 && <span className="text-white/40">·</span>}
+          <button
+            type="button"
+            onClick={() => onChange(tab.value)}
+            className={cn(
+              'text-white/70 hover:text-white underline transition-colors',
+              value === tab.value && 'text-white'
+            )}
+          >
+            {tab.label}
+          </button>
+        </Fragment>
+      ))}
+    </div>
   );
-};
+}
 
 export function cn(...inputs: (string | undefined | boolean)[]) {
   return twMerge(clsx(inputs));
@@ -246,7 +141,12 @@ function SideLayout({ children }: SideLayoutProps) {
   );
 }
 
-function Text({ as: Component = 'p', children, className, ...props }: TextProps) {
+function Text({
+  as: Component = 'p',
+  children,
+  className,
+  ...props
+}: TextProps) {
   return (
     <Component className={cn('text-lg', className)} {...props}>
       {children}
@@ -287,11 +187,15 @@ function ListItem({ children }: ListItemProps) {
 export default function Main() {
   const [imgSize, setImgSize] = useState(50);
   const [isSpinning, setIsSpinning] = useState(false);
-  const [isInspectorEnabled, setIsInspectorEnabled] = useState(true);
+  const [activeTab, setActiveTab] = useState<'basic' | 'inspect'>('basic');
+
+  const tabs = [
+    { value: 'basic' as const, label: '1. quick start' },
+    { value: 'inspect' as const, label: '2. use <Inspector>' },
+  ];
 
   return (
     <>
-      <HoverOverlay isInspectorEnabled={isInspectorEnabled} />
       <SideLayout>
         <div className="flex items-center gap-[1ch]">
           <div className="flex items-center gap-[0.5ch]">
@@ -321,21 +225,6 @@ export default function Main() {
             <Text as="span">{__VERSION__}</Text>
           </Link>
           <div className="ml-auto flex gap-[1ch] my-[1ch]">
-            <span className="hidden sm:flex gap-[1ch]">
-              <Text
-                className={cn(
-                  'text-muted-foreground opacity-50',
-                  isInspectorEnabled && 'opacity-100',
-                )}
-              >
-                <Link
-                  onClick={() => setIsInspectorEnabled(!isInspectorEnabled)}
-                >
-                  inspect ({isInspectorEnabled ? 'ON' : 'OFF'})
-                </Link>
-              </Text>{' '}
-              &middot;
-            </span>
             <Text className="text-muted-foreground">
               <Link href="https://github.com/aidenybai/bippy">/github</Link>
             </Text>
@@ -384,21 +273,44 @@ export default function Main() {
             you can get started in {'<'}6 lines of code:
           </Text>
         </div>
-        <pre className="bg-black p-[1.5ch] sm:p-[2ch] rounded-lg">
-          <code
-            className="whitespace-pre-wrap"
-            // biome-ignore lint/security/noDangerouslySetInnerHtml: OK
-            dangerouslySetInnerHTML={{
-              __html:
-                highlight(`import { onCommitFiberRoot, traverseFiber } from 'bippy';
+
+        <pre className="bg-black mt-[2ch] p-[1.5ch] pt-[1ch] sm:p-[2ch] sm:pt-[1.5ch] rounded-lg">
+          <div className="mb-[1.5ch]">
+            <Tabs
+              tabs={tabs}
+              value={activeTab}
+              onChange={setActiveTab}
+            />
+            <hr className="my-[1ch] border-neutral-700" />
+          </div>
+          {activeTab === 'basic' && (
+            <code
+              className="whitespace-pre-wrap"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: OK
+              dangerouslySetInnerHTML={{
+                __html:
+                  highlight(`import { onCommitFiberRoot, traverseFiber } from 'bippy';
 
 onCommitFiberRoot((root) => {
   traverseFiber(root.current, (fiber) => {
     console.log('fiber:', fiber);
   });
 })`),
-            }}
-          />
+              }}
+            />
+          )}
+          {activeTab === 'inspect' && (
+            <code
+              className="whitespace-pre-wrap"
+              // biome-ignore lint/security/noDangerouslySetInnerHtml: OK
+              dangerouslySetInnerHTML={{
+                __html:
+                  highlight(`import { Inspector } from 'bippy';
+
+<Inspector enabled={true} />`),
+              }}
+            />
+          )}
         </pre>
 
         <div className="flex my-[2ch]">

@@ -525,7 +525,7 @@ export const getDisplayName = (type: unknown): string | null => {
 };
 
 export const isUsingRDT = () => {
-  return 'reactDevtoolsAgent' in getRDTHook();
+  return 'getFiberRoots' in getRDTHook();
 };
 
 /**

@@ -28,6 +28,14 @@ onCommitFiberRoot((root) => {
 });
 ```
 
+or, use the `/inspect` subpackage to graphically visualize the fiber tree:
+
+```jsx
+import { Inspector } from 'bippy/inspect';
+
+<Inspector enabled={true} />
+```
+
 <table>
   <tbody>
     <tr>
