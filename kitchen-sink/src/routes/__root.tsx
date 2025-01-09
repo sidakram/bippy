@@ -37,7 +37,7 @@ export const Route = createRootRoute({
     return (
       <>
         <div className="min-h-screen flex flex-col">
-          <Inspector enabled={true} />
+          <Inspector enabled={true} dangerouslyRunInProduction={true} />
           <div className="flex-1">
             <Outlet />
           </div>
