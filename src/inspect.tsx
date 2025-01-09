@@ -57,13 +57,17 @@ const throttle = (fn: (...args: any[]) => void, wait: number) => {
 export interface InspectorProps {
   enabled?: boolean;
   children?: ReactNode;
+  dangerouslyRunInProduction?: boolean;
 }
 
 const isMac =
   typeof navigator !== 'undefined' &&
   navigator.platform.toLowerCase().includes('mac');
 
-export const Inspector = ({ enabled = true }: InspectorProps) => {
+export const Inspector = ({
+  enabled = true,
+  dangerouslyRunInProduction = false,
+}: InspectorProps) => {
   const [element, setElement] = useState<Element | null>(null);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [isActive, setIsActive] = useState(true);
@@ -121,12 +125,14 @@ export const Inspector = ({ enabled = true }: InspectorProps) => {
         return;
       }
 
-      const rdtHook = getRDTHook();
-      for (const renderer of rdtHook.renderers.values()) {
-        const buildType = detectReactBuildType(renderer);
-        if (buildType === 'production') {
-          setIsActive(false);
-          return;
+      if (!dangerouslyRunInProduction) {
+        const rdtHook = getRDTHook();
+        for (const renderer of rdtHook.renderers.values()) {
+          const buildType = detectReactBuildType(renderer);
+          if (buildType === 'production') {
+            setIsActive(false);
+            return;
+          }
         }
       }
 

@@ -4,67 +4,7 @@ import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
 
-type PropValue = string | number | boolean | undefined;
-
-interface Props {
-  [key: string]: PropValue;
-}
-
-interface Listeners {
-  [key: string]: string;
-}
-
 declare const __VERSION__: string;
-
-// instrument({
-//   onCommitFiberRoot(_, root) {
-//     traverseFiber(root.current, (fiber) => {
-//       if (isCompositeFiber(fiber)) {
-//         const hostFiber = getNearestHostFiber(fiber);
-//         const displayName = getDisplayName(fiber) || 'unknown';
-//         if (!hostFiber) return;
-//         const hostInstance = hostFiber.stateNode as HTMLElement;
-//         if (!hostInstance) return;
-//         hostInstance.setAttribute('react-component-name', displayName);
-//         const props: Props = {};
-//         traverseProps(fiber, (propName: string, nextValue: unknown) => {
-//           if (
-//             typeof nextValue === 'number' ||
-//             typeof nextValue === 'string' ||
-//             typeof nextValue === 'boolean' ||
-//             typeof nextValue === 'undefined'
-//           ) {
-//             props[propName] = nextValue;
-//           } else {
-//             props[propName] = typeof nextValue;
-//           }
-//         });
-//         if (Object.keys(props).length > 0) {
-//           hostInstance.setAttribute(
-//             'react-component-props',
-//             JSON.stringify(props),
-//           );
-//         }
-//       }
-//       if (isHostFiber(fiber)) {
-//         const listeners: Listeners = {};
-//         traverseProps(fiber, (propName: string, value: unknown) => {
-//           if (propName.startsWith('on') && typeof value === 'function') {
-//             listeners[propName] = value.toString();
-//           }
-//         });
-//         if (Object.keys(listeners).length > 0) {
-//           const hostInstance = fiber.stateNode as HTMLElement;
-//           if (!hostInstance) return;
-//           hostInstance.setAttribute(
-//             'react-event-listeners',
-//             JSON.stringify(listeners),
-//           );
-//         }
-//       }
-//     });
-//   },
-// });
 
 interface TextProps {
   as?: keyof JSX.IntrinsicElements;
@@ -109,7 +49,7 @@ function Tabs<T extends string>({ tabs, value, onChange }: TabsProps<T>) {
             onClick={() => onChange(tab.value)}
             className={cn(
               'text-white/70 hover:text-white underline transition-colors',
-              value === tab.value && 'text-white'
+              value === tab.value && 'text-white',
             )}
           >
             {tab.label}
@@ -267,11 +207,7 @@ export default function Main() {
 
         <pre className="bg-black mt-[2ch] p-[1.5ch] pt-[1ch] sm:p-[2ch] sm:pt-[1.5ch] rounded-lg">
           <div className="mb-[1.5ch]">
-            <Tabs
-              tabs={tabs}
-              value={activeTab}
-              onChange={setActiveTab}
-            />
+            <Tabs tabs={tabs} value={activeTab} onChange={setActiveTab} />
             <hr className="my-[1ch] border-neutral-700" />
           </div>
           {activeTab === 'basic' && (
@@ -295,8 +231,7 @@ onCommitFiberRoot((root) => {
               className="whitespace-pre-wrap"
               // biome-ignore lint/security/noDangerouslySetInnerHtml: OK
               dangerouslySetInnerHTML={{
-                __html:
-                  highlight(`import { Inspector } from 'bippy';
+                __html: highlight(`import { Inspector } from 'bippy';
 
 <Inspector enabled={true} />`),
               }}
