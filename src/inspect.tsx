@@ -7,8 +7,10 @@ import {
   detectReactBuildType,
   isCompositeFiber,
   getFiberStack,
+  getFiberId,
+  type Fiber,
+  getNearestHostFiber,
 } from './index.js';
-// biome-ignore lint/correctness/noUnusedImports: OK
 import React, {
   useState,
   useEffect,
@@ -73,10 +75,20 @@ export const Inspector = ({
   const [isActive, setIsActive] = useState(true);
   const [isDialogMode, setIsDialogMode] = useState(false);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [selectedFiber, setSelectedFiber] = useState<Fiber | null>(null);
   const [position, setPosition] = useState<{ top: number; left: number }>({
     top: 0,
     left: 0,
   });
+
+  const getFiberForDisplay = () => {
+    if (selectedFiber) return selectedFiber;
+    const fiber = getFiberFromHostInstance(element);
+    if (!fiber) return null;
+    return fiber.return && isCompositeFiber(fiber.return)
+      ? fiber.return
+      : fiber;
+  };
 
   const handlePropertyHover = (
     _e: MouseEvent<HTMLElement>,
@@ -139,12 +151,14 @@ export const Inspector = ({
       if (!enabled) {
         setElement(null);
         setRect(null);
+        setSelectedFiber(null);
         return;
       }
       const element = document.elementFromPoint(event.clientX, event.clientY);
       if (!element) return;
       setElement(element);
       setRect(element.getBoundingClientRect());
+      setSelectedFiber(null);
     };
 
     const throttledMouseMove = throttle(handleMouseMove, 16);
@@ -191,14 +205,22 @@ export const Inspector = ({
     setPosition({ top, left });
   }, [rect]);
 
+  useEffect(() => {
+    if (selectedFiber) {
+      const element = getNearestHostFiber(selectedFiber)?.stateNode;
+      if (element) {
+        setElement(element);
+        setRect(element.getBoundingClientRect());
+      }
+    }
+  }, [selectedFiber]);
+
   if (window.innerWidth < 800 || !rect || !isActive) return null;
 
-  let fiber = getFiberFromHostInstance(element);
+  const fiber = getFiberForDisplay();
+  if (!fiber) return null;
+
   let foundInspect = false;
-  if (!fiber) return;
-  if (fiber.return && isCompositeFiber(fiber.return)) {
-    fiber = fiber.return;
-  }
   traverseFiber(
     fiber,
     (innerFiber) => {
@@ -209,7 +231,7 @@ export const Inspector = ({
     },
     true,
   );
-  if (foundInspect) return;
+  if (foundInspect) return null;
 
   const dialogStyle = isDialogMode
     ? ({
@@ -240,13 +262,6 @@ export const Inspector = ({
     : {};
 
   const fiberStack = fiber ? getFiberStack(fiber) : [];
-  const breadcrumbs = fiberStack
-    .reverse()
-    .map((f) =>
-      typeof f.type === 'string' ? f.type : getDisplayName(f.type) || null,
-    )
-    .filter((name): name is string => name !== null)
-    .join(' > ');
 
   return (
     <>
@@ -300,12 +315,92 @@ export const Inspector = ({
             }}
           >
             {`<${typeof fiber.type === 'string' ? fiber.type : getDisplayName(fiber.type) || 'unknown'}>`}
-            <span
-              style={{ marginLeft: '1ch', opacity: 0.5, fontSize: '0.75rem' }}
-            >
-              {`Press ${isMac ? '⌘' : 'ctrl'}+o to expand`}
-            </span>
+            {!isDialogMode && (
+              <span
+                style={{ marginLeft: '1ch', opacity: 0.5, fontSize: '0.75rem' }}
+              >
+                {`Press ${isMac ? '⌘' : 'ctrl'}O to expand`}
+              </span>
+            )}
           </h3>
+          {isDialogMode && fiber.child && (
+            <div
+              style={{
+                marginTop: '1ch',
+                marginBottom: '1ch',
+                marginRight: 'auto',
+                marginLeft: '1ch',
+                fontSize: '0.75rem',
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.5ch',
+              }}
+            >
+              <span style={{ opacity: 0.5 }}>Children:</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5ch' }}>
+                {(() => {
+                  const children: Fiber[] = [];
+                  let currentChild = fiber.child as Fiber | null;
+                  while (currentChild !== null) {
+                    children.push(currentChild);
+                    currentChild = currentChild.sibling;
+                  }
+                  return children.map((child) => {
+                    const name =
+                      typeof child.type === 'string'
+                        ? child.type
+                        : getDisplayName(child.type) || 'unknown';
+                    return (
+                      <button
+                        key={getFiberId(child)}
+                        type="button"
+                        onClick={() => {
+                          setSelectedFiber(child);
+                          const element = getNearestHostFiber(child)?.stateNode;
+                          if (element) {
+                            setElement(element);
+                            setRect(element.getBoundingClientRect());
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            setSelectedFiber(child);
+                            const element =
+                              getNearestHostFiber(child)?.stateNode;
+                            if (element) {
+                              setElement(element);
+                              setRect(element.getBoundingClientRect());
+                            }
+                          }
+                        }}
+                        style={{
+                          cursor: 'pointer',
+                          padding: '0 0.5ch',
+                          background: '#f5f5f5',
+                          border: '1px solid #eee',
+                          borderRadius: '0.125rem',
+                          fontSize: 'inherit',
+                          color: '#666',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#000';
+                          e.currentTarget.style.color = '#fff';
+                          e.currentTarget.style.borderColor = '#000';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f5f5f5';
+                          e.currentTarget.style.color = '#666';
+                          e.currentTarget.style.borderColor = '#eee';
+                        }}
+                      >
+                        {name}
+                      </button>
+                    );
+                  });
+                })()}
+              </div>
+            </div>
+          )}
           {isDialogMode && (
             <button
               type="button"
@@ -323,6 +418,73 @@ export const Inspector = ({
             </button>
           )}
         </div>
+        {isDialogMode && (
+          <div
+            style={{
+              borderTop: '1px solid #eee',
+              padding: '0.5ch 0',
+              fontSize: '0.75rem',
+              color: '#666',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              marginBottom: '2ch',
+            }}
+          >
+            {fiberStack.reverse().map((f, i, arr) => {
+              const name =
+                typeof f.type === 'string'
+                  ? f.type
+                  : getDisplayName(f.type) || 'unknown';
+              if (!name) return null;
+              return (
+                <React.Fragment key={getFiberId(f)}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedFiber(f);
+                      const element = getNearestHostFiber(f)?.stateNode;
+                      if (element) {
+                        setElement(element);
+                        setRect(element.getBoundingClientRect());
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setSelectedFiber(f);
+                        const element = getNearestHostFiber(f)?.stateNode;
+                        if (element) {
+                          setElement(element);
+                          setRect(element.getBoundingClientRect());
+                        }
+                      }
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      color: '#666',
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      font: 'inherit',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#000';
+                      e.currentTarget.style.color = '#fff';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '';
+                      e.currentTarget.style.color = '#666';
+                    }}
+                  >
+                    {name}
+                  </button>
+                  {i < arr.length - 1 && ' > '}
+                </React.Fragment>
+              );
+            })}
+          </div>
+        )}
         <div
           onMouseLeave={handlePropertyLeave}
           style={{
@@ -366,19 +528,6 @@ export const Inspector = ({
               );
             }}
           />
-        </div>
-        <div
-          style={{
-            borderTop: '1px solid #eee',
-            padding: '0.5ch 0',
-            fontSize: '0.75rem',
-            color: '#666',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
-          {breadcrumbs}
         </div>
         {tooltip && (
           <div
