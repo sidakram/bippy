@@ -524,8 +524,12 @@ export const getDisplayName = (type: unknown): string | null => {
   return unwrappedType.displayName || unwrappedType.name || null;
 };
 
-export const isUsingRDT = () => {
-  return 'getFiberRoots' in getRDTHook();
+export const isRealReactDevtools = (rdtHook = getRDTHook()) => {
+  return 'getFiberRoots' in rdtHook;
+};
+
+export const isReactRefresh = (rdtHook = getRDTHook()) => {
+  return !('checkDCE' in rdtHook);
 };
 
 /**
@@ -545,7 +549,11 @@ export const detectReactBuildType = (renderer: ReactRenderer) => {
  */
 export const isInstrumentationActive = () => {
   const rdtHook = getRDTHook();
-  return Boolean(rdtHook._instrumentationIsActive) || isUsingRDT();
+  return (
+    Boolean(rdtHook._instrumentationIsActive) ||
+    isRealReactDevtools() ||
+    isReactRefresh()
+  );
 };
 
 export type RenderPhase = 'mount' | 'update' | 'unmount';
@@ -956,7 +964,8 @@ export const secure = (
 ): InstrumentationOptions => {
   const onActive = options.onActive;
   const isRDTHookInstalled = hasRDTHook();
-  const isRDT = isUsingRDT();
+  const isUsingRealReactDevtools = isRealReactDevtools();
+  const isUsingReactRefresh = isReactRefresh();
   let timeout: number | undefined;
   let isProduction = false;
 
@@ -1030,7 +1039,11 @@ export const secure = (
     }
   };
 
-  if (!isRDTHookInstalled && !isRDT) {
+  if (
+    !isRDTHookInstalled &&
+    !isUsingRealReactDevtools &&
+    !isUsingReactRefresh
+  ) {
     timeout = setTimeout(() => {
       if (!isProduction) {
         secureOptions.onError?.();
