@@ -153,7 +153,7 @@ export const Inspector = ({
     return () => {
       document.removeEventListener('mousemove', throttledMouseMove);
     };
-  }, [enabled, isDialogMode]);
+  }, [enabled, isDialogMode, dangerouslyRunInProduction]);
 
   useEffect(() => {
     if (!rect) return;
