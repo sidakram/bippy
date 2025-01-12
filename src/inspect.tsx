@@ -10,6 +10,7 @@ import {
   getFiberId,
   type Fiber,
   getNearestHostFiber,
+  hasRDTHook,
 } from './index.js';
 import React, {
   useState,
@@ -129,7 +130,7 @@ export const Inspector = ({
     const handleMouseMove = (event: globalThis.MouseEvent) => {
       if (isDialogMode) return;
 
-      const isActive = isInstrumentationActive();
+      const isActive = isInstrumentationActive() || hasRDTHook();
       if (!isActive) {
         setIsActive(false);
         return;
