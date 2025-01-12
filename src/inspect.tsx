@@ -212,7 +212,7 @@ export const Inspector = React.memo(
       }
     }, [selectedFiber]);
 
-    if (window.innerWidth < 800 || !rect || !isActive) return null;
+    if (!rect || !isActive) return null;
 
     const fiber = getFiberForDisplay();
     if (!fiber) return null;
