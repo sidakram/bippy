@@ -1,6 +1,6 @@
 {
 	"name": "bippy",
-	"version": "0.2.5",
+	"version": "0.2.6",
 	"description": "hack into react internals",
 	"keywords": [
 		"react",
@@ -87,6 +87,7 @@
 		"@biomejs/biome": "1.9.4",
 		"@testing-library/dom": "^10.4.0",
 		"@testing-library/react": "^16.1.0",
+		"@types/d3": "^7.4.3",
 		"@types/node": "^20",
 		"@types/react": "^18.3.12",
 		"@types/react-dom": "^19.0.2",
@@ -107,8 +108,5 @@
 	},
 	"publishConfig": {
 		"access": "public"
-	},
-	"dependencies": {
-		"@types/d3": "^7.4.3"
 	}
 }
