@@ -66,7 +66,7 @@ export function cn(...inputs: (string | undefined | boolean)[]) {
 
 function SideLayout({ children }: SideLayoutProps) {
   return (
-    <div className="relative leading-normal pl-[2ch] pt-[1lh] pr-[2ch] sm:pt-[2lh] sm:pl-[7ch] min-h-[100dvh] pb-[1lh] sm:max-w-[80ch]">
+    <div className="relative leading-normal pl-[2ch] pt-[1lh] pr-[2ch] sm:pt-[2lh] sm:pl-[7ch] min-h-[100dvh] pb-[1lh] sm:max-w-[80ch] text-white">
       {children}
     </div>
   );
@@ -126,7 +126,7 @@ export default function Main() {
   ];
 
   return (
-    <>
+    <div className="bg-[#101010]">
       <SideLayout>
         <div className="flex items-center gap-[1ch]">
           <div className="flex items-center gap-[0.5ch]">
@@ -162,7 +162,7 @@ export default function Main() {
           </div>
         </div>
 
-        <hr className="my-[1ch] border-neutral-200" />
+        <hr className="my-[1ch] border-white/10" />
 
         <div className="flex flex-col gap-[1ch] my-[2ch]">
           <Text className="text-muted-foreground">
@@ -205,7 +205,7 @@ export default function Main() {
           </Text>
         </div>
 
-        <pre className="bg-black mt-[2ch] p-[1.5ch] pt-[1ch] sm:p-[2ch] sm:pt-[1.5ch] rounded-lg">
+        <pre className="bg-[#101010] mt-[2ch] p-[1.5ch] pt-[1ch] sm:p-[2ch] sm:pt-[1.5ch] rounded-lg border border-white/10">
           <div className="mb-[1.5ch]">
             <Tabs tabs={tabs} value={activeTab} onChange={setActiveTab} />
             <hr className="my-[1ch] border-neutral-700" />
@@ -243,14 +243,14 @@ onCommitFiberRoot((root) => {
           <a href="https://github.com/aidenybai/bippy">
             <button
               type="button"
-              className="bg-neutral-200 text-black px-[1ch] py-[0.5ch] rounded-sm hover:bg-neutral-300 transition-all duration-150 font-bold text-lg"
+              className="bg-white text-black px-[1ch] py-[0.5ch] rounded-sm hover:bg-white/90 transition-all duration-150 font-bold text-lg"
             >
               try bippy →
             </button>
           </a>
         </div>
 
-        <div className="bg-[#eda33b]/25 text-black p-[1ch] my-[2ch] font-sans">
+        <div className="bg-[#eda33b]/25 text-white p-[1ch] my-[2ch] font-sans">
           <div>
             <Text className="text-xs">
               <Text as="span" className="text-xs font-bold">
@@ -275,7 +275,7 @@ onCommitFiberRoot((root) => {
           </div>
         </div>
       </SideLayout>
-    </>
+    </div>
   );
 }
 

@@ -23,6 +23,17 @@ const checkDCE = (fn: unknown) => {
   } catch {}
 };
 
+export const isRealReactDevtools = (rdtHook = getRDTHook()) => {
+  return 'getFiberRoots' in rdtHook;
+};
+
+let isReactRefreshOverride = false;
+
+export const isReactRefresh = (rdtHook = getRDTHook()) => {
+  if (isReactRefreshOverride) return true;
+  return !('checkDCE' in rdtHook);
+};
+
 export const installRDTHook = (onActive?: () => unknown) => {
   const renderers = new Map<number, ReactRenderer>();
   let i = 0;
@@ -51,8 +62,26 @@ export const installRDTHook = (onActive?: () => unknown) => {
     Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
       value: rdtHook,
     });
-  } catch {}
+  } catch {
+    patchRDTHook(onActive);
+  }
   return rdtHook;
+};
+
+export const patchRDTHook = (onActive?: () => unknown) => {
+  try {
+    const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+    if (!rdtHook._instrumentationSource) {
+      isReactRefreshOverride = isReactRefresh(rdtHook);
+      rdtHook.checkDCE = checkDCE;
+      rdtHook.supportsFiber = true;
+      rdtHook.supportsFlight = true;
+      rdtHook.hasUnsupportedRendererAttached = false;
+      rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
+      rdtHook._instrumentationIsActive = true;
+      onActive?.();
+    }
+  } catch {}
 };
 
 export const hasRDTHook = () => {
@@ -66,13 +95,11 @@ export const hasRDTHook = () => {
  * Returns the current React DevTools global hook.
  */
 export const getRDTHook = (onActive?: () => unknown) => {
-  let rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-  if (rdtHook) onActive?.();
-
   if (!hasRDTHook()) {
-    rdtHook = installRDTHook(onActive);
+    return installRDTHook(onActive);
   }
-  return rdtHook;
+  patchRDTHook(onActive);
+  return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 };
 
 try {

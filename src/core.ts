@@ -6,6 +6,8 @@ import {
   BIPPY_INSTRUMENTATION_STRING,
   getRDTHook,
   hasRDTHook,
+  isReactRefresh,
+  isRealReactDevtools,
 } from './rdt-hook.js';
 import type {
   ContextDependency,
@@ -522,14 +524,6 @@ export const getDisplayName = (type: unknown): string | null => {
   const unwrappedType = getType(currentType);
   if (!unwrappedType) return null;
   return unwrappedType.displayName || unwrappedType.name || null;
-};
-
-export const isRealReactDevtools = (rdtHook = getRDTHook()) => {
-  return 'getFiberRoots' in rdtHook;
-};
-
-export const isReactRefresh = (rdtHook = getRDTHook()) => {
-  return !('checkDCE' in rdtHook);
 };
 
 /**
