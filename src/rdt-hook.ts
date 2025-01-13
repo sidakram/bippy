@@ -79,9 +79,9 @@ export const patchRDTHook = (onActive?: () => unknown) => {
       rdtHook.hasUnsupportedRendererAttached = false;
       rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
       rdtHook._instrumentationIsActive = true;
-      onActive?.();
     }
   } catch {}
+  onActive?.();
 };
 
 export const hasRDTHook = () => {
