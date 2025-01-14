@@ -17,6 +17,7 @@ import { Route as IndexImport } from './routes/index'
 
 // Create Virtual Routes
 
+const TriangleLazyImport = createFileRoute('/triangle')()
 const OwnerTreeLazyImport = createFileRoute('/owner-tree')()
 const MultiProviderTestLazyImport = createFileRoute('/multi-provider-test')()
 const MiniReactScanLazyImport = createFileRoute('/mini-react-scan')()
@@ -24,6 +25,12 @@ const ChildrenRenderTestLazyImport = createFileRoute('/children-render-test')()
 const BigGridTestLazyImport = createFileRoute('/big-grid-test')()
 
 // Create/Update Routes
+
+const TriangleLazyRoute = TriangleLazyImport.update({
+  id: '/triangle',
+  path: '/triangle',
+  getParentRoute: () => rootRoute,
+} as any).lazy(() => import('./routes/triangle.lazy').then((d) => d.Route))
 
 const OwnerTreeLazyRoute = OwnerTreeLazyImport.update({
   id: '/owner-tree',
@@ -113,6 +120,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OwnerTreeLazyImport
       parentRoute: typeof rootRoute
     }
+    '/triangle': {
+      id: '/triangle'
+      path: '/triangle'
+      fullPath: '/triangle'
+      preLoaderRoute: typeof TriangleLazyImport
+      parentRoute: typeof rootRoute
+    }
   }
 }
 
@@ -125,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/mini-react-scan': typeof MiniReactScanLazyRoute
   '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
+  '/triangle': typeof TriangleLazyRoute
 }
 
 export interface FileRoutesByTo {
@@ -134,6 +149,7 @@ export interface FileRoutesByTo {
   '/mini-react-scan': typeof MiniReactScanLazyRoute
   '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
+  '/triangle': typeof TriangleLazyRoute
 }
 
 export interface FileRoutesById {
@@ -144,6 +160,7 @@ export interface FileRoutesById {
   '/mini-react-scan': typeof MiniReactScanLazyRoute
   '/multi-provider-test': typeof MultiProviderTestLazyRoute
   '/owner-tree': typeof OwnerTreeLazyRoute
+  '/triangle': typeof TriangleLazyRoute
 }
 
 export interface FileRouteTypes {
@@ -155,6 +172,7 @@ export interface FileRouteTypes {
     | '/mini-react-scan'
     | '/multi-provider-test'
     | '/owner-tree'
+    | '/triangle'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -163,6 +181,7 @@ export interface FileRouteTypes {
     | '/mini-react-scan'
     | '/multi-provider-test'
     | '/owner-tree'
+    | '/triangle'
   id:
     | '__root__'
     | '/'
@@ -171,6 +190,7 @@ export interface FileRouteTypes {
     | '/mini-react-scan'
     | '/multi-provider-test'
     | '/owner-tree'
+    | '/triangle'
   fileRoutesById: FileRoutesById
 }
 
@@ -181,6 +201,7 @@ export interface RootRouteChildren {
   MiniReactScanLazyRoute: typeof MiniReactScanLazyRoute
   MultiProviderTestLazyRoute: typeof MultiProviderTestLazyRoute
   OwnerTreeLazyRoute: typeof OwnerTreeLazyRoute
+  TriangleLazyRoute: typeof TriangleLazyRoute
 }
 
 const rootRouteChildren: RootRouteChildren = {
@@ -190,6 +211,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiniReactScanLazyRoute: MiniReactScanLazyRoute,
   MultiProviderTestLazyRoute: MultiProviderTestLazyRoute,
   OwnerTreeLazyRoute: OwnerTreeLazyRoute,
+  TriangleLazyRoute: TriangleLazyRoute,
 }
 
 export const routeTree = rootRoute
@@ -207,7 +229,8 @@ export const routeTree = rootRoute
         "/children-render-test",
         "/mini-react-scan",
         "/multi-provider-test",
-        "/owner-tree"
+        "/owner-tree",
+        "/triangle"
       ]
     },
     "/": {
@@ -227,6 +250,9 @@ export const routeTree = rootRoute
     },
     "/owner-tree": {
       "filePath": "owner-tree.lazy.tsx"
+    },
+    "/triangle": {
+      "filePath": "triangle.lazy.tsx"
     }
   }
 }

@@ -15,9 +15,9 @@ export default function SlowComponent() {
   return (
     <div className="flex flex-wrap overflow-scroll gap-1">
       <div>{count}</div>
-      {largeArray.map((value) => (
+      {/* {largeArray.map((value) => (
         <Box key={value} value={value} />
-      ))}
+      ))} */}
     </div>
   )
 }

@@ -15,6 +15,8 @@ import {
   isHostFiber,
   HostRootTag,
   HostTextTag,
+  onCommitFiberRoot,
+  traverseRenderedFibers,
 } from './index.js';
 import React, {
   useState,
@@ -31,6 +33,9 @@ import {
   ObjectLabel,
 } from 'react-inspector';
 import * as d3 from 'd3';
+
+// Store render counts in a WeakMap
+const renderCounts = new WeakMap<Fiber, number>();
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
@@ -336,6 +341,8 @@ const FiberGraph = React.memo(
     const zoomRef = useRef<d3.ZoomBehavior<SVGSVGElement, unknown>>();
     const linksGroupRef = useRef<SVGGElement>(null);
     const nodesGroupRef = useRef<SVGGElement>(null);
+    const renderedFibersRef = useRef<Set<string>>(new Set());
+    const flashTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
     const { nodes, links } = useMemo(() => {
       const nodes: Node[] = [];
@@ -437,7 +444,10 @@ const FiberGraph = React.memo(
           let name = 'unknown';
           if (typeof currentFiber.type === 'string') {
             name = currentFiber.type;
-          } else if (currentFiber.type === null && currentFiber.tag === HostTextTag) {
+          } else if (
+            currentFiber.type === null &&
+            currentFiber.tag === HostTextTag
+          ) {
             const text = currentFiber.stateNode?.nodeValue?.trim() || '';
             if (text) {
               name =
@@ -445,7 +455,10 @@ const FiberGraph = React.memo(
             } else {
               name = '#text';
             }
-          } else if (currentFiber.type === null && currentFiber.tag === HostRootTag) {
+          } else if (
+            currentFiber.type === null &&
+            currentFiber.tag === HostRootTag
+          ) {
             name = '#root';
           } else {
             name =
@@ -639,6 +652,9 @@ const FiberGraph = React.memo(
           const isRoot = d.data.id === nodes[0].id;
           const isPreview = !isDialogMode;
           const scale = isRoot ? (isPreview ? 2 : 1.75) : 1;
+          const isRendered = renderedFibersRef.current.has(
+            getFiberId(d.data.fiber).toString(),
+          );
 
           // Rectangle
           const rect = g
@@ -651,7 +667,7 @@ const FiberGraph = React.memo(
             .attr('height', 60 * scale)
             .attr('rx', 6 * scale)
             .attr('fill', isCompositeFiber(d.data.fiber) ? '#FFF' : '#232323')
-            .attr('stroke', '#505050')
+            .attr('stroke', isRendered ? '#FFC799' : '#505050')
             .attr('stroke-width', isRoot ? '3' : '2');
 
           rect
@@ -662,9 +678,13 @@ const FiberGraph = React.memo(
             })
             .on('mouseout', function () {
               d3.select(this)
-                .attr('stroke', '#505050')
+                .attr('stroke', isRendered ? '#FFC799' : '#505050')
                 .attr('stroke-width', isRoot ? '3' : '2');
             });
+
+          // Get render count from WeakMap
+          const renderCount = renderCounts.get(d.data.fiber) || 0;
+          const renderText = renderCount > 0 ? ` ×${renderCount}` : '';
 
           g.selectAll('text.name')
             .data([d])
@@ -678,7 +698,7 @@ const FiberGraph = React.memo(
               'font-size',
               isRoot ? (isPreview ? '1.75em' : '1.5em') : '1em',
             )
-            .text(d.data.name);
+            .text(d.data.name + renderText);
 
           g.selectAll('text.props')
             .data([d])
@@ -772,6 +792,65 @@ const FiberGraph = React.memo(
         setTimeout(handleFit, 0);
       }
     }, [nodes.length, handleFit]);
+
+    useEffect(() => {
+      onCommitFiberRoot((root) => {
+        // Clear previous timeout
+        if (flashTimeoutRef.current) {
+          clearTimeout(flashTimeoutRef.current);
+        }
+
+        // Update ref directly instead of state
+        renderedFibersRef.current = new Set();
+        traverseRenderedFibers(root, (renderedFiber) => {
+          const fiberId = getFiberId(renderedFiber).toString();
+          renderedFibersRef.current.add(fiberId);
+          // Increment render count in WeakMap
+          renderCounts.set(renderedFiber, (renderCounts.get(renderedFiber) || 0) + 1);
+        });
+
+        // Force update only the rendered nodes
+        if (nodesGroupRef.current) {
+          const nodeElements = d3
+            .select(nodesGroupRef.current)
+            .selectAll<SVGGElement, d3.HierarchyPointNode<Node>>('g');
+
+          nodeElements.each(function (d) {
+            const isRendered = renderedFibersRef.current.has(
+              getFiberId(d.data.fiber).toString(),
+            );
+            if (isRendered) {
+              const rect = d3.select(this).select('rect');
+              rect
+                .attr('stroke', '#FFC799')
+                .style('filter', 'drop-shadow(0 0 8px #FFC799)')
+                .transition()
+                .duration(400)
+                .style('filter', 'none')
+                .attr('stroke', '#505050');
+
+              // Update the name text to include new render count
+              const renderCount = renderCounts.get(d.data.fiber) || 0;
+              const renderText = renderCount > 0 ? ` ×${renderCount}` : '';
+              d3.select(this)
+                .select('text.name')
+                .text(d.data.name + renderText);
+            }
+          });
+        }
+
+        // Clear rendered fibers after animation
+        flashTimeoutRef.current = setTimeout(() => {
+          renderedFibersRef.current = new Set();
+        }, 400);
+      });
+
+      return () => {
+        if (flashTimeoutRef.current) {
+          clearTimeout(flashTimeoutRef.current);
+        }
+      };
+    }, []);
 
     return (
       <div style={{ height: '50ch', marginTop: '2ch' }}>
