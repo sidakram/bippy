@@ -15,6 +15,7 @@ import type {
   Fiber,
   FiberRoot,
   MemoizedState,
+  ReactDevToolsGlobalHook,
   ReactRenderer,
 } from './types.js';
 
@@ -97,7 +98,7 @@ export const isValidFiber = (fiber: unknown): fiber is Fiber =>
  *
  * @see https://reactnative.dev/architecture/glossary#host-view-tree-and-host-view
  */
-export const isHostFiber = (fiber: Fiber) => {
+export const isHostFiber = (fiber: Fiber): boolean => {
   switch (fiber.tag) {
     case HostComponentTag:
     // @ts-expect-error: it exists
@@ -114,7 +115,7 @@ export const isHostFiber = (fiber: Fiber) => {
  *
  * @see https://reactnative.dev/architecture/glossary#react-composite-components
  */
-export const isCompositeFiber = (fiber: Fiber) => {
+export const isCompositeFiber = (fiber: Fiber): boolean => {
   switch (fiber.tag) {
     case FunctionComponentTag:
     case ClassComponentTag:
@@ -330,7 +331,7 @@ export const getMutatedHostFibers = (fiber: Fiber): Fiber[] => {
  * [fiber, fiber.return, fiber.return.return, ...]
  * ```
  */
-export const getFiberStack = (fiber: Fiber) => {
+export const getFiberStack = (fiber: Fiber): Fiber[] => {
   const stack: Fiber[] = [];
   let currentFiber = fiber;
   while (currentFiber.return) {
@@ -347,7 +348,7 @@ export const getFiberStack = (fiber: Fiber) => {
 /**
  * Returns `true` if the {@link Fiber} should be filtered out during reconciliation.
  */
-export const shouldFilterFiber = (fiber: Fiber) => {
+export const shouldFilterFiber = (fiber: Fiber): boolean => {
   switch (fiber.tag) {
     case DehydratedSuspenseComponentTag:
       // TODO: ideally we would show dehydrated Suspense immediately.
@@ -394,7 +395,10 @@ export const shouldFilterFiber = (fiber: Fiber) => {
 /**
  * Returns the nearest host {@link Fiber} to the current {@link Fiber}.
  */
-export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
+export const getNearestHostFiber = (
+  fiber: Fiber,
+  ascending = false,
+): Fiber | null => {
   let hostFiber = traverseFiber(fiber, isHostFiber, ascending);
   if (!hostFiber) {
     hostFiber = traverseFiber(fiber, isHostFiber, !ascending);
@@ -405,7 +409,7 @@ export const getNearestHostFiber = (fiber: Fiber, ascending = false) => {
 /**
  * Returns all host {@link Fiber}s in the tree that are associated with the current {@link Fiber}.
  */
-export const getNearestHostFibers = (fiber: Fiber) => {
+export const getNearestHostFibers = (fiber: Fiber): Fiber[] => {
   const hostFibers: Fiber[] = [];
   const stack: Fiber[] = [];
 
@@ -463,7 +467,9 @@ export const traverseFiber = (
  * console.log(selfTime, totalTime);
  * ```
  */
-export const getTimings = (fiber?: Fiber | null | undefined) => {
+export const getTimings = (
+  fiber?: Fiber | null | undefined,
+): { selfTime: number; totalTime: number } => {
   const totalTime = fiber?.actualDuration ?? 0;
   let selfTime = totalTime;
   // TODO: calculate a DOM time, which is just host component summed up
@@ -478,7 +484,7 @@ export const getTimings = (fiber?: Fiber | null | undefined) => {
 /**
  * Returns `true` if the {@link Fiber} uses React Compiler's memo cache.
  */
-export const hasMemoCache = (fiber: Fiber) => {
+export const hasMemoCache = (fiber: Fiber): boolean => {
   return Boolean(
     (fiber.updateQueue as unknown as { memoCache: unknown })?.memoCache,
   );
@@ -529,7 +535,9 @@ export const getDisplayName = (type: unknown): string | null => {
 /**
  * Returns the build type of the React renderer.
  */
-export const detectReactBuildType = (renderer: ReactRenderer) => {
+export const detectReactBuildType = (
+  renderer: ReactRenderer,
+): 'development' | 'production' => {
   try {
     if (typeof renderer.version === 'string' && renderer.bundleType > 0) {
       return 'development';
@@ -541,7 +549,7 @@ export const detectReactBuildType = (renderer: ReactRenderer) => {
 /**
  * Returns `true` if bippy's instrumentation is active.
  */
-export const isInstrumentationActive = () => {
+export const isInstrumentationActive = (): boolean => {
   const rdtHook = getRDTHook();
   return (
     Boolean(rdtHook._instrumentationIsActive) ||
@@ -561,14 +569,14 @@ export type RenderHandler = <S>(
 let fiberId = 0;
 export const fiberIdMap = new WeakMap<Fiber, number>();
 
-export const setFiberId = (fiber: Fiber, id: number = fiberId++) => {
+export const setFiberId = (fiber: Fiber, id: number = fiberId++): void => {
   fiberIdMap.set(fiber, id);
 };
 
 // react fibers are double buffered, so the alternate fiber may
 // be switched to the current fiber and vice versa.
 // fiber === fiber.alternate.alternate
-export const getFiberId = (fiber: Fiber) => {
+export const getFiberId = (fiber: Fiber): number => {
   let id = fiberIdMap.get(fiber);
   if (!id && fiber.alternate) {
     id = fiberIdMap.get(fiber.alternate);
@@ -584,7 +592,7 @@ export const mountFiberRecursively = (
   onRender: RenderHandler,
   firstChild: Fiber,
   traverseSiblings: boolean,
-) => {
+): void => {
   let fiber: Fiber | null = firstChild;
 
   while (fiber != null) {
@@ -637,7 +645,7 @@ export const updateFiberRecursively = (
   nextFiber: Fiber,
   prevFiber: Fiber,
   parentFiber: Fiber | null,
-) => {
+): void => {
   if (!fiberIdMap.has(nextFiber)) {
     getFiberId(nextFiber);
   }
@@ -737,7 +745,7 @@ export const updateFiberRecursively = (
   }
 };
 
-export const unmountFiber = (onRender: RenderHandler, fiber: Fiber) => {
+export const unmountFiber = (onRender: RenderHandler, fiber: Fiber): void => {
   const isRoot = fiber.tag === HostRootTag;
 
   if (isRoot || !shouldFilterFiber(fiber)) {
@@ -748,7 +756,7 @@ export const unmountFiber = (onRender: RenderHandler, fiber: Fiber) => {
 export const unmountFiberChildrenRecursively = (
   onRender: RenderHandler,
   fiber: Fiber,
-) => {
+): void => {
   // We might meet a nested Suspense on our way.
   const isTimedOutSuspense =
     fiber.tag === SuspenseComponentTag && fiber.memoizedState !== null;
@@ -794,7 +802,7 @@ const rootInstanceMap = new WeakMap<
 export const traverseRenderedFibers = (
   root: FiberRoot,
   onRender: RenderHandler,
-) => {
+): void => {
   const fiber = 'current' in root ? root.current : root;
 
   let rootInstance = rootInstanceMap.get(root);
@@ -843,7 +851,7 @@ export const createFiberVisitor = ({
 }: {
   onRender: RenderHandler;
   onError: (error: unknown) => unknown;
-}) => {
+}): (<S>(_rendererID: number, root: FiberRoot | Fiber, _state?: S) => void) => {
   return <S>(_rendererID: number, root: FiberRoot | Fiber, _state?: S) => {
     traverseRenderedFibers(root, onRender);
   };
@@ -874,7 +882,9 @@ export interface InstrumentationOptions {
  *   },
  * });
  */
-export const instrument = (options: InstrumentationOptions) => {
+export const instrument = (
+  options: InstrumentationOptions,
+): ReactDevToolsGlobalHook => {
   return getRDTHook(() => {
     const rdtHook = getRDTHook();
 
@@ -917,9 +927,7 @@ export const instrument = (options: InstrumentationOptions) => {
   });
 };
 
-export const getFiberFromHostInstance = <T>(
-  hostInstance: T,
-): Fiber | null | undefined => {
+export const getFiberFromHostInstance = <T>(hostInstance: T): Fiber | null => {
   const rdtHook = getRDTHook();
   for (const renderer of rdtHook.renderers.values()) {
     try {
@@ -940,7 +948,7 @@ export const getFiberFromHostInstance = <T>(
         key.startsWith('__reactInternalInstance$') ||
         key.startsWith('__reactFiber')
       ) {
-        return hostInstance[key] as Fiber | undefined;
+        return (hostInstance[key] || null) as Fiber | null;
       }
     }
   }
@@ -1057,8 +1065,10 @@ export const secure = (
  *   console.log(root.current);
  * });
  */
-export const onCommitFiberRoot = (handler: (root: FiberRoot) => void) => {
-  instrument(
+export const onCommitFiberRoot = (
+  handler: (root: FiberRoot) => void,
+): ReactDevToolsGlobalHook => {
+  return instrument(
     secure({
       onCommitFiberRoot: (_, root) => {
         handler(root);

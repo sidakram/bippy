@@ -7,7 +7,7 @@ const NO_OP = () => {
   /**/
 };
 
-const checkDCE = (fn: unknown) => {
+const checkDCE = (fn: unknown): void => {
   try {
     const code = Function.prototype.toString.call(fn);
     if (code.indexOf('^_^') > -1) {
@@ -23,18 +23,18 @@ const checkDCE = (fn: unknown) => {
   } catch {}
 };
 
-export const isRealReactDevtools = (rdtHook = getRDTHook()) => {
+export const isRealReactDevtools = (rdtHook = getRDTHook()): boolean => {
   return 'getFiberRoots' in rdtHook;
 };
 
 let isReactRefreshOverride = false;
 
-export const isReactRefresh = (rdtHook = getRDTHook()) => {
+export const isReactRefresh = (rdtHook = getRDTHook()): boolean => {
   if (isReactRefreshOverride) return true;
   return !('checkDCE' in rdtHook);
 };
 
-export const installRDTHook = (onActive?: () => unknown) => {
+export const installRDTHook = (onActive?: () => unknown): ReactDevToolsGlobalHook => {
   const renderers = new Map<number, ReactRenderer>();
   let i = 0;
   const rdtHook: ReactDevToolsGlobalHook = {
@@ -68,7 +68,7 @@ export const installRDTHook = (onActive?: () => unknown) => {
   return rdtHook;
 };
 
-export const patchRDTHook = (onActive?: () => unknown) => {
+export const patchRDTHook = (onActive?: () => unknown): void => {
   try {
     const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
     if (!rdtHook._instrumentationSource) {
@@ -84,7 +84,7 @@ export const patchRDTHook = (onActive?: () => unknown) => {
   onActive?.();
 };
 
-export const hasRDTHook = () => {
+export const hasRDTHook = (): boolean => {
   return Object.prototype.hasOwnProperty.call(
     globalThis,
     '__REACT_DEVTOOLS_GLOBAL_HOOK__',
@@ -94,7 +94,7 @@ export const hasRDTHook = () => {
 /**
  * Returns the current React DevTools global hook.
  */
-export const getRDTHook = (onActive?: () => unknown) => {
+export const getRDTHook = (onActive?: () => unknown): ReactDevToolsGlobalHook => {
   if (!hasRDTHook()) {
     return installRDTHook(onActive);
   }
