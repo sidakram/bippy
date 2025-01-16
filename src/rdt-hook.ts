@@ -106,6 +106,15 @@ export const getRDTHook = (
   return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 };
 
+let isRegistered = false;
+
+/**
+ * Returns true if the service worker is registered.
+ */
+export const isServiceWorkerRegistered = (): boolean => {
+  return isRegistered;
+};
+
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
   if (
@@ -116,12 +125,12 @@ try {
   ) {
     installRDTHook();
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      try {
-        navigator.serviceWorker
-          .register(new URL('./sw.js', import.meta.url))
-          .then(() => {})
-          .catch(() => {});
-      } catch {}
+      navigator.serviceWorker
+        .register(new URL('./sw.js', import.meta.url))
+        .then(() => {
+          isRegistered = true;
+        })
+        .catch(() => {});
     }
   }
 } catch {}
