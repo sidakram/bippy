@@ -34,7 +34,9 @@ export const isReactRefresh = (rdtHook = getRDTHook()): boolean => {
   return !('checkDCE' in rdtHook);
 };
 
-export const installRDTHook = (onActive?: () => unknown): ReactDevToolsGlobalHook => {
+export const installRDTHook = (
+  onActive?: () => unknown,
+): ReactDevToolsGlobalHook => {
   const renderers = new Map<number, ReactRenderer>();
   let i = 0;
   const rdtHook: ReactDevToolsGlobalHook = {
@@ -94,7 +96,9 @@ export const hasRDTHook = (): boolean => {
 /**
  * Returns the current React DevTools global hook.
  */
-export const getRDTHook = (onActive?: () => unknown): ReactDevToolsGlobalHook => {
+export const getRDTHook = (
+  onActive?: () => unknown,
+): ReactDevToolsGlobalHook => {
   if (!hasRDTHook()) {
     return installRDTHook(onActive);
   }
@@ -108,14 +112,19 @@ try {
     typeof window !== 'undefined' &&
     // @ts-expect-error `document` may not be defined in some enviroments
     (window.document?.createElement ||
-      window.navigator?.product === 'ReactNative') &&
-    typeof process !== 'undefined' &&
-    process.versions != null &&
-    process.versions.node != null
+      window.navigator?.product === 'ReactNative')
   ) {
     installRDTHook();
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      try {
+        navigator.serviceWorker
+          .register(new URL('./sw.js', import.meta.url))
+          .then(() => {})
+          .catch(() => {});
+      } catch {}
+    }
   }
 } catch {}
 
 export const INSTALL_HOOK_SCRIPT_STRING =
-  '(()=>{try{var t=()=>{};const n=new Map;let o=0;globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__={checkDCE:t,supportsFiber:!0,supportsFlight:!0,hasUnsupportedRendererAttached:!1,renderers:n,onCommitFiberRoot:t,onCommitFiberUnmount:t,onPostCommitFiberRoot:t,inject(t){var e=++o;return n.set(e,t),globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__._instrumentationIsActive=!0,e},_instrumentationIsActive:!1}}catch{}})();';
+  '(()=>{try{var t=()=>{};const n=new Map;let o=0;globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__={checkDCE:t,supportsFiber:!0,supportsFlight:!0,hasUnsupportedRendererAttached:!1,renderers:n,onCommitFiberRoot:t,onCommitFiberUnmount:t,onPostCommitFiberRoot:t,inject(t){var e=++o;return n.set(e,t),globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__._instrumentationIsActive=!0,e},_instrumentationIsActive:!1}}catch{}})()';

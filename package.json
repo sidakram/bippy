@@ -46,6 +46,16 @@
 				"default": "./dist/core.cjs"
 			}
 		},
+		"./sw": {
+			"import": {
+				"types": "./dist/sw.d.ts",
+				"default": "./dist/sw.js"
+			},
+			"require": {
+				"types": "./dist/sw.d.cts",
+				"default": "./dist/sw.cjs"
+			}
+		},
 		"./inspect": {
 			"import": {
 				"types": "./dist/inspect.d.ts",

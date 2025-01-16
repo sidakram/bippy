@@ -4,12 +4,14 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite';
+import mkcert from 'vite-plugin-mkcert';
 
 export default defineConfig({
   build: {
     minify: false,
   },
   plugins: [
+    mkcert(),
     TanStackRouterVite(),
     react({
       // babel: {
