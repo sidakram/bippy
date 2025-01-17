@@ -23,6 +23,7 @@ import './types.js';
         return nextID;
       },
       _instrumentationIsActive: false,
+      _sw: true,
     };
   } catch {}
 })();

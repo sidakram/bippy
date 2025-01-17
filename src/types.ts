@@ -84,6 +84,7 @@ export interface ReactDevToolsGlobalHook {
   inject: (renderer: ReactRenderer) => number;
   _instrumentationSource?: string;
   _instrumentationIsActive?: boolean;
+  _sw?: boolean;
 }
 
 /**
