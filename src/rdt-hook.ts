@@ -106,17 +106,19 @@ export const getRDTHook = (
   return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 };
 
-export const registerServiceWorker = async (): Promise<void> => {
+export const registerServiceWorker = async (url?: string): Promise<void> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return;
   }
 
+  let path = url;
+  if (!path) {
+    // tested with vite & next.js
+    path = './sw.js';
 
-  // tested with vite & next.js
-  let path = './sw.js';
-
-  if (import.meta.url.includes('.vite/deps')) {
-    path = '../../bippy/dist/sw.js';
+    if (import.meta.url.includes('.vite/deps')) {
+      path = '../../bippy/dist/sw.js';
+    }
   }
 
   try {
@@ -130,14 +132,17 @@ export const registerServiceWorker = async (): Promise<void> => {
   } catch {}
 };
 
+export const isClientEnvironment = (): boolean => {
+  return Boolean(
+    typeof window !== 'undefined' &&
+      (window.document?.createElement ||
+        window.navigator?.product === 'ReactNative'),
+  );
+};
+
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
-  if (
-    typeof window !== 'undefined' &&
-    // @ts-expect-error `document` may not be defined in some enviroments
-    (window.document?.createElement ||
-      window.navigator?.product === 'ReactNative')
-  ) {
+  if (isClientEnvironment()) {
     installRDTHook();
   }
 } catch {}
