@@ -121,7 +121,7 @@ export const registerServiceWorker = async (): Promise<void> => {
   try {
     const res = await fetch(path, { method: 'HEAD' });
     if (res.ok) {
-      await navigator.serviceWorker.register(path, {
+      await navigator.serviceWorker.register(new URL(path, import.meta.url), {
         // scope: '/',
       });
     }
