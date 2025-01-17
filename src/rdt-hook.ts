@@ -126,7 +126,9 @@ try {
     installRDTHook();
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
       navigator.serviceWorker
-        .register(new URL('./sw.js', import.meta.url))
+        .register(new URL('./sw.js', import.meta.url), {
+          scope: '/',
+        })
         .then(() => {
           isRegistered = true;
         })

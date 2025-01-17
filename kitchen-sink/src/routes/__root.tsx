@@ -1,4 +1,3 @@
-import Inspector from 'bippy/dist/inspect';
 import React from 'react';
 import {
   createRootRoute,
@@ -6,6 +5,7 @@ import {
   Outlet,
   useRouter,
 } from '@tanstack/react-router';
+import Inspector from 'bippy/dist/inspect';
 
 interface RouteInfo {
   path: string;
