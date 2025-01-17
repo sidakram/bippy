@@ -6,7 +6,7 @@
 		"strictNullChecks": true,
 		"allowSyntheticDefaultImports": true,
 		"strict": true,
-		"lib": ["esnext", "dom"]
+		"lib": ["esnext", "dom", "webworker"]
 	},
 	"include": ["src", "vitest.config.ts", "tsup.config.ts"],
 	"exclude": ["**/node_modules/**", "dist"]

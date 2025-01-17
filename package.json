@@ -1,6 +1,6 @@
 {
 	"name": "bippy",
-	"version": "0.2.7",
+	"version": "0.2.9",
 	"description": "hack into react internals",
 	"keywords": [
 		"react",
@@ -107,6 +107,7 @@
 		"esbuild": "^0.24.2",
 		"esbuild-plugin-inline-worker": "^0.1.1",
 		"happy-dom": "^15.11.7",
+		"pkg-pr-new": "^0.0.39",
 		"publint": "^0.2.12",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",

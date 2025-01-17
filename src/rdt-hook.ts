@@ -106,13 +106,25 @@ export const getRDTHook = (
   return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 };
 
-let isRegistered = false;
+export const registerServiceWorker = async (): Promise<void> => {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
 
-/**
- * Returns true if the service worker is registered.
- */
-export const isServiceWorkerRegistered = (): boolean => {
-  return isRegistered;
+  let path = './sw.js';
+
+  if (import.meta.url.includes('.vite/deps')) {
+    path = '../../bippy/dist/sw.js';
+  }
+
+  try {
+    const res = await fetch(path, { method: 'HEAD' });
+    if (res.ok) {
+      await navigator.serviceWorker.register(path, {
+        // scope: '/',
+      });
+    }
+  } catch {}
 };
 
 try {
@@ -124,16 +136,6 @@ try {
       window.navigator?.product === 'ReactNative')
   ) {
     installRDTHook();
-    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register(new URL('./sw.js', import.meta.url), {
-          scope: '/',
-        })
-        .then(() => {
-          isRegistered = true;
-        })
-        .catch(() => {});
-    }
   }
 } catch {}
 
