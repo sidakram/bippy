@@ -1,10 +1,9 @@
-name: Node.js CI
+name: Run Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -12,7 +11,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: 20
           cache: 'pnpm'
       - run: pnpm install
       - run: pnpm test

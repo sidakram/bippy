@@ -114,7 +114,7 @@ export const registerServiceWorker = async (): Promise<void> => {
   let path = './sw.js';
 
   if (import.meta.url.includes('.vite/deps')) {
-    path = '../../bippy/dist/sw.js';
+    path = '../../node_modules/bippy/dist/sw.js';
   }
 
   try {
