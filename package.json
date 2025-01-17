@@ -75,13 +75,7 @@
 	"module": "dist/index.js",
 	"browser": "dist/index.global.js",
 	"types": "dist/index.d.ts",
-	"files": [
-		"dist",
-		"bin",
-		"package.json",
-		"README.md",
-		"LICENSE"
-	],
+	"files": ["dist", "bin", "package.json", "README.md", "LICENSE"],
 	"scripts": {
 		"build": "NODE_ENV=production tsup",
 		"dev": "NODE_ENV=development tsup --watch",
@@ -117,6 +111,7 @@
 		"tsup": "^8.2.4",
 		"vitest": "^2.1.8"
 	},
+	"packageManager": "pnpm@9.15.2",
 	"publishConfig": {
 		"access": "public"
 	}
