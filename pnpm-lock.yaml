@@ -87,8 +87,8 @@ importers:
         specifier: ^1.95.1
         version: 1.95.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       bippy:
-        specifier: https://pkg.pr.new/bippy@b414014
-        version: https://pkg.pr.new/bippy@b414014
+        specifier: https://pkg.pr.new/bippy@147956b
+        version: https://pkg.pr.new/bippy@147956b
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1571,8 +1571,8 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  bippy@https://pkg.pr.new/bippy@b414014:
-    resolution: {tarball: https://pkg.pr.new/bippy@b414014}
+  bippy@https://pkg.pr.new/bippy@147956b:
+    resolution: {tarball: https://pkg.pr.new/bippy@147956b}
     version: 0.2.9
 
   brace-expansion@2.0.1:
@@ -4195,7 +4195,7 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  bippy@https://pkg.pr.new/bippy@b414014: {}
+  bippy@https://pkg.pr.new/bippy@147956b: {}
 
   brace-expansion@2.0.1:
     dependencies:

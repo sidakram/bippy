@@ -110,6 +110,7 @@ export const registerServiceWorker = async (): Promise<void> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return;
   }
+  console.log('import.meta.url', import.meta.url);
 
   let path = './sw.js';
 
