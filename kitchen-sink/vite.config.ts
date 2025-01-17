@@ -25,11 +25,7 @@ export default defineConfig({
   },
   // resolve:
   //   process.env.NODE_ENV === 'production'
-  //     ? {
-  //         alias: {
-  //           bippy: path.resolve(__dirname, '..'),
-  //         },
-  //       }
+  //     ? {}
   //     : {
   //         alias: {
   //           bippy: path.resolve(__dirname, '..'),

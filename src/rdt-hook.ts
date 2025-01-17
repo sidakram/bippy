@@ -110,12 +110,13 @@ export const registerServiceWorker = async (): Promise<void> => {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
     return;
   }
-  console.log('import.meta.url', import.meta.url);
 
+
+  // tested with vite & next.js
   let path = './sw.js';
 
   if (import.meta.url.includes('.vite/deps')) {
-    path = '../../node_modules/bippy/dist/sw.js';
+    path = '../../bippy/dist/sw.js';
   }
 
   try {

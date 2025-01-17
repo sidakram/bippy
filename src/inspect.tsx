@@ -357,7 +357,10 @@ const FiberGraph = React.memo(
     const [activeTab, setActiveTab] = useState<'graph' | 'fiber'>('graph');
     const [tooltip, setTooltip] = useState<string | null>(null);
 
-    const handlePropertyHover = (e: MouseEvent<HTMLElement>, propName: string) => {
+    const handlePropertyHover = (
+      e: MouseEvent<HTMLElement>,
+      propName: string,
+    ) => {
       if (!isDialogMode) return;
       const explanation = FIBER_PROP_EXPLANATIONS[propName];
       setTooltip(explanation || null);
@@ -839,7 +842,10 @@ const FiberGraph = React.memo(
           fiberStates.set(fiberId, states);
 
           // Increment render count in WeakMap
-          renderCounts.set(renderedFiber, (renderCounts.get(renderedFiber) || 0) + 1);
+          renderCounts.set(
+            renderedFiber,
+            (renderCounts.get(renderedFiber) || 0) + 1,
+          );
         });
 
         // Force update only the rendered nodes
@@ -885,40 +891,51 @@ const FiberGraph = React.memo(
       };
     }, []);
 
-    const handleTimelineChange = useCallback((index: number) => {
-      setTimelineIndex(index);
-      const fiberId = getFiberId(fiber).toString();
-      const states = fiberStates.get(fiberId);
+    const handleTimelineChange = useCallback(
+      (index: number) => {
+        setTimelineIndex(index);
+        const fiberId = getFiberId(fiber).toString();
+        const states = fiberStates.get(fiberId);
 
-      if (states?.[index]) {
-        const rdtHook = getRDTHook();
-        if (rdtHook?.renderers.size > 0) {
-          const renderer = Array.from(rdtHook.renderers.values())?.[0] as {
-            currentDispatcherRef?: {
-              current?: {
-                overrideProps?: (fiber: Fiber, props?: Record<string, unknown>) => void;
-                overrideHookState?: (fiber: Fiber, state?: Record<string, unknown>) => void;
+        if (states?.[index]) {
+          const rdtHook = getRDTHook();
+          if (rdtHook?.renderers.size > 0) {
+            const renderer = Array.from(rdtHook.renderers.values())?.[0] as {
+              currentDispatcherRef?: {
+                current?: {
+                  overrideProps?: (
+                    fiber: Fiber,
+                    props?: Record<string, unknown>,
+                  ) => void;
+                  overrideHookState?: (
+                    fiber: Fiber,
+                    state?: Record<string, unknown>,
+                  ) => void;
+                };
+              };
+            };
+            const overrideProps =
+              renderer?.currentDispatcherRef?.current?.overrideProps;
+            const overrideHookState =
+              renderer?.currentDispatcherRef?.current?.overrideHookState;
+
+            const state = states?.[index];
+            if (state) {
+              if (overrideProps) {
+                overrideProps(fiber, state.props);
               }
-            }
-          };
-          const overrideProps = renderer?.currentDispatcherRef?.current?.overrideProps;
-          const overrideHookState = renderer?.currentDispatcherRef?.current?.overrideHookState;
-
-          const state = states?.[index];
-          if (state) {
-            if (overrideProps) {
-              overrideProps(fiber, state.props);
-            }
-            if (overrideHookState) {
-              overrideHookState(fiber, state.hookState);
+              if (overrideHookState) {
+                overrideHookState(fiber, state.hookState);
+              }
             }
           }
         }
-      }
-    }, [fiber]);
+      },
+      [fiber],
+    );
 
     const handlePlayPause = useCallback(() => {
-      setIsPlaying(prev => !prev);
+      setIsPlaying((prev) => !prev);
     }, []);
 
     const handleStepForward = useCallback(() => {
@@ -962,15 +979,25 @@ const FiberGraph = React.memo(
     }, [isPlaying, fiber, timelineIndex, handleTimelineChange]);
 
     return (
-      <div style={{ height: '50ch', marginTop: '2ch', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+      <div
+        style={{
+          height: '50ch',
+          marginTop: '2ch',
+          display: 'flex',
+          flexDirection: 'column',
+          position: 'relative',
+        }}
+      >
         {isDialogMode && (
-          <div style={{
-            display: 'flex',
-            gap: '0.5ch',
-            marginBottom: '1ch',
-            padding: '0 1ch',
-            borderBottom: '1px solid #282828'
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: '0.5ch',
+              marginBottom: '1ch',
+              padding: '0 1ch',
+              borderBottom: '1px solid #282828',
+            }}
+          >
             <button
               type="button"
               onClick={() => setActiveTab('graph')}
@@ -987,15 +1014,17 @@ const FiberGraph = React.memo(
             >
               Graph View
               {activeTab === 'graph' && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '-1px',
-                  left: 0,
-                  right: 0,
-                  height: '2px',
-                  background: '#FFC799',
-                  borderRadius: '2px 2px 0 0',
-                }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-1px',
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: '#FFC799',
+                    borderRadius: '2px 2px 0 0',
+                  }}
+                />
               )}
             </button>
             <button
@@ -1014,26 +1043,30 @@ const FiberGraph = React.memo(
             >
               Fiber View
               {activeTab === 'fiber' && (
-                <div style={{
-                  position: 'absolute',
-                  bottom: '-1px',
-                  left: 0,
-                  right: 0,
-                  height: '2px',
-                  background: '#FFC799',
-                  borderRadius: '2px 2px 0 0',
-                }} />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '-1px',
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    background: '#FFC799',
+                    borderRadius: '2px 2px 0 0',
+                  }}
+                />
               )}
             </button>
           </div>
         )}
 
         <div style={{ position: 'relative', flex: 1 }}>
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: activeTab === 'graph' ? 'block' : 'none'
-          }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: activeTab === 'graph' ? 'block' : 'none',
+            }}
+          >
             <Controls
               onZoomIn={handleZoomIn}
               onZoomOut={handleZoomOut}
@@ -1061,20 +1094,22 @@ const FiberGraph = React.memo(
             </svg>
           </div>
 
-          <div style={{
-            position: 'absolute',
-            inset: 0,
-            display: activeTab === 'fiber' ? 'block' : 'none',
-            overflow: 'auto',
-            background: '#101010',
-            borderRadius: '0.25rem',
-            padding: '1ch'
-          }}>
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              display: activeTab === 'fiber' ? 'block' : 'none',
+              overflow: 'auto',
+              background: '#101010',
+              borderRadius: '0.25rem',
+              padding: '1ch',
+            }}
+          >
             <ReactInspector
               // biome-ignore lint/suspicious/noExplicitAny: <explanation>
               theme={theme as any}
               data={fiber}
-              expandLevel={isDialogMode ? 1 : 0}
+              expandLevel={1}
               table={false}
               nodeRenderer={(props: {
                 depth: number;
@@ -1110,20 +1145,22 @@ const FiberGraph = React.memo(
               }}
             />
             {tooltip && (
-              <div style={{
-                position: 'absolute',
-                zIndex: 1001,
-                backgroundColor: '#161616',
-                color: '#FFF',
-                bottom: '2ch',
-                right: '2ch',
-                pointerEvents: 'none',
-                overflowY: 'auto',
-                padding: '1ch',
-                fontSize: '1ch',
-                border: '1px solid #282828',
-                borderRadius: '0.25ch',
-              }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  zIndex: 1001,
+                  backgroundColor: '#161616',
+                  color: '#FFF',
+                  bottom: '2ch',
+                  right: '2ch',
+                  pointerEvents: 'none',
+                  overflowY: 'auto',
+                  padding: '1ch',
+                  fontSize: '1ch',
+                  border: '1px solid #282828',
+                  borderRadius: '0.25ch',
+                }}
+              >
                 {tooltip}
               </div>
             )}
@@ -1131,28 +1168,38 @@ const FiberGraph = React.memo(
         </div>
 
         {isDialogMode && (
-          <div style={{
-            background: '#161616',
-            padding: '1ch',
-            margin: '1ch 1ch 0 1ch',
-            borderRadius: '0.25rem',
-            border: '1px solid #282828',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5ch',
-            opacity: fiberStates.get(getFiberId(fiber).toString())?.length ? 1 : 0.5,
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5ch' }}>
+          <div
+            style={{
+              background: '#161616',
+              padding: '1ch',
+              margin: '1ch 1ch 0 1ch',
+              borderRadius: '0.25rem',
+              border: '1px solid #282828',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.5ch',
+              opacity: fiberStates.get(getFiberId(fiber).toString())?.length
+                ? 1
+                : 0.5,
+            }}
+          >
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '0.5ch' }}
+            >
               <button
                 type="button"
                 onClick={handleStepBack}
-                disabled={!fiberStates.get(getFiberId(fiber).toString())?.length}
+                disabled={
+                  !fiberStates.get(getFiberId(fiber).toString())?.length
+                }
                 style={{
                   background: 'transparent',
                   border: '1px solid #282828',
                   color: '#FFF',
                   borderRadius: '0.25rem',
-                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length ? 'pointer' : 'not-allowed',
+                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length
+                    ? 'pointer'
+                    : 'not-allowed',
                   padding: '0.25ch 0.5ch',
                 }}
               >
@@ -1161,13 +1208,17 @@ const FiberGraph = React.memo(
               <button
                 type="button"
                 onClick={handlePlayPause}
-                disabled={!fiberStates.get(getFiberId(fiber).toString())?.length}
+                disabled={
+                  !fiberStates.get(getFiberId(fiber).toString())?.length
+                }
                 style={{
                   background: 'transparent',
                   border: '1px solid #282828',
                   color: '#FFF',
                   borderRadius: '0.25rem',
-                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length ? 'pointer' : 'not-allowed',
+                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length
+                    ? 'pointer'
+                    : 'not-allowed',
                   padding: '0.25ch 0.5ch',
                 }}
               >
@@ -1176,134 +1227,169 @@ const FiberGraph = React.memo(
               <button
                 type="button"
                 onClick={handleStepForward}
-                disabled={!fiberStates.get(getFiberId(fiber).toString())?.length}
+                disabled={
+                  !fiberStates.get(getFiberId(fiber).toString())?.length
+                }
                 style={{
                   background: 'transparent',
                   border: '1px solid #282828',
                   color: '#FFF',
                   borderRadius: '0.25rem',
-                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length ? 'pointer' : 'not-allowed',
+                  cursor: fiberStates.get(getFiberId(fiber).toString())?.length
+                    ? 'pointer'
+                    : 'not-allowed',
                   padding: '0.25ch 0.5ch',
                 }}
               >
                 ⏭
               </button>
               <span style={{ color: '#A0A0A0', fontSize: '0.75rem' }}>
-                {timelineIndex >= 0 && fiberStates.get(getFiberId(fiber).toString())?.[timelineIndex]?.timestamp
-                  ? new Date(fiberStates.get(getFiberId(fiber).toString())?.[timelineIndex]?.timestamp ?? 0).toLocaleTimeString()
+                {timelineIndex >= 0 &&
+                fiberStates.get(getFiberId(fiber).toString())?.[timelineIndex]
+                  ?.timestamp
+                  ? new Date(
+                      fiberStates.get(getFiberId(fiber).toString())?.[
+                        timelineIndex
+                      ]?.timestamp ?? 0,
+                    ).toLocaleTimeString()
                   : '--:--:--'}
               </span>
               {!fiberStates.get(getFiberId(fiber).toString())?.length && (
-                <span style={{ color: '#A0A0A0', fontSize: '0.75rem', marginLeft: 'auto' }}>
+                <span
+                  style={{
+                    color: '#A0A0A0',
+                    fontSize: '0.75rem',
+                    marginLeft: 'auto',
+                  }}
+                >
                   No state changes recorded yet
                 </span>
               )}
             </div>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.25ch',
-              height: '2ch',
-              position: 'relative',
-            }}>
-              {(fiberStates.get(getFiberId(fiber).toString()) ?? []).map((state, i) => {
-                const isActive = i === timelineIndex;
-                return (
-                  <div
-                    key={state.timestamp}
-                    onClick={() => handleTimelineChange(i)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        handleTimelineChange(i);
-                      }
-                    }}
-                    role="button"
-                    tabIndex={0}
-                    style={{
-                      flex: 1,
-                      height: '100%',
-                      background: isActive ? '#FFC799' : '#282828',
-                      cursor: 'pointer',
-                      position: 'relative',
-                      borderRadius: '0.125rem',
-                      transition: 'background-color 150ms',
-                      outline: 'none',
-                    }}
-                    onMouseEnter={(e) => {
-                      const target = e.currentTarget;
-                      const tooltip = document.createElement('div');
-                      tooltip.style.position = 'absolute';
-                      tooltip.style.bottom = '100%';
-                      tooltip.style.left = '50%';
-                      tooltip.style.transform = 'translateX(-50%)';
-                      tooltip.style.background = '#161616';
-                      tooltip.style.color = '#FFF';
-                      tooltip.style.padding = '0.5ch';
-                      tooltip.style.borderRadius = '0.25rem';
-                      tooltip.style.fontSize = '0.75rem';
-                      tooltip.style.whiteSpace = 'nowrap';
-                      tooltip.style.pointerEvents = 'none';
-                      tooltip.style.border = '1px solid #282828';
-                      tooltip.style.zIndex = '1000';
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25ch',
+                height: '2ch',
+                position: 'relative',
+              }}
+            >
+              {(fiberStates.get(getFiberId(fiber).toString()) ?? []).map(
+                (state, i) => {
+                  const isActive = i === timelineIndex;
+                  return (
+                    <div
+                      key={state.timestamp}
+                      onClick={() => handleTimelineChange(i)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          handleTimelineChange(i);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      style={{
+                        flex: 1,
+                        height: '100%',
+                        background: isActive ? '#FFC799' : '#282828',
+                        cursor: 'pointer',
+                        position: 'relative',
+                        borderRadius: '0.125rem',
+                        transition: 'background-color 150ms',
+                        outline: 'none',
+                      }}
+                      onMouseEnter={(e) => {
+                        const target = e.currentTarget;
+                        const tooltip = document.createElement('div');
+                        tooltip.style.position = 'absolute';
+                        tooltip.style.bottom = '100%';
+                        tooltip.style.left = '50%';
+                        tooltip.style.transform = 'translateX(-50%)';
+                        tooltip.style.background = '#161616';
+                        tooltip.style.color = '#FFF';
+                        tooltip.style.padding = '0.5ch';
+                        tooltip.style.borderRadius = '0.25rem';
+                        tooltip.style.fontSize = '0.75rem';
+                        tooltip.style.whiteSpace = 'nowrap';
+                        tooltip.style.pointerEvents = 'none';
+                        tooltip.style.border = '1px solid #282828';
+                        tooltip.style.zIndex = '1000';
 
-                      const changes: string[] = [];
-                      const states = fiberStates.get(getFiberId(fiber).toString());
-                      const prevState = i > 0 && states ? states[i - 1] : null;
-
-                      if (prevState) {
-                        // Compare props
-                        const propChanges = Object.keys(state.props).filter(key =>
-                          state.props[key] !== prevState.props[key]
+                        const changes: string[] = [];
+                        const states = fiberStates.get(
+                          getFiberId(fiber).toString(),
                         );
-                        if (propChanges.length > 0) {
-                          changes.push(`Props: ${propChanges.join(', ')}`);
+                        const prevState =
+                          i > 0 && states ? states[i - 1] : null;
+
+                        if (prevState) {
+                          // Compare props
+                          const propChanges = Object.keys(state.props).filter(
+                            (key) => state.props[key] !== prevState.props[key],
+                          );
+                          if (propChanges.length > 0) {
+                            changes.push(`Props: ${propChanges.join(', ')}`);
+                          }
+
+                          // Compare hook state
+                          const hookChanges = Object.keys(
+                            state.hookState,
+                          ).filter(
+                            (key) =>
+                              state.hookState[key] !== prevState.hookState[key],
+                          );
+                          if (hookChanges.length > 0) {
+                            changes.push(`State: ${hookChanges.join(', ')}`);
+                          }
                         }
 
-                        // Compare hook state
-                        const hookChanges = Object.keys(state.hookState).filter(key =>
-                          state.hookState[key] !== prevState.hookState[key]
-                        );
-                        if (hookChanges.length > 0) {
-                          changes.push(`State: ${hookChanges.join(', ')}`);
+                        tooltip.textContent =
+                          changes.length > 0
+                            ? changes.join(' | ')
+                            : prevState
+                              ? 'No changes'
+                              : 'Initial state';
+
+                        target.appendChild(tooltip);
+                      }}
+                      onMouseLeave={(e) => {
+                        const tooltip = e.currentTarget.querySelector('div');
+                        if (tooltip) {
+                          tooltip.remove();
                         }
-                      }
-
-                      tooltip.textContent = changes.length > 0
-                        ? changes.join(' | ')
-                        : prevState ? 'No changes' : 'Initial state';
-
-                      target.appendChild(tooltip);
-                    }}
-                    onMouseLeave={(e) => {
-                      const tooltip = e.currentTarget.querySelector('div');
-                      if (tooltip) {
-                        tooltip.remove();
-                      }
-                    }}
-                  />
-                );
-              })}
+                      }}
+                    />
+                  );
+                },
+              )}
               {!fiberStates.get(getFiberId(fiber).toString())?.length && (
-                <div style={{
-                  flex: 1,
-                  height: '100%',
-                  background: '#282828',
-                  borderRadius: '0.125rem',
-                  opacity: 0.5,
-                }} />
+                <div
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                    background: '#282828',
+                    borderRadius: '0.125rem',
+                    opacity: 0.5,
+                  }}
+                />
               )}
             </div>
             <input
               type="range"
               min={0}
-              max={(fiberStates.get(getFiberId(fiber).toString())?.length ?? 1) - 1}
+              max={
+                (fiberStates.get(getFiberId(fiber).toString())?.length ?? 1) - 1
+              }
               value={timelineIndex}
               onChange={(e) => handleTimelineChange(Number(e.target.value))}
               disabled={!fiberStates.get(getFiberId(fiber).toString())?.length}
               style={{
                 width: '100%',
                 accentColor: '#FFC799',
-                opacity: fiberStates.get(getFiberId(fiber).toString())?.length ? 1 : 0.5,
+                opacity: fiberStates.get(getFiberId(fiber).toString())?.length
+                  ? 1
+                  : 0.5,
               }}
             />
           </div>
@@ -1679,14 +1765,49 @@ export const Inspector = React.memo(
               })}
             </div>
           )}
-          {fiber && (
-            <FiberGraph
-              key={getFiberId(fiber)}
-              fiber={fiber}
-              onFiberSelect={handleFiberSelect}
-              isDialogMode={isDialogMode}
-            />
-          )}
+          <div style={{ flex: 1, overflow: 'auto' }}>
+            {fiber && (
+              <ReactInspector
+                // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+                theme={theme as any}
+                data={fiber}
+                expandLevel={1}
+                table={false}
+                nodeRenderer={(props: {
+                  depth: number;
+                  name: string;
+                  data: unknown;
+                  isNonenumerable?: boolean;
+                  expanded?: boolean;
+                }) => {
+                  const Component =
+                    props.depth === 0 ? ObjectRootLabel : ObjectLabel;
+                  return (
+                    <span
+                      onMouseEnter={(e) => handlePropertyHover(e, props.name)}
+                      onMouseLeave={handlePropertyLeave}
+                      style={{
+                        cursor: FIBER_PROP_EXPLANATIONS[props.name]
+                          ? 'help'
+                          : 'default',
+                        padding: '1px 0',
+                        display: 'inline-block',
+                        fontWeight: FIBER_PROP_EXPLANATIONS[props.name]
+                          ? 500
+                          : 'normal',
+                      }}
+                    >
+                      <Component
+                        name={props.name}
+                        data={props.data}
+                        isNonenumerable={props.isNonenumerable}
+                      />
+                    </span>
+                  );
+                }}
+              />
+            )}
+          </div>
           {tooltip && (
             <div
               style={{
