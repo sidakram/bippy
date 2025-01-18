@@ -1,15 +1,16 @@
 {
 	"name": "bippy",
-	"version": "0.2.11",
+	"version": "0.2.12",
 	"description": "hack into react internals",
 	"keywords": [
+		"bippy",
 		"react",
 		"react-instrumentation",
 		"react instrumentation",
 		"fiber",
 		"internals"
 	],
-	"homepage": "https://github.com/aidenybai/bippy#readme",
+	"homepage": "https://bippy.dev",
 	"bugs": {
 		"url": "https://github.com/aidenybai/bippy/issues"
 	},
@@ -75,13 +76,7 @@
 	"module": "dist/index.js",
 	"browser": "dist/index.global.js",
 	"types": "dist/index.d.ts",
-	"files": [
-		"dist",
-		"bin",
-		"package.json",
-		"README.md",
-		"LICENSE"
-	],
+	"files": ["dist", "bin", "package.json", "README.md", "LICENSE"],
 	"scripts": {
 		"build": "NODE_ENV=production tsup",
 		"dev": "NODE_ENV=development tsup --watch",

@@ -955,6 +955,8 @@ export const getFiberFromHostInstance = <T>(hostInstance: T): Fiber | null => {
   return null;
 };
 
+export const INSTALL_ERROR = new Error();
+
 export const secure = (
   options: InstrumentationOptions,
   secureOptions: {
@@ -1048,7 +1050,7 @@ export const secure = (
   ) {
     timeout = setTimeout(() => {
       if (!isProduction) {
-        secureOptions.onError?.();
+        secureOptions.onError?.(INSTALL_ERROR);
       }
       stop();
     }, secureOptions.installCheckTimeout ?? 100) as unknown as number;
