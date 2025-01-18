@@ -23,12 +23,12 @@ export default defineConfig({
   define: {
     __VERSION__: `"v${JSON.parse(fs.readFileSync('../package.json', 'utf8')).version}"`,
   },
-  // resolve:
-  //   process.env.NODE_ENV === 'production'
-  //     ? {}
-  //     : {
-  //         alias: {
-  //           bippy: path.resolve(__dirname, '..'),
-  //         },
-  //       },
+  resolve:
+    process.env.NODE_ENV === 'production'
+      ? {}
+      : {
+          alias: {
+            bippy: path.resolve(__dirname, '..'),
+          },
+        },
 });
