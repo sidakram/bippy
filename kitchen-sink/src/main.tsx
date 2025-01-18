@@ -5,6 +5,16 @@ import './main.css';
 
 import { routeTree } from './routeTree.gen';
 
+console.log(__REACT_DEVTOOLS_GLOBAL_HOOK__);
+
+// import { instrument } from 'bippy/dist/index';
+
+// instrument({
+//   onActive() {
+//     console.log('active');
+//   },
+// });
+
 const router = createRouter({ routeTree });
 
 declare module '@tanstack/react-router' {

@@ -28,6 +28,13 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      try {
+        console.log(Object.keys(__REACT_DEVTOOLS_GLOBAL_HOOK__));
+      } catch (e) {
+        console.error('No existing hook found');
+      }
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

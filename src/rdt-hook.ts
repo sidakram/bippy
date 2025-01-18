@@ -28,10 +28,14 @@ export const isRealReactDevtools = (rdtHook = getRDTHook()): boolean => {
 };
 
 let isReactRefreshOverride = false;
+let injectFnStr: string | undefined = undefined;
 
 export const isReactRefresh = (rdtHook = getRDTHook()): boolean => {
   if (isReactRefreshOverride) return true;
-  return !('checkDCE' in rdtHook);
+  if (typeof rdtHook.inject === 'function') {
+    injectFnStr = rdtHook.inject.toString();
+  }
+  return Boolean(injectFnStr?.includes('function(injected)'));
 };
 
 export const installRDTHook = (
@@ -81,9 +85,18 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
       rdtHook.hasUnsupportedRendererAttached = false;
       rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
       rdtHook._instrumentationIsActive = true;
+      if (rdtHook.renderers) {
+        onActive?.();
+        return;
+      }
+      const prevInject = rdtHook.inject;
+      rdtHook.inject = (renderer) => {
+        const id = prevInject(renderer);
+        onActive?.();
+        return id;
+      };
     }
   } catch {}
-  onActive?.();
 };
 
 export const hasRDTHook = (): boolean => {
