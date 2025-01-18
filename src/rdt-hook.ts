@@ -84,14 +84,15 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
       rdtHook.supportsFlight = true;
       rdtHook.hasUnsupportedRendererAttached = false;
       rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
-      rdtHook._instrumentationIsActive = true;
-      if (rdtHook.renderers) {
+      if (rdtHook.renderers.size) {
+        rdtHook._instrumentationIsActive = true;
         onActive?.();
         return;
       }
       const prevInject = rdtHook.inject;
       rdtHook.inject = (renderer) => {
         const id = prevInject(renderer);
+        rdtHook._instrumentationIsActive = true;
         onActive?.();
         return id;
       };
@@ -130,6 +131,6 @@ export const isClientEnvironment = (): boolean => {
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
   if (isClientEnvironment()) {
-    installRDTHook();
+    getRDTHook();
   }
 } catch {}
