@@ -15,7 +15,7 @@ const DEFAULT_OPTIONS: Options = {
   banner: {
     js: banner,
   },
-  clean: true,
+  clean: false,
   outDir: './dist',
   splitting: false,
   sourcemap: false,
@@ -36,13 +36,15 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: [
-      './src/index.ts',
-      './src/core.ts',
-      './src/sw.ts',
-      './src/inspect.tsx',
-    ],
+    entry: ['./src/index.ts', './src/core.ts', './src/inspect.tsx'],
     splitting: true,
+    clean: true, // only run on first entry
+  },
+  {
+    ...DEFAULT_OPTIONS,
+    outDir: './dist',
+    format: ['esm', 'cjs'],
+    entry: ['./src/sw.ts'],
   },
   {
     ...DEFAULT_OPTIONS,
@@ -50,6 +52,6 @@ export default defineConfig([
     outDir: './dist',
     minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
     globalName: 'Bippy',
-    entry: ['./src/sw.ts'],
+    entry: ['./src/index.ts'],
   },
 ]);

@@ -2,13 +2,10 @@ import { StrictMode } from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider, createRouter } from '@tanstack/react-router';
 import './main.css';
-import { registerServiceWorker } from 'bippy/dist/index';
 
 import { routeTree } from './routeTree.gen';
 
 const router = createRouter({ routeTree });
-
-registerServiceWorker();
 
 declare module '@tanstack/react-router' {
   interface Register {

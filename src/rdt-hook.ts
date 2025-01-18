@@ -106,32 +106,6 @@ export const getRDTHook = (
   return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
 };
 
-export const registerServiceWorker = async (url?: string): Promise<void> => {
-  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
-    return;
-  }
-
-  let path = url;
-  if (!path) {
-    // tested with vite & next.js
-    path = './sw.js';
-
-    if (import.meta.url.includes('.vite/deps')) {
-      path = '../../bippy/dist/sw.js';
-    }
-  }
-
-  try {
-    const url = new URL(path, import.meta.url);
-    const res = await fetch(url, { method: 'HEAD' });
-    if (res.ok) {
-      await navigator.serviceWorker.register(url, {
-        // scope: '/',
-      });
-    }
-  } catch {}
-};
-
 export const isClientEnvironment = (): boolean => {
   return Boolean(
     typeof window !== 'undefined' &&
@@ -146,6 +120,3 @@ try {
     installRDTHook();
   }
 } catch {}
-
-export const INSTALL_HOOK_SCRIPT_STRING =
-  '(()=>{try{var t=()=>{};const n=new Map;let o=0;globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__={checkDCE:t,supportsFiber:!0,supportsFlight:!0,hasUnsupportedRendererAttached:!1,renderers:n,onCommitFiberRoot:t,onCommitFiberUnmount:t,onPostCommitFiberRoot:t,inject(t){var e=++o;return n.set(e,t),globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__._instrumentationIsActive=!0,e},_instrumentationIsActive:!1}}catch{}})()';
