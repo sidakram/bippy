@@ -73,6 +73,26 @@ export const installRDTHook = (
       configurable: true,
       writable: true,
     });
+    // [!] this is a hack for chrome extensions - if we install before React DevTools, we could accidently prevent React DevTools from installing:
+    // https://github.com/facebook/react/blob/18eaf51bd51fed8dfed661d64c306759101d0bfd/packages/react-devtools-extensions/src/contentScripts/installHook.js#L30C6-L30C27
+    const originalWindowHasOwnProperty = window.hasOwnProperty;
+    let hasRanHack = false;
+    objectDefineProperty(window, 'hasOwnProperty', {
+      value: function (this: unknown) {
+        // biome-ignore lint/style/noArguments: perf
+        if (!hasRanHack && arguments[0] === '__REACT_DEVTOOLS_GLOBAL_HOOK__') {
+          globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
+          // special falsy value to know that we've already installed before
+          hasRanHack = true;
+          return -0;
+        }
+        // biome-ignore lint/suspicious/noExplicitAny: perf
+        // biome-ignore lint/style/noArguments: perf
+        return originalWindowHasOwnProperty.apply(this, arguments as any);
+      },
+      configurable: true,
+      writable: true,
+    });
   } catch {
     patchRDTHook(onActive);
   }
@@ -139,42 +159,9 @@ export const isClientEnvironment = (): boolean => {
   );
 };
 
-/**
- * If bippy runs in a Chrome Extension (or somehow runs before React Devtools is loaded),.
- * it will cause React Devtools to crash. This hack is a workaround to prevent this.
- *
- * @see https://github.com/facebook/react/blob/18eaf51bd51fed8dfed661d64c306759101d0bfd/packages/react-devtools-extensions/src/contentScripts/backendManager.js#L206C13-L206C56
- */
-export const deleteRDTIfBackendManagerInjected = (): void => {
-  if (
-    objectHasOwnProperty.call(
-      globalThis,
-      '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
-    )
-  ) {
-    return;
-  }
-
-  objectDefineProperty(
-    globalThis,
-    '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
-    {
-      configurable: true,
-      writable: true,
-      get() {
-        try {
-          globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
-        } catch {}
-        return undefined;
-      },
-    },
-  );
-};
-
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
   if (isClientEnvironment()) {
     getRDTHook();
-    deleteRDTIfBackendManagerInjected();
   }
 } catch {}
