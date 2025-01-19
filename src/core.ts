@@ -1078,3 +1078,7 @@ export const onCommitFiberRoot = (
     }),
   );
 };
+
+export * from './install-hook-script-string.js';
+export * from './rdt-hook.js';
+export type * from './types.js';

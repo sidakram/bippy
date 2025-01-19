@@ -102,30 +102,35 @@ export const installRDTHook = (
 export const patchRDTHook = (onActive?: () => unknown): void => {
   try {
     const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-    if (rdtHook) {
-      if (!rdtHook._instrumentationSource) {
-        isReactRefreshOverride = isReactRefresh(rdtHook);
-        rdtHook.checkDCE = checkDCE;
-        rdtHook.supportsFiber = true;
-        rdtHook.supportsFlight = true;
-        rdtHook.hasUnsupportedRendererAttached = false;
-        rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
-        if (rdtHook.renderers.size) {
-          rdtHook._instrumentationIsActive = true;
-          onActive?.();
-          return;
-        }
-        const prevInject = rdtHook.inject;
-        rdtHook.inject = (renderer) => {
-          const id = prevInject(renderer);
-          rdtHook._instrumentationIsActive = true;
-          onActive?.();
-          return id;
-        };
-      } else if (rdtHook.renderers.size || rdtHook._instrumentationIsActive) {
+    if (!rdtHook) return;
+    if (!rdtHook._instrumentationSource) {
+      isReactRefreshOverride = isReactRefresh(rdtHook);
+      rdtHook.checkDCE = checkDCE;
+      rdtHook.supportsFiber = true;
+      rdtHook.supportsFlight = true;
+      rdtHook.hasUnsupportedRendererAttached = false;
+      rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
+      if (rdtHook.renderers.size) {
+        rdtHook._instrumentationIsActive = true;
         onActive?.();
         return;
       }
+      const prevInject = rdtHook.inject;
+      rdtHook.inject = (renderer) => {
+        const id = prevInject(renderer);
+        rdtHook._instrumentationIsActive = true;
+        onActive?.();
+        return id;
+      };
+      return;
+    }
+    if (
+      rdtHook.renderers.size ||
+      rdtHook._instrumentationIsActive ||
+      isReactRefresh(rdtHook) ||
+      isRealReactDevtools(rdtHook)
+    ) {
+      onActive?.();
     }
   } catch {}
 };
@@ -158,10 +163,3 @@ export const isClientEnvironment = (): boolean => {
         window.navigator?.product === 'ReactNative'),
   );
 };
-
-try {
-  // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
-  if (isClientEnvironment()) {
-    getRDTHook();
-  }
-} catch {}
