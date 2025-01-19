@@ -70,7 +70,8 @@ export const installRDTHook = (
   try {
     objectDefineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
       value: rdtHook,
-      configurable: true, // required for RDT to override just in case
+      configurable: true,
+      writable: true,
     });
   } catch {
     patchRDTHook(onActive);
@@ -159,6 +160,7 @@ export const deleteRDTIfBackendManagerInjected = (): void => {
     '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
     {
       configurable: true,
+      writable: true,
       get() {
         try {
           globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
