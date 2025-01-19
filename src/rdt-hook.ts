@@ -81,25 +81,30 @@ export const installRDTHook = (
 export const patchRDTHook = (onActive?: () => unknown): void => {
   try {
     const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-    if (rdtHook && !rdtHook._instrumentationSource) {
-      isReactRefreshOverride = isReactRefresh(rdtHook);
-      rdtHook.checkDCE = checkDCE;
-      rdtHook.supportsFiber = true;
-      rdtHook.supportsFlight = true;
-      rdtHook.hasUnsupportedRendererAttached = false;
-      rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
-      if (rdtHook.renderers.size) {
-        rdtHook._instrumentationIsActive = true;
+    if (rdtHook) {
+      if (!rdtHook._instrumentationSource) {
+        isReactRefreshOverride = isReactRefresh(rdtHook);
+        rdtHook.checkDCE = checkDCE;
+        rdtHook.supportsFiber = true;
+        rdtHook.supportsFlight = true;
+        rdtHook.hasUnsupportedRendererAttached = false;
+        rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
+        if (rdtHook.renderers.size) {
+          rdtHook._instrumentationIsActive = true;
+          onActive?.();
+          return;
+        }
+        const prevInject = rdtHook.inject;
+        rdtHook.inject = (renderer) => {
+          const id = prevInject(renderer);
+          rdtHook._instrumentationIsActive = true;
+          onActive?.();
+          return id;
+        };
+      } else if (rdtHook.renderers.size || rdtHook._instrumentationIsActive) {
         onActive?.();
         return;
       }
-      const prevInject = rdtHook.inject;
-      rdtHook.inject = (renderer) => {
-        const id = prevInject(renderer);
-        rdtHook._instrumentationIsActive = true;
-        onActive?.();
-        return id;
-      };
     }
   } catch {}
 };
@@ -139,33 +144,35 @@ export const isClientEnvironment = (): boolean => {
  *
  * @see https://github.com/facebook/react/blob/18eaf51bd51fed8dfed661d64c306759101d0bfd/packages/react-devtools-extensions/src/contentScripts/backendManager.js#L206C13-L206C56
  */
-export const runRDTOverrideHack = (): void => {
+export const deleteRDTIfBackendManagerInjected = (): void => {
   if (
-    !objectHasOwnProperty.call(
+    objectHasOwnProperty.call(
       globalThis,
       '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
     )
   ) {
-    objectDefineProperty(
-      globalThis,
-      '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
-      {
-        configurable: true,
-        get() {
-          try {
-            globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
-          } catch {}
-          return undefined;
-        },
-      },
-    );
+    return;
   }
+
+  objectDefineProperty(
+    globalThis,
+    '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
+    {
+      configurable: true,
+      get() {
+        try {
+          globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
+        } catch {}
+        return undefined;
+      },
+    },
+  );
 };
 
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
   if (isClientEnvironment()) {
     getRDTHook();
-    runRDTOverrideHack();
+    deleteRDTIfBackendManagerInjected();
   }
 } catch {}
