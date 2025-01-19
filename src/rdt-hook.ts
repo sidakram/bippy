@@ -38,7 +38,7 @@ export const isReactRefresh = (rdtHook = getRDTHook()): boolean => {
   if (typeof rdtHook.inject === 'function') {
     injectFnStr = rdtHook.inject.toString();
   }
-  return Boolean(injectFnStr?.includes('function(injected)'));
+  return Boolean(injectFnStr?.includes('(injected)'));
 };
 
 export const installRDTHook = (
@@ -110,6 +110,7 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
       rdtHook.supportsFlight = true;
       rdtHook.hasUnsupportedRendererAttached = false;
       rdtHook._instrumentationSource = BIPPY_INSTRUMENTATION_STRING;
+      rdtHook._instrumentationIsActive = false;
       if (rdtHook.renderers.size) {
         rdtHook._instrumentationIsActive = true;
         onActive?.();
@@ -122,7 +123,6 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
         onActive?.();
         return id;
       };
-      return;
     }
     if (
       rdtHook.renderers.size ||

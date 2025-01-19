@@ -29,7 +29,7 @@ import {
 	traverseState,
 	traverseRenderedFibers,
 	onCommitFiberRoot,
-} from "./index.js";
+} from "../index.js";
 import React, { isValidElement } from "react";
 import { render, screen } from "@testing-library/react";
 
