@@ -3,6 +3,9 @@ import type { ReactDevToolsGlobalHook, ReactRenderer } from './types.js';
 export const version = process.env.VERSION;
 export const BIPPY_INSTRUMENTATION_STRING = `bippy-${version}`;
 
+const objectDefineProperty = Object.defineProperty;
+const objectHasOwnProperty = Object.prototype.hasOwnProperty;
+
 const NO_OP = () => {
   /**/
 };
@@ -65,8 +68,9 @@ export const installRDTHook = (
     _instrumentationIsActive: false,
   };
   try {
-    Object.defineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
+    objectDefineProperty(globalThis, '__REACT_DEVTOOLS_GLOBAL_HOOK__', {
       value: rdtHook,
+      configurable: true, // required for RDT to override just in case
     });
   } catch {
     patchRDTHook(onActive);
@@ -77,7 +81,7 @@ export const installRDTHook = (
 export const patchRDTHook = (onActive?: () => unknown): void => {
   try {
     const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
-    if (!rdtHook._instrumentationSource) {
+    if (rdtHook && !rdtHook._instrumentationSource) {
       isReactRefreshOverride = isReactRefresh(rdtHook);
       rdtHook.checkDCE = checkDCE;
       rdtHook.supportsFiber = true;
@@ -101,7 +105,7 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
 };
 
 export const hasRDTHook = (): boolean => {
-  return Object.prototype.hasOwnProperty.call(
+  return objectHasOwnProperty.call(
     globalThis,
     '__REACT_DEVTOOLS_GLOBAL_HOOK__',
   );
@@ -117,7 +121,8 @@ export const getRDTHook = (
     return installRDTHook(onActive);
   }
   patchRDTHook(onActive);
-  return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+  // must exist at this point
+  return globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ as ReactDevToolsGlobalHook;
 };
 
 export const isClientEnvironment = (): boolean => {
@@ -128,9 +133,39 @@ export const isClientEnvironment = (): boolean => {
   );
 };
 
+/**
+ * If bippy runs in a Chrome Extension (or somehow runs before React Devtools is loaded),.
+ * it will cause React Devtools to crash. This hack is a workaround to prevent this.
+ *
+ * @see https://github.com/facebook/react/blob/18eaf51bd51fed8dfed661d64c306759101d0bfd/packages/react-devtools-extensions/src/contentScripts/backendManager.js#L206C13-L206C56
+ */
+export const runRDTOverrideHack = (): void => {
+  if (
+    !objectHasOwnProperty.call(
+      globalThis,
+      '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
+    )
+  ) {
+    objectDefineProperty(
+      globalThis,
+      '__REACT_DEVTOOLS_BACKEND_MANAGER_INJECTED__',
+      {
+        configurable: true,
+        get() {
+          try {
+            globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__ = undefined;
+          } catch {}
+          return undefined;
+        },
+      },
+    );
+  }
+};
+
 try {
   // __REACT_DEVTOOLS_GLOBAL_HOOK__ must exist before React is ever executed
   if (isClientEnvironment()) {
     getRDTHook();
+    runRDTOverrideHack();
   }
 } catch {}
