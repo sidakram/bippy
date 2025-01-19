@@ -117,18 +117,30 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
         return;
       }
       const prevInject = rdtHook.inject;
-      rdtHook.inject = (renderer) => {
-        const id = prevInject(renderer);
-        rdtHook._instrumentationIsActive = true;
-        onActive?.();
-        return id;
-      };
+      if (isReactRefresh(rdtHook)) {
+        isReactRefreshOverride = true;
+        // but since the underlying implementation doens't care,
+        // it's ok: https://github.com/facebook/react/blob/18eaf51bd51fed8dfed661d64c306759101d0bfd/packages/react-refresh/src/ReactFreshRuntime.js#L430
+        // @ts-expect-error this is not actually a ReactRenderer,
+        let nextID = rdtHook.inject(null);
+        if (nextID) {
+          rdtHook._instrumentationIsActive = true;
+        }
+        rdtHook.inject = () => nextID++;
+      } else {
+        rdtHook.inject = (renderer) => {
+          const id = prevInject(renderer);
+          rdtHook._instrumentationIsActive = true;
+          onActive?.();
+          return id;
+        };
+      }
     }
     if (
       rdtHook.renderers.size ||
       rdtHook._instrumentationIsActive ||
-      isReactRefresh(rdtHook) ||
-      isRealReactDevtools(rdtHook)
+      // depending on this to inject is unsafe, since inject could occur before and we wouldn't know
+      isReactRefresh()
     ) {
       onActive?.();
     }

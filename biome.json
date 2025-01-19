@@ -7,9 +7,7 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": [
-			"*.gen.ts"
-		]
+		"ignore": ["*.gen.ts"]
 	},
 	"formatter": {
 		"enabled": true,
@@ -22,6 +20,12 @@
 		"enabled": true,
 		"rules": {
 			"recommended": true,
+			"suspicious": {
+				"noConsoleLog": {
+					"level": "warn",
+					"fix": "unsafe"
+				}
+			},
 			"correctness": {
 				"noUnusedFunctionParameters": {
 					"level": "warn",

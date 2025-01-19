@@ -1,7 +1,7 @@
 // import bippy, then react refresh
 
 import { expect, vi, it } from 'vitest';
-import { instrument } from '../index.js';
+import { instrument } from '../../index.js';
 
 declare global {
   interface Window {

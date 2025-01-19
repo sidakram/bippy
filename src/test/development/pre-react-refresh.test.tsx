@@ -13,7 +13,7 @@ const runtime = require('react-refresh/runtime');
 runtime.injectIntoGlobalHook(window);
 window.$RefreshReg$ = () => {};
 window.$RefreshSig$ = () => (type) => type;
-const { instrument } = await import('../index.js');
+const { instrument } = await import('../../index.js');
 
 it('should be active', () => {
   const onActive = vi.fn();
