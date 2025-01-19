@@ -1,3 +1,5 @@
+// import bippy, then react refresh
+
 import { expect, vi, it } from 'vitest';
 import { instrument } from '../index.js';
 

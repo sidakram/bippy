@@ -1,3 +1,5 @@
+// import react devtools, then bippy
+
 import { expect, vi, it } from 'vitest';
 
 // @ts-ignore

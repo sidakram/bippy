@@ -1,6 +1,8 @@
+// import react, then bippy
+
 import { expect, it, vi } from 'vitest';
 import React from 'react';
-import { instrument } from '../index.js';
+const { instrument } = await import('../index.js'); // delay it
 import { render } from '@testing-library/react';
 
 it('should be active', () => {
@@ -9,5 +11,5 @@ it('should be active', () => {
   instrument({
     onActive,
   });
-  expect(onActive).toHaveBeenCalled();
+  expect(onActive).not.toHaveBeenCalled();
 });

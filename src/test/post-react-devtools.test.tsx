@@ -1,3 +1,5 @@
+// import bippy, then react devtools
+
 import { expect, vi, it } from 'vitest';
 const { instrument } = await import('../index.js');
 
