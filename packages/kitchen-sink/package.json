@@ -1,4 +1,5 @@
 {
+	"name": "@bippy/kitchen-sink",
 	"type": "module",
 	"scripts": {
 		"preview": "vite preview",

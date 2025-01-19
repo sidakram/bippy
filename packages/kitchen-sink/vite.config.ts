@@ -21,14 +21,14 @@ export default defineConfig({
     tailwindcss(),
   ],
   define: {
-    __VERSION__: `"v${JSON.parse(fs.readFileSync('../package.json', 'utf8')).version}"`,
+    __VERSION__: `"v${JSON.parse(fs.readFileSync('../bippy/package.json', 'utf8')).version}"`,
   },
   resolve:
     process.env.NODE_ENV === 'production'
       ? {}
       : {
           alias: {
-            bippy: path.resolve(__dirname, '..'),
+            bippy: path.resolve(__dirname, '../bippy'),
           },
         },
 });

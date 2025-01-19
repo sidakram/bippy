@@ -1,62 +1,61 @@
 {
-	"$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
-	"vcs": {
-		"enabled": false,
-		"clientKind": "git",
-		"useIgnoreFile": false
-	},
-	"files": {
-		"ignoreUnknown": false,
-		"ignore": ["*.gen.ts"]
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab"
-	},
-	"organizeImports": {
-		"enabled": true
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"suspicious": {
-				"noConsoleLog": {
-					"level": "warn",
-					"fix": "unsafe"
-				}
-			},
-			"correctness": {
-				"noUnusedFunctionParameters": {
-					"level": "warn",
-					"fix": "unsafe"
-				},
-				"noUnusedImports": {
-					"level": "warn",
-					"fix": "unsafe"
-				},
-				"noUnusedLabels": {
-					"level": "warn",
-					"fix": "unsafe"
-				},
-				"noUnusedPrivateClassMembers": {
-					"level": "warn",
-					"fix": "unsafe"
-				},
-				"noUnusedVariables": {
-					"level": "warn",
-					"fix": "unsafe"
-				}
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "single",
-			"indentStyle": "space",
-			"indentWidth": 2,
-			"lineWidth": 80,
-			"lineEnding": "lf"
-		}
-	}
+  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "vcs": {
+    "enabled": false,
+    "clientKind": "git",
+    "useIgnoreFile": false
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "include": ["packages/**/*.ts", "packages/**/*.tsx", "*.ts", "*.tsx"],
+    "ignore": ["*.gen.ts", "node_modules", "dist", "coverage"]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 80,
+    "lineEnding": "lf"
+  },
+  "organizeImports": {
+    "enabled": true
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": {
+        "noConsoleLog": {
+          "level": "warn",
+          "fix": "unsafe"
+        }
+      },
+      "correctness": {
+        "noUnusedFunctionParameters": {
+          "level": "warn",
+          "fix": "unsafe"
+        },
+        "noUnusedImports": {
+          "level": "warn",
+          "fix": "unsafe"
+        },
+        "noUnusedLabels": {
+          "level": "warn",
+          "fix": "unsafe"
+        },
+        "noUnusedPrivateClassMembers": {
+          "level": "warn",
+          "fix": "unsafe"
+        },
+        "noUnusedVariables": {
+          "level": "warn",
+          "fix": "unsafe"
+        }
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  }
 }
