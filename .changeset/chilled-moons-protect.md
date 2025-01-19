@@ -1,5 +1,0 @@
----
-"bippy": patch
----
-
-Add tests
