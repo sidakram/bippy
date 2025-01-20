@@ -102,8 +102,8 @@ importers:
         specifier: ^1.95.1
         version: 1.95.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       bippy:
-        specifier: ^0.2.20
-        version: 0.2.20
+        specifier: ^0.2.22
+        version: 0.2.22
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1516,8 +1516,8 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  bippy@0.2.20:
-    resolution: {integrity: sha512-yFGK2BmBY9hT3XR9xvCArS2Hm0fOtDkZvTA4PU4EaVXDE1LBiYu7uJEEF/bSNRORvVbnfja1RVAPYXfTo67W2A==}
+  bippy@0.2.22:
+    resolution: {integrity: sha512-QEZrgqE74Pfse3j2dgc7lH/6GXdU2a9zeeXnf8/5ANq864TYgeGMIqcWNm0pxEUDOBiIm1Cmtrnf9ANLJc0egg==}
 
   brace-expansion@2.0.1:
     resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
@@ -4386,7 +4386,7 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  bippy@0.2.20: {}
+  bippy@0.2.22: {}
 
   brace-expansion@2.0.1:
     dependencies:
