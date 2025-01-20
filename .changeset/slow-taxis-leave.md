@@ -1,0 +1,5 @@
+---
+"bippy": patch
+---
+
+Fix README
