@@ -16,6 +16,10 @@ importers:
         version: 2.27.11
 
   packages/bippy:
+    dependencies:
+      '@types/react-reconciler':
+        specifier: ^0.28.9
+        version: 0.28.9(@types/react@18.3.12)
     devDependencies:
       '@biomejs/biome':
         specifier: 1.9.4
@@ -35,9 +39,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.0.2
         version: 19.0.2(@types/react@18.3.12)
-      '@types/react-reconciler':
-        specifier: ^0.28.9
-        version: 0.28.9(@types/react@18.3.12)
       '@vitest/coverage-istanbul':
         specifier: 2.1.8
         version: 2.1.8(vitest@2.1.8)
