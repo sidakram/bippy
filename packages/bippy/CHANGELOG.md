@@ -1,5 +1,12 @@
 # bippy
 
+## 0.2.21
+
+### Patch Changes
+
+- ebfdac3: Fix README (again)
+- 1dcefaa: Fix README
+
 ## 0.2.20
 
 ### Patch Changes
