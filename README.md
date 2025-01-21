@@ -33,7 +33,7 @@ or, use the `/inspect` subpackage to graphically visualize the fiber tree:
 ```jsx
 import { Inspector } from 'bippy/inspect';
 
-<Inspector enabled={true} />
+<Inspector enabled={true} />;
 ```
 
 <table>
@@ -157,7 +157,6 @@ or, use via script tag:
 > this will cause bippy to be accessible under a `window.Bippy` global.
 
 next, you can use the api to get data about the fiber tree. below is a (useful) subset of the api. for the full api, read the [source code](https://github.com/aidenybai/bippy/blob/main/src/core.ts).
-
 
 ### onCommitFiberRoot
 
@@ -302,7 +301,6 @@ traverseContexts(fiber, (next, prev) => {
   console.log(next, prev);
 });
 ```
-
 
 ### setFiberId / getFiberId
 
@@ -620,6 +618,8 @@ instrument(
 - `onCommitFiberUnmount`: called when a fiber unmounts
 
 ## development
+
+pre-requisite: you should understand how react works internally. if you don't, please give this [series of articles](https://jser.dev/series/react-source-code-walkthrough) a read.
 
 we use a pnpm monorepo, get started by running:
 

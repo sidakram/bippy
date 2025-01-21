@@ -23,6 +23,7 @@ import {
   ObjectRootLabel,
   ObjectLabel,
 } from 'react-inspector';
+import ReactDOM from 'react-dom';
 
 const FIBER_PROP_EXPLANATIONS: Record<string, string> = {
   tag: 'Numeric type identifier for this fiber (e.g. 1=FunctionComponent, 5=HostComponent)',
@@ -234,7 +235,7 @@ const CloseButton = React.memo(({ onClick }: { onClick: () => void }) => (
   </button>
 ));
 
-export const Inspector = React.memo(
+export const RawInspector = React.memo(
   ({ enabled = true, dangerouslyRunInProduction = false }: InspectorProps) => {
     const [element, setElement] = useState<Element | null>(null);
     const [rect, setRect] = useState<DOMRect | null>(null);
@@ -684,5 +685,27 @@ export const Inspector = React.memo(
     );
   },
 );
+
+export const Inspector = React.memo(({ ...props }: InspectorProps) => {
+  const [root, setRoot] = useState<ShadowRoot | null>(null);
+
+  useEffect(() => {
+    const div = document.createElement('div');
+    document.body.appendChild(div);
+    const shadowRoot = div.attachShadow({ mode: 'open' });
+    setRoot(shadowRoot);
+
+    return () => {
+      document.body.removeChild(div);
+    };
+  }, []);
+
+  if (!root) return null;
+
+  return ReactDOM.createPortal(
+    <RawInspector {...props} />,
+    root
+  );
+});
 
 export default Inspector;
