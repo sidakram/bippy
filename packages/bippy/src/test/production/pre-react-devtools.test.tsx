@@ -1,8 +1,6 @@
 // import react devtools, then bippy
-process.env.NODE_ENV = 'production';
 
 import { expect, vi, it } from 'vitest';
-import { render } from '@testing-library/react';
 
 // @ts-ignore
 const { activate, initialize } = await import('react-devtools-inline/backend');
@@ -15,6 +13,7 @@ initialize(window);
 
 // biome-ignore lint/correctness/noUnusedVariables: needed for JSX
 const React = await import('react');
+const { render } = await import('@testing-library/react');
 
 const DevTools = initializeFrontend(window);
 

@@ -979,7 +979,6 @@ export const secure = (
     let isSecure = true;
     try {
       const rdtHook = getRDTHook();
-      console.log(rdtHook.renderers);
 
       for (const renderer of rdtHook.renderers.values()) {
         const [majorVersion] = renderer.version.split('.');

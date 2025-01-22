@@ -1,5 +1,4 @@
 // import bippy, then react devtools
-process.env.NODE_ENV = 'production';
 
 import { expect, vi, it } from 'vitest';
 const { instrument, secure } = await import('../../index.js');
@@ -8,7 +7,7 @@ const { instrument, secure } = await import('../../index.js');
 import { activate, initialize } from 'react-devtools-inline/backend';
 // @ts-ignore
 import { initialize as initializeFrontend } from 'react-devtools-inline/frontend';
-import { render } from '@testing-library/react';
+const { render } = await import('@testing-library/react');
 
 initialize(window);
 

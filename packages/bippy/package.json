@@ -87,8 +87,8 @@
 		"build": "NODE_ENV=production tsup",
 		"dev": "NODE_ENV=development tsup --watch",
 		"publint": "publint",
-		"test": "vitest --dom",
-		"coverage": "vitest run --coverage --dom",
+		"test": "vitest",
+		"coverage": "vitest run --coverage",
 		"prepublishOnly": "cp ../../README.md . && pnpm build"
 	},
 	"devDependencies": {

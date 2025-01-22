@@ -1,10 +1,10 @@
-process.env.NODE_ENV = 'production';
-
 import { it, vi, expect } from 'vitest';
 import { instrument, secure } from '../../index.js';
-const React = await import('react');
+import React from 'react';
 import { render } from '@testing-library/react';
 import { BasicComponent } from '../components.js';
+
+console.log('a', process.env.NODE_ENV);
 
 it('handle multiple onActive calls', () => {
   const onActive = vi.fn();
@@ -23,4 +23,5 @@ it('handle multiple onActive calls', () => {
   expect(onActive).toHaveBeenCalledOnce();
   expect(onActive2).toHaveBeenCalledOnce();
   expect(onActive3).toHaveBeenCalledOnce();
+  expect(noOnActive).not.toHaveBeenCalled();
 });
