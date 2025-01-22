@@ -5,7 +5,7 @@ const baseConfig = defineConfig({
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'json', 'html'],
-      include: ['src/*.ts'],
+      include: ['src/*.{ts,tsx}'],
     },
     environment: 'happy-dom',
   },
@@ -13,7 +13,7 @@ const baseConfig = defineConfig({
 
 const prodConfig = mergeConfig(baseConfig, {
   test: {
-    include: ['src/test/production/**/*.test.{ts,tsx}'],
+    include: ['src/test/production/*.test.{ts,tsx}'],
     env: {
       NODE_ENV: 'production',
     },

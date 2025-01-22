@@ -4,8 +4,6 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { BasicComponent } from '../components.js';
 
-console.log('a', process.env.NODE_ENV);
-
 it('handle multiple onActive calls', () => {
   const onActive = vi.fn();
   const onActive2 = vi.fn();
