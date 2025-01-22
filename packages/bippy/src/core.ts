@@ -964,6 +964,7 @@ export const secure = (
     dangerouslyRunInProduction?: boolean;
     onError?: (error?: unknown) => unknown;
     installCheckTimeout?: number;
+    isProduction?: boolean;
   } = {},
 ): InstrumentationOptions => {
   const onActive = options.onActive;
@@ -971,14 +972,14 @@ export const secure = (
   const isUsingRealReactDevtools = isRealReactDevtools();
   const isUsingReactRefresh = isReactRefresh();
   let timeout: number | undefined;
-  let isProduction = false;
+  let isProduction = secureOptions.isProduction ?? false;
 
   options.onActive = () => {
     clearTimeout(timeout);
     let isSecure = true;
     try {
-      onActive?.();
       const rdtHook = getRDTHook();
+      console.log(rdtHook.renderers);
 
       for (const renderer of rdtHook.renderers.values()) {
         const [majorVersion] = renderer.version.split('.');
@@ -1004,6 +1005,7 @@ export const secure = (
       options.onActive = undefined;
       return;
     }
+    onActive?.();
 
     try {
       const onCommitFiberRoot = options.onCommitFiberRoot;

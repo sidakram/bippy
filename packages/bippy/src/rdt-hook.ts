@@ -41,6 +41,8 @@ export const isReactRefresh = (rdtHook = getRDTHook()): boolean => {
   return Boolean(injectFnStr?.includes('(injected)'));
 };
 
+const onActiveListeners = new Set<() => unknown>();
+
 export const installRDTHook = (
   onActive?: () => unknown,
 ): ReactDevToolsGlobalHook => {
@@ -60,7 +62,8 @@ export const installRDTHook = (
       renderers.set(nextID, renderer);
       if (!rdtHook._instrumentationIsActive) {
         rdtHook._instrumentationIsActive = true;
-        onActive?.();
+        // biome-ignore lint/complexity/noForEach: prefer forEach for Set
+        onActiveListeners.forEach((listener) => listener());
       }
       return nextID;
     },
@@ -100,6 +103,9 @@ export const installRDTHook = (
 };
 
 export const patchRDTHook = (onActive?: () => unknown): void => {
+  if (onActive) {
+    onActiveListeners.add(onActive);
+  }
   try {
     const rdtHook = globalThis.__REACT_DEVTOOLS_GLOBAL_HOOK__;
     if (!rdtHook) return;
@@ -113,7 +119,8 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
       rdtHook._instrumentationIsActive = false;
       if (rdtHook.renderers.size) {
         rdtHook._instrumentationIsActive = true;
-        onActive?.();
+        // biome-ignore lint/complexity/noForEach: prefer forEach for Set
+        onActiveListeners.forEach((listener) => listener());
         return;
       }
       const prevInject = rdtHook.inject;
@@ -131,7 +138,8 @@ export const patchRDTHook = (onActive?: () => unknown): void => {
         rdtHook.inject = (renderer) => {
           const id = prevInject(renderer);
           rdtHook._instrumentationIsActive = true;
-          onActive?.();
+          // biome-ignore lint/complexity/noForEach: prefer forEach for Set
+          onActiveListeners.forEach((listener) => listener());
           return id;
         };
       }
