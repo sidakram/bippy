@@ -10,6 +10,8 @@ import {
   type Fiber,
   getNearestHostFiber,
   hasRDTHook,
+  isCompositeFiber,
+  parseReactHooks,
 } from '../index.js';
 import React, {
   useState,
@@ -252,6 +254,16 @@ export const RawInspector = React.memo(
     const getFiberForDisplay = useCallback(() => {
       if (selectedFiber) return selectedFiber;
       const fiber = getFiberFromHostInstance(element);
+      traverseFiber(
+        fiber,
+        (f) => {
+          if (isCompositeFiber(f)) {
+            parseReactHooks(f);
+            return true;
+          }
+        },
+        true,
+      );
       return fiber;
     }, [selectedFiber, element]);
 

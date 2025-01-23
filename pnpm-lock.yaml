@@ -98,8 +98,8 @@ importers:
         specifier: ^1.95.1
         version: 1.95.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       bippy:
-        specifier: ^0.2.22
-        version: 0.2.22
+        specifier: ^0.2.23
+        version: 0.2.23(@types/react@19.0.4)(react@19.0.0)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -1582,8 +1582,10 @@ packages:
     resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
     engines: {node: '>=8'}
 
-  bippy@0.2.22:
-    resolution: {integrity: sha512-QEZrgqE74Pfse3j2dgc7lH/6GXdU2a9zeeXnf8/5ANq864TYgeGMIqcWNm0pxEUDOBiIm1Cmtrnf9ANLJc0egg==}
+  bippy@0.2.23:
+    resolution: {integrity: sha512-iwhRQdkqAW6UcIF7t85Bv9BWgNrW72z4f2nVK+KZrAslYHVDVPmDcPDb8XVxlArQjRrRwJ1rwldeFCnpbd3B5Q==}
+    peerDependencies:
+      react: '>=17.0.1'
 
   brace-expansion@2.0.1:
     resolution: {integrity: sha512-XnAIvQ8eM+kC6aULx6wuQiwVsnzsi9d3WxzV3FpWTGA19F621kwdbsAcFKXgKUHZWsy+mY6iL1sHTxWEFCytDA==}
@@ -4212,6 +4214,10 @@ snapshots:
     dependencies:
       '@types/react': 18.3.12
 
+  '@types/react-reconciler@0.28.9(@types/react@19.0.4)':
+    dependencies:
+      '@types/react': 19.0.4
+
   '@types/react@18.3.12':
     dependencies:
       '@types/prop-types': 15.7.13
@@ -4372,7 +4378,12 @@ snapshots:
 
   binary-extensions@2.3.0: {}
 
-  bippy@0.2.22: {}
+  bippy@0.2.23(@types/react@19.0.4)(react@19.0.0):
+    dependencies:
+      '@types/react-reconciler': 0.28.9(@types/react@19.0.4)
+      react: 19.0.0
+    transitivePeerDependencies:
+      - '@types/react'
 
   brace-expansion@2.0.1:
     dependencies:
