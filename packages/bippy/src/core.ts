@@ -11,7 +11,6 @@ import {
 } from './rdt-hook.js';
 import type {
   ContextDependency,
-  Effect,
   Fiber,
   FiberRoot,
   MemoizedState,
@@ -921,70 +920,6 @@ export const getFiberFromHostInstance = <T>(hostInstance: T): Fiber | null => {
     }
   }
   return null;
-};
-
-/**
- * Extremely lightweight "parser" that locates React hook calls
- * and extracts only their names (e.g., "useState"), along with the
- * runtime value from the fiber’s `memoizedState`.
- */
-export const parseReactHooks = (fiber: Fiber) => {
-  // Make sure it’s a function component, etc.
-  if (!isCompositeFiber(fiber)) return [];
-
-  const typeFn = getType(fiber);
-  if (typeof typeFn !== 'function') return [];
-
-  // 1. Parse out all `useXxx` calls from the component’s source code.
-  let code: string;
-  try {
-    code = typeFn.toString();
-  } catch {
-    return [];
-  }
-
-  const hookCallRegex = /\b(use[A-Z][A-Za-z0-9_]*)\s*\(/g;
-  const codeHookNames: string[] = [];
-  let match: RegExpExecArray | null;
-
-  while ((match = hookCallRegex.exec(code)) !== null) {
-    codeHookNames.push(match[1]); // e.g. "useState", "useEffect"
-  }
-
-  // 2. Walk the linked list of React’s internal hook objects via `memoizedState`.
-  //    For each node, decide a `name` (from the source or fallback).
-  //    Decide a `value` based on whether it’s a state hook, effect hook, etc.
-  const hooks: Array<{ name: string; value: unknown }> = [];
-  let currentHook: MemoizedState | null = fiber.memoizedState;
-  let i = 0;
-
-  while (currentHook) {
-    const name = codeHookNames[i] || 'useUnknown';
-
-    // For demonstration, a few naive checks:
-    // - `.queue` usually exists on useState/useReducer/useSyncExternalStore
-    // - `.create` usually exists on useEffect/useLayoutEffect/useInsertionEffect
-    // You can refine this logic to handle other hook shapes if desired.
-    let value: unknown;
-
-    if (currentHook.queue && typeof currentHook.queue === 'object') {
-      // Commonly a state/reducer hook
-      value = currentHook.memoizedState;
-    } else if (currentHook.create && typeof currentHook.create === 'function') {
-      // Effect hooks typically store their effect creation function
-      value = currentHook.create;
-    } else {
-      // Default fallback for other hook types
-      value = currentHook.memoizedState;
-    }
-
-    hooks.push({ name, value });
-
-    currentHook = currentHook.next;
-    i++;
-  }
-
-  return hooks;
 };
 
 export const INSTALL_ERROR = new Error();
