@@ -6,6 +6,7 @@
     "test": "pnpm --filter=./packages/bippy run test",
     "publint": "pnpm --filter=./packages/bippy run publint",
     "lint": "pnpm biome lint --write",
+    "sherif": "sherif --fix",
     "format": "pnpm biome format --write",
     "check": "pnpm biome check --write",
     "bump": "changeset && changeset version",
@@ -15,9 +16,7 @@
   "private": true,
   "devDependencies": {
     "@changesets/changelog-git": "^0.2.0",
-    "@changesets/cli": "^2.27.11"
-  },
-  "dependencies": {
-    "vaul": "^1.1.2"
+    "@changesets/cli": "^2.27.11",
+    "sherif": "^1.2.0"
   }
 }
