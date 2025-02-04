@@ -3,7 +3,6 @@ import { useState, type ReactNode, Fragment } from 'react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { highlight } from 'sugar-high';
-import 'bippy/dist/experiments/extract';
 
 declare const __VERSION__: string;
 
