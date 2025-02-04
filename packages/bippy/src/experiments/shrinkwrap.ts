@@ -1,4 +1,5 @@
 import {
+  type FiberRoot,
   getFiberFromHostInstance,
   instrument,
   isHostFiber,
@@ -260,9 +261,8 @@ const isTopElement = (element: HTMLElement) => {
   }
 };
 
-export const createExtractor = () => {
-  let elements: Element[] = [];
-  const draw = async () => {
+export const createShrinkwrap = () => {
+  const draw = async (elements: Element[]) => {
     if (!ctx) return;
 
     const rectMap = await getRectMap(elements);
@@ -327,7 +327,6 @@ export const createExtractor = () => {
         visibleCount++;
         visibleIndices.set(element, visibleCount);
 
-        // Draw outline
         ctx.beginPath();
         ctx.rect(x, y, width, height);
         const color = COLORS[i % COLORS.length].join(',');
@@ -336,7 +335,6 @@ export const createExtractor = () => {
         ctx.fill();
         ctx.stroke();
 
-        // Draw label
         ctx.fillStyle = `rgba(${color})`;
         ctx.fillRect(x, labelY, textWidth + 4, textSize + 4);
         ctx.fillStyle = 'rgba(255,255,255)';
@@ -374,8 +372,12 @@ export const createExtractor = () => {
     ctx.scale(dpr, dpr);
   }
 
+  root.appendChild(canvas);
+
+  document.documentElement.appendChild(host);
+
   let isResizeScheduled = false;
-  window.addEventListener('resize', () => {
+  const resizeHandler = () => {
     if (!isResizeScheduled) {
       isResizeScheduled = true;
       setTimeout(() => {
@@ -391,70 +393,73 @@ export const createExtractor = () => {
           ctx.resetTransform();
           ctx.scale(dpr, dpr);
         }
-        draw();
+        shrinkwrap.trackInteractive();
         isResizeScheduled = false;
       });
     }
-  });
+  };
 
   let isScrollScheduled = false;
+  const scrollHandler = () => {
+    if (isScrollScheduled) return;
+    isScrollScheduled = true;
+    setTimeout(() => {
+      requestAnimationFrame(() => {
+        shrinkwrap.trackInteractive();
+      });
+      isScrollScheduled = false;
+    }, 8);
+  };
 
-  window.addEventListener('scroll', () => {
-    if (!isScrollScheduled) {
-      isScrollScheduled = true;
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          draw();
-        });
-        isScrollScheduled = false;
-      }, 16 * 2);
-    }
-  });
-
-  root.appendChild(canvas);
-
-  document.documentElement.appendChild(host);
-
-  const extractor = {
-    draw(newElements: Element[]) {
-      elements = newElements;
-      draw().then((visibleIndices) => {
+  const fiberRoots = new Set<FiberRoot>();
+  const shrinkwrap = {
+    draw(elements: Element[]) {
+      draw(elements).then((visibleIndices) => {
         if (!visibleIndices) return;
-        const textContentMap: Record<number, string> = {};
+        const elementMap: Record<string, Element> = {};
         visibleIndices.forEach((index, element) => {
-          textContentMap[index] = element.textContent || '';
+          elementMap[index] = element;
         });
         // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-        (window as any).shrinkwrap = textContentMap;
+        (window as any).shrinkwrap = {
+          elementMap,
+        };
       });
     },
-    drawInteractive() {
+    trackInteractive() {
       instrument({
         onCommitFiberRoot(_, root) {
+          fiberRoots.add(root);
           const elements: Element[] = [];
-          traverseFiber(root.current, (fiber) => {
-            if (
-              isHostFiber(fiber) &&
-              isInteractive(fiber.stateNode) &&
-              isElementVisible(fiber.stateNode) &&
-              isTopElement(fiber.stateNode)
-            ) {
-              elements.push(fiber.stateNode);
-            }
-          });
-          extractor.draw(elements);
+          for (const fiberRoot of fiberRoots) {
+            traverseFiber(fiberRoot.current, (fiber) => {
+              if (
+                isHostFiber(fiber) &&
+                isInteractive(fiber.stateNode) &&
+                isElementVisible(fiber.stateNode) &&
+                isTopElement(fiber.stateNode)
+              ) {
+                elements.push(fiber.stateNode);
+              }
+            });
+          }
+          shrinkwrap.draw(elements);
         },
       });
     },
+    cleanup() {
+      fiberRoots.clear();
+      window.removeEventListener('scroll', scrollHandler);
+      window.removeEventListener('resize', resizeHandler);
+      document.documentElement.removeChild(host);
+    },
   };
 
-  return extractor;
-};
+  window.addEventListener('scroll', scrollHandler);
+  window.addEventListener('resize', resizeHandler);
 
-setTimeout(() => {
-  const extractor = createExtractor();
-  extractor.drawInteractive();
-}, 1000);
+  return shrinkwrap;
+};
 
 export const getRectMap = (
   elements: Element[],
