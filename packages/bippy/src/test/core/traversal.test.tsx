@@ -61,7 +61,7 @@ describe('traverseState', () => {
       },
     });
     render(<ComplexComponent countProp={1} />);
-    const states: Array<{ next: unknown; prev: unknown }> = [];
+    const states: { next: unknown; prev: unknown }[] = [];
     const selector = vi.fn((nextState, prevState) => {
       states.push({
         next: nextState.memoizedState,

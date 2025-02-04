@@ -1,4 +1,3 @@
-
 import { describe, expect, it } from 'vitest';
 import {
   didFiberCommit,
@@ -183,7 +182,7 @@ describe('getMutatedHostFibers', () => {
 describe('getFiberStack', () => {
   it('should return the fiber stack', () => {
     let maybeFiber: Fiber | null = null;
-    let manualFiberStack: Array<Fiber> = [];
+    let manualFiberStack: Fiber[] = [];
     instrument({
       onCommitFiberRoot: (_rendererID, fiberRoot) => {
         manualFiberStack = [];

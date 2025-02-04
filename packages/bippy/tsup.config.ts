@@ -36,15 +36,14 @@ export default defineConfig([
   {
     ...DEFAULT_OPTIONS,
     format: ['esm', 'cjs'],
-    entry: ['./src/index.ts', './src/core.ts', './src/experiments/inspect.tsx'],
+    entry: [
+      './src/index.ts',
+      './src/core.ts',
+      './src/experiments/inspect.tsx',
+      './src/experiments/shrinkwrap.ts',
+    ],
     splitting: true,
     clean: true, // only run on first entry
-  },
-  {
-    ...DEFAULT_OPTIONS,
-    outDir: './dist',
-    format: ['esm', 'cjs'],
-    entry: ['./src/sw.ts'],
   },
   {
     ...DEFAULT_OPTIONS,
@@ -53,5 +52,13 @@ export default defineConfig([
     minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
     globalName: 'Bippy',
     entry: ['./src/index.ts'],
+  },
+  {
+    ...DEFAULT_OPTIONS,
+    format: ['iife'],
+    outDir: './dist',
+    minify: process.env.NODE_ENV === 'production' ? 'terser' : false,
+    globalName: 'Shrinkwrap',
+    entry: ['./src/experiments/shrinkwrap.ts'],
   },
 ]);
