@@ -1,5 +1,5 @@
 {
-	"name": "bippy",
+	"name": "sidakram-bippy",
 	"version": "0.2.24",
 	"description": "hack into react internals",
 	"keywords": [
@@ -12,11 +12,11 @@
 	],
 	"homepage": "https://bippy.dev",
 	"bugs": {
-		"url": "https://github.com/aidenybai/bippy/issues"
+		"url": "https://github.com/sidakram/bippy/issues"
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/aidenybai/bippy.git"
+		"url": "git+https://github.com/sidakram/bippy.git"
 	},
 	"license": "MIT",
 	"author": {
