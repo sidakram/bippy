@@ -61,4 +61,17 @@ export default defineConfig([
     globalName: 'Shrinkwrap',
     entry: ['./src/experiments/shrinkwrap.ts'],
   },
+  {
+    ...DEFAULT_OPTIONS,
+    format: ['esm', 'cjs'],
+    target: 'es2015',
+    entry: [
+      './src/index.ts',
+      './src/core.ts',
+      './src/experiments/inspect.tsx',
+      './src/experiments/shrinkwrap.ts',
+    ],
+    splitting: true,
+    clean: true, // only run on first entry
+  },
 ]);
